@@ -1,16 +1,20 @@
 <script setup>
 import { ref, computed } from 'vue';
 const products = ref([
-  {id: 1, name: 'notebook', price: 200},
-  {id: 2, name: 'mouse', price: 500},
-  {id: 3, name: 'monitor', price: 650}
+  {id: 1, name: 'notebook', price: 200, stock: 10},
+  {id: 2, name: 'mouse', price: 500, stock: 5},
+  {id: 3, name: 'monitor', price: 650, stock: 7}
 ])
 
 const cart =ref([]);
 
 const addToCart = (item) => {
-  cart.value.push(item)
-  console.log('current Cart products', cart.value)
+  if(item.stock > 0){
+    cart.value.push(item);
+    item.stock -= 1;
+  }else{
+    alert('out of stock!!');
+  }
 }
 
 const totalPrice = computed(() =>{
@@ -20,8 +24,12 @@ const totalPrice = computed(() =>{
 });
 
 const removeFromCart = (index) => {
+  const item = cart.value[index];
+
+  if(item){
+    item.stock += 1;
+  }
   cart.value.splice(index, 1);
-  console.log('剩餘商品', cart.value);
 }
 
 </script>
@@ -31,7 +39,7 @@ const removeFromCart = (index) => {
     <h2>products list</h2>
     <ul>
       <li v-for="item in products" :key="item.id">
-        {{ item.name }} -- ${{ item.price }}
+        {{ item.name }} -- 數量: {{ item.stock }} -- ${{ item.price }}
         <button @click="addToCart(item)">add to Cart</button>
       </li>
     </ul>
