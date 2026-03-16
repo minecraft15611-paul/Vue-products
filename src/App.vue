@@ -11,21 +11,27 @@ const cart =ref([]);
 const addToCart = (item) => {
   if(item.stock > 0){
     item.stock -= 1;
-    cart.value.push({...item});
+
+    const cartItem = cart.value.find(c => c.id === item.id);
+    if (cartItem){
+      cartItem.quantity += 1;
+    }else {
+      cart.value.push({...item, quantity: 1});
+    }
   }
 }
 
-const totalPrice = computed(() =>{
-  return cart.value.reduce((sum, item) =>{
-    return sum + item.price;
+const totalPrice = computed(() => {
+  return cart.value.reduce((sum, item) => {
+    return sum + (item.price * item.quantity);
   }, 0);
-});
+})
 
 const removeFromCart = (index) => {
   const item = cart.value[index];
   const product = products.value.find(p => p.id === item.id);
   if(product){
-    product.stock += 1;
+    product.stock += item.quantity;
   }
   cart.value.splice(index, 1);
 }
@@ -34,12 +40,12 @@ const clearCart = () => {
   cart.value.forEach(item => {
     const product = products.value.find(p => p.id === item.id)
     if (product){
-      product.stock += 1
+      product.stock += item.quantity;
     }
   })
-
   cart.value = [];
 }
+
 
 </script>
 
@@ -63,7 +69,8 @@ const clearCart = () => {
     <h2>Cart (number:{{ cart.length }})</h2>
     <ul>
       <li v-for="(cartItem, index) in cart" :key="index">
-        {{ cartItem.name }}
+        {{ cartItem.name }} -- {{ cartItem.price }}
+        <strong> X {{ cartItem.quantity }} </strong>
       </li>
       <button @click="clearCart" v-if="cart.length > 0">Clear all</button>
     </ul>
