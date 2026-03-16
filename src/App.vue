@@ -10,10 +10,8 @@ const cart =ref([]);
 
 const addToCart = (item) => {
   if(item.stock > 0){
-    cart.value.push(item);
     item.stock -= 1;
-  }else{
-    alert('out of stock!!');
+    cart.value.push({...item});
   }
 }
 
@@ -25,9 +23,9 @@ const totalPrice = computed(() =>{
 
 const removeFromCart = (index) => {
   const item = cart.value[index];
-
-  if(item){
-    item.stock += 1;
+  const product = products.value.find(p => p.id === item.id);
+  if(product){
+    product.stock += 1;
   }
   cart.value.splice(index, 1);
 }
@@ -51,7 +49,12 @@ const clearCart = () => {
     <ul>
       <li v-for="item in products" :key="item.id">
         {{ item.name }} -- 數量: {{ item.stock }} -- ${{ item.price }}
-        <button @click="addToCart(item)">add to Cart</button>
+        <button 
+        @click="addToCart(item)"
+        :disabled="item.stock === 0"
+        >
+        {{ item.stock > 0 ? 'Add to Cart':'Out of Stock' }}
+        </button>
       </li>
     </ul>
 
@@ -62,7 +65,7 @@ const clearCart = () => {
       <li v-for="(cartItem, index) in cart" :key="index">
         {{ cartItem.name }}
       </li>
-      <button @click="clearCart">Clear all</button>
+      <button @click="clearCart" v-if="cart.length > 0">Clear all</button>
     </ul>
   </div>
 
