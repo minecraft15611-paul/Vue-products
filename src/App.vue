@@ -32,6 +32,17 @@ const removeFromCart = (index) => {
   cart.value.splice(index, 1);
 }
 
+const clearCart = () => {
+  cart.value.forEach(item => {
+    const product = products.value.find(p => p.id === item.id)
+    if (product){
+      product.stock += 1
+    }
+  })
+
+  cart.value = [];
+}
+
 </script>
 
 <template>
@@ -51,6 +62,7 @@ const removeFromCart = (index) => {
       <li v-for="(cartItem, index) in cart" :key="index">
         {{ cartItem.name }}
       </li>
+      <button @click="clearCart">Clear all</button>
     </ul>
   </div>
 
