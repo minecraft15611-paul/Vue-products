@@ -19,9 +19,14 @@ const totalPrice = computed(() =>{
   }, 0);
 });
 
+const removeFromCart = (index) => {
+  cart.value.splice(index, 1);
+  console.log('剩餘商品', cart.value);
+}
+
 </script>
 
-<template>ㄋ
+<template>
   <div>
     <h2>products list</h2>
     <ul>
@@ -44,6 +49,14 @@ const totalPrice = computed(() =>{
   <hr>
 
   <h3>Total Amount Price:{{ totalPrice }}</h3>
+
+  <ul>
+    <li v-for="(cartItem, index) in cart" :key="index">
+      {{ cartItem.name }} - ${{ cartItem.price }}
+
+      <button @click="removeFromCart(index)">remove</button>
+    </li>
+  </ul>
 </template>
 
 <style scoped></style>
