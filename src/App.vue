@@ -46,14 +46,28 @@ const clearCart = () => {
   cart.value = [];
 }
 
+const searchQuery = ref('');
+
+const filteredProducts = computed(() => {
+  return products.value.filter(p => {
+    return p.name.toLowerCase().includes(searchQuery.value.toLowerCase());
+  });
+});
+
 
 </script>
 
 <template>
   <div>
     <h2>products list</h2>
+    <div style="margin-bottom: 20px;">
+      <input type="text" v-model="searchQuery" placeholder="Search products...">
+      <p v-if="searchQuery">Searching for: {{ searchQuery }}</p>
+    </div>
+
+
     <ul>
-      <li v-for="item in products" :key="item.id">
+      <li v-for="item in filteredProducts" :key="item.id">
         {{ item.name }} -- 數量: {{ item.stock }} -- ${{ item.price }}
         <button 
         @click="addToCart(item)"
