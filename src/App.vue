@@ -1,13 +1,33 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 
-// ----  Products Lists -----
+// ---- Ensure Products List is Empty-----
 
-const products = ref([
-  {id: 1, name: 'notebook', price: 200, stock: 10},
-  {id: 2, name: 'mouse', price: 500, stock: 5},
-  {id: 3, name: 'monitor', price: 650, stock: 7}
-])
+const products = ref([]);
+
+// ---- Fetching Products From API ----
+
+const fetchProducts = async () => {
+  try{
+    const response = await fetch('https://fakestoreapi.com/products');
+    const data = await response.json();
+
+    products.value = data.map(item => ({
+      ...item,
+      stock: 5
+    }));
+
+    console.log('API data fetching succeed', products.value);
+  }catch (error) {
+    console.log('data fetching failed', error);
+  }
+};
+
+// ---- Execute the Fetch on Component Mount ----
+
+onMounted(() => {
+  fetchProducts();
+})
 
 //  ---- Shopping Cart ----
 
@@ -71,7 +91,7 @@ const maxPrice = ref(1000);
 
 const filteredProducts = computed(() => {
   return products.value.filter(p => {
-    const matchName = p.name.toLowerCase().includes(searchQuery.value.toLocaleLowerCase());
+    const matchName = p.title.toLowerCase().includes(searchQuery.value.toLocaleLowerCase());
     const matchPrice = p.price <= maxPrice.value;
 
     return matchName && matchPrice;
@@ -94,8 +114,14 @@ const filteredProducts = computed(() => {
 
 
     <ul>
-      <li v-for="item in filteredProducts" :key="item.id">
-        {{ item.name }} -- 數量: {{ item.stock }} -- ${{ item.price }}
+      <li v-for="item in filteredProducts" :key="item.id" style="margin-bottom: 20px;">
+        <img :src="item.image" :alt="item.title" style="width: 50px; height: 50px; object-fit: contain;">
+        <div>
+          <strong>{{ item.title }}</strong> -- ${{ item.price }}
+          <p style="font-size: 12px; color: #666;">{{ item.category }}</p>
+          <span>Stock: {{ item.stock }}</span>
+        </div>
+        
         <button 
         @click="addToCart(item)"
         :disabled="item.stock === 0"
@@ -110,7 +136,7 @@ const filteredProducts = computed(() => {
     <h2>Cart (number:{{ cart.length }})</h2>
     <ul>
       <li v-for="(cartItem, index) in cart" :key="index">
-        {{ cartItem.name }} -- {{ cartItem.price }}
+        {{ cartItem.title }} -- {{ cartItem.price }}
         <strong> X {{ cartItem.quantity }} </strong>
       </li>
       <button @click="clearCart" v-if="cart.length > 0">Clear all</button>
@@ -123,7 +149,7 @@ const filteredProducts = computed(() => {
 
   <ul>
     <li v-for="(cartItem, index) in cart" :key="index">
-      {{ cartItem.name }} - ${{ cartItem.price }}
+      {{ cartItem.title }} - ${{ cartItem.price }}
 
       <button @click="removeFromCart(index)">remove</button>
     </li>
