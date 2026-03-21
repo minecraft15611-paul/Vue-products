@@ -98,12 +98,32 @@ const filteredProducts = computed(() => {
   });
 });
 
+// ---- Define Products Stocks in Single Page ----
+
+const pageSize = ref(3);
+
+// ---- Define Current Page as Page 1 ----
+
+const currentPage = ref(1);
+
+// ---- Cauculate How Many Pages From Products ---- 
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredProducts.value.length / pageSize.value);
+});
+
+// ---- Slice for Show Products in Single Page ----
+const paginatedProducts = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredProducts.value.slice(start, end);
+});
 
 </script>
 
 <template>
   <div>
-    <h2>products list</h2>
+    <h2>Products List</h2>
     <div style="margin-bottom: 20px;">
       <label>Max Price: ${{ maxPrice }}</label>
       <br>
@@ -114,7 +134,7 @@ const filteredProducts = computed(() => {
 
 
     <ul>
-      <li v-for="item in filteredProducts" :key="item.id" style="margin-bottom: 20px;">
+      <li v-for="item in paginatedProducts" :key="item.id">
         <img :src="item.image" :alt="item.title" style="width: 50px; height: 50px; object-fit: contain;">
         <div>
           <strong>{{ item.title }}</strong> -- ${{ item.price }}
@@ -130,10 +150,16 @@ const filteredProducts = computed(() => {
         </button>
       </li>
     </ul>
+    
+    <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; align-items: center;" >
+      <button @click="currentPage--" :disabled="currentPage === 1">Last Page</button>
+      <span>Current Page: {{ currentPage }} / Total Page: {{ totalPages }}</span>
+      <button @click="currentPage++" :disabled="currentPage === totalPages">Next Page</button>
+    </div>
 
     <hr>
 
-    <h2>Cart (number:{{ cart.length }})</h2>
+    <h2>Cart ( number: {{ cart.length }} )</h2>
     <ul>
       <li v-for="(cartItem, index) in cart" :key="index">
         {{ cartItem.title }} -- {{ cartItem.price }}
@@ -145,7 +171,7 @@ const filteredProducts = computed(() => {
 
   <hr>
 
-  <h3>Total Amount Price:{{ totalPrice }}</h3>
+  <h3>Total Amount Price: {{ totalPrice }}</h3>
 
   <ul>
     <li v-for="(cartItem, index) in cart" :key="index">
