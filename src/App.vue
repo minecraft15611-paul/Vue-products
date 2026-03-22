@@ -87,6 +87,16 @@ const searchQuery = ref('');
 
 const maxPrice = ref(1000);
 
+
+const selectedCategory = ref('ALL');
+
+const categories = computed(() => {
+  const list = products.value.map(p => p.category);
+  return ['All', ...new Set(list)];
+})
+
+
+
 // ---- Filtered Results ----
 
 const filteredProducts = computed(() => {
@@ -94,9 +104,16 @@ const filteredProducts = computed(() => {
     const matchName = p.title.toLowerCase().includes(searchQuery.value.toLocaleLowerCase());
     const matchPrice = p.price <= maxPrice.value;
 
-    return matchName && matchPrice;
+    const matchCategory = selectedCategory.value === 'All' || p.category === selectedCategory.value;
+
+    return matchName && matchPrice && matchCategory;
   });
 });
+
+const setCategory = (cat) => {
+  selectedCategory.value = cat;
+  currentPage.value = 1;
+}
 
 // ---- Define Products Stocks in Single Page ----
 
@@ -119,17 +136,30 @@ const paginatedProducts = computed(() => {
   return filteredProducts.value.slice(start, end);
 });
 
+
+
 </script>
 
 <template>
   <div>
     <h2>Products List</h2>
-    <div style="margin-bottom: 20px;">
+    <div style="margin-bottom: 10px;">
       <label>Max Price: ${{ maxPrice }}</label>
       <br>
       <input type="range" v-model.number="maxPrice" min="0" max="1000" step="50">
-      <input type="text" v-model="searchQuery" placeholder="Search products...">
+    </div>
+    <div>
+            <input type="text" v-model="searchQuery" placeholder="Search products...">
       <p v-if="searchQuery">Searching for: {{ searchQuery }}</p>
+
+    </div>
+    <div style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+      <button 
+        v-for="cat in categories" 
+        :key="cat" @click="setCategory(cat)" 
+        :style="{backgroundColor: selectedCategory === cat ? '#42b983' : '#eee', color: selectedCategory === cat ? 'white' : 'black'}"
+        >{{ cat }}
+      </button>
     </div>
 
 
