@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 
 // ---- Ensure Products List is Empty-----
 
@@ -31,7 +31,12 @@ onMounted(() => {
 
 //  ---- Shopping Cart ----
 
-const cart =ref([]);
+const savedCart = localStorage.getItem('my_cart');
+const cart =ref(savedCart ? JSON.parse(savedCart) : []);
+
+watch(cart, (newCart) => {
+  localStorage.setItem('my_cart', JSON.stringify(newCart));
+}, { deep: true});
 
 // ---- Add to Cart Function ----
 
