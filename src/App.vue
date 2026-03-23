@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 
+import Cart from './components/Cart.vue'
+
 // ---- Ensure Products List is Empty-----
 
 const products = ref([]);
@@ -93,7 +95,7 @@ const searchQuery = ref('');
 const maxPrice = ref(1000);
 
 
-const selectedCategory = ref('ALL');
+const selectedCategory = ref('All');
 
 const categories = computed(() => {
   const list = products.value.map(p => p.category);
@@ -192,29 +194,19 @@ const paginatedProducts = computed(() => {
       <button @click="currentPage++" :disabled="currentPage === totalPages">Next Page</button>
     </div>
 
-    <hr>
+    
 
-    <h2>Cart ( number: {{ cart.length }} )</h2>
-    <ul>
-      <li v-for="(cartItem, index) in cart" :key="index">
-        {{ cartItem.title }} -- {{ cartItem.price }}
-        <strong> X {{ cartItem.quantity }} </strong>
-      </li>
-      <button @click="clearCart" v-if="cart.length > 0">Clear all</button>
-    </ul>
+    <div>
+      
+
+      <Cart 
+      :cartItems="cart" 
+      :totalPrice="totalPrice"
+      @remove-item="removeFromCart"
+      @clear-all="clearCart" 
+      />
+    </div>
   </div>
-
-  <hr>
-
-  <h3>Total Amount Price: {{ totalPrice }}</h3>
-
-  <ul>
-    <li v-for="(cartItem, index) in cart" :key="index">
-      {{ cartItem.title }} - ${{ cartItem.price }}
-
-      <button @click="removeFromCart(index)">remove</button>
-    </li>
-  </ul>
 </template>
 
 <style scoped></style>
