@@ -5,7 +5,10 @@
     });
 
     const emit  = defineEmits(['remove-item', 'clear-all']);
+
 </script>
+
+
 
 <template>
     <section style="margin-top: 40px; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
@@ -13,7 +16,7 @@
 
         <ul v-if="cartItems.length > 0">
             <li v-for="(item, index) in cartItems" :key="index" style="margin-bottom: 10px;">
-                <strong>{{ item.title }}</strong> - ${{ item.price }}
+                <strong>{{ item.title }}</strong> --- ${{ item.price }}
                 <span> x {{ item.quantity }}</span>
 
                 <button @click="emit('remove-item', index)">Remove</button>

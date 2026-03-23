@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 
-import Cart from './components/Cart.vue'
+import Cart from './components/Cart.vue';
+import ProductList from './components/ProductList.vue';
 
 // ---- Ensure Products List is Empty-----
 
@@ -67,6 +68,7 @@ const totalPrice = computed(() => {
 
 const removeFromCart = (index) => {
   const item = cart.value[index];
+  if (!item) return; // ensure the index has corresponding data
   const product = products.value.find(p => p.id === item.id);
   if(product){
     product.stock += item.quantity;
@@ -86,62 +88,6 @@ const clearCart = () => {
   cart.value = [];
 }
 
-// ---- User Input Bindings ----
-
-const searchQuery = ref('');
-
-// ---- Define Max Price ----
-
-const maxPrice = ref(1000);
-
-
-const selectedCategory = ref('All');
-
-const categories = computed(() => {
-  const list = products.value.map(p => p.category);
-  return ['All', ...new Set(list)];
-})
-
-
-
-// ---- Filtered Results ----
-
-const filteredProducts = computed(() => {
-  return products.value.filter(p => {
-    const matchName = p.title.toLowerCase().includes(searchQuery.value.toLocaleLowerCase());
-    const matchPrice = p.price <= maxPrice.value;
-
-    const matchCategory = selectedCategory.value === 'All' || p.category === selectedCategory.value;
-
-    return matchName && matchPrice && matchCategory;
-  });
-});
-
-const setCategory = (cat) => {
-  selectedCategory.value = cat;
-  currentPage.value = 1;
-}
-
-// ---- Define Products Stocks in Single Page ----
-
-const pageSize = ref(3);
-
-// ---- Define Current Page as Page 1 ----
-
-const currentPage = ref(1);
-
-// ---- Cauculate How Many Pages From Products ---- 
-
-const totalPages = computed(() => {
-  return Math.ceil(filteredProducts.value.length / pageSize.value);
-});
-
-// ---- Slice for Show Products in Single Page ----
-const paginatedProducts = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredProducts.value.slice(start, end);
-});
 
 
 
@@ -149,56 +95,16 @@ const paginatedProducts = computed(() => {
 
 <template>
   <div>
-    <h2>Products List</h2>
-    <div style="margin-bottom: 10px;">
-      <label>Max Price: ${{ maxPrice }}</label>
-      <br>
-      <input type="range" v-model.number="maxPrice" min="0" max="1000" step="50">
-    </div>
     <div>
-            <input type="text" v-model="searchQuery" placeholder="Search products...">
-      <p v-if="searchQuery">Searching for: {{ searchQuery }}</p>
-
-    </div>
-    <div style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-      <button 
-        v-for="cat in categories" 
-        :key="cat" @click="setCategory(cat)" 
-        :style="{backgroundColor: selectedCategory === cat ? '#42b983' : '#eee', color: selectedCategory === cat ? 'white' : 'black'}"
-        >{{ cat }}
-      </button>
+      <ProductList
+        :products="products"
+        @add-to-cart="addToCart"
+      />
     </div>
 
-
-    <ul>
-      <li v-for="item in paginatedProducts" :key="item.id">
-        <img :src="item.image" :alt="item.title" style="width: 50px; height: 50px; object-fit: contain;">
-        <div>
-          <strong>{{ item.title }}</strong> -- ${{ item.price }}
-          <p style="font-size: 12px; color: #666;">{{ item.category }}</p>
-          <span>Stock: {{ item.stock }}</span>
-        </div>
-        
-        <button 
-        @click="addToCart(item)"
-        :disabled="item.stock === 0"
-        >
-        {{ item.stock > 0 ? 'Add to Cart':'Out of Stock' }}
-        </button>
-      </li>
-    </ul>
-    
-    <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; align-items: center;" >
-      <button @click="currentPage--" :disabled="currentPage === 1">Last Page</button>
-      <span>Current Page: {{ currentPage }} / Total Page: {{ totalPages }}</span>
-      <button @click="currentPage++" :disabled="currentPage === totalPages">Next Page</button>
-    </div>
-
-    
+    <hr>
 
     <div>
-      
-
       <Cart 
       :cartItems="cart" 
       :totalPrice="totalPrice"
