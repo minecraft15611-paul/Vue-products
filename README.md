@@ -1,3 +1,8 @@
+# My Ecommerce Site
+
+🔗 **專案預覽連結：** [點此觀看實際網頁](https://minecraft15611-paul.github.io/Vue-products/)
+
+
 Vue 3 + Pinia Shopping Cart Project
 
 這是一個基於 Vue 3 (Composition API) 與 Pinia 狀態管理開發的電商購物車練習專案。本專案已完成從組件傳遞（Props/Emits）到全域狀態管理的架構重構，實現了邏輯與畫面的完全解耦。
