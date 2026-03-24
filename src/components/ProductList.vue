@@ -1,11 +1,8 @@
 <script setup>
     import { ref, computed } from 'vue';
+    import { useCartStore } from '../stores/cart';
 
-    const props = defineProps({
-        products: Array
-    });
-
-    const emit = defineEmits(['add-to-cart']);
+    const cartStore = useCartStore();
 
 // ---- User Input Bindings ----
     const searchQuery = ref('');
@@ -22,14 +19,14 @@
     const currentPage = ref(1);
 
     const categories = computed(() => {
-        const list = props.products.map(p => p.category);
+        const list = cartStore.products.map(p => p.category);
         return ['All', ...new Set(list)];
     });
 
 // ---- Filtered Results ----
 
     const filteredProducts = computed(() => {
-        return props.products.filter(p => {
+        return cartStore.products.filter(p => {
             const title = p.title || '';
             const matchName = title.toLowerCase().includes(searchQuery.value.toLowerCase());
             const matchPrice = p.price <= maxPrice.value;
@@ -84,7 +81,7 @@
                     <strong>{{ item.title }}</strong> -- ${{ item.price }}
                     <span> (Stock: {{ item.stock }})</span>
                 </div>
-                <button @click="emit('add-to-cart', item)" :disabled="item.stock === 0">
+                <button @click="cartStore.addToCart(item)" :disabled="item.stock === 0">
                     {{ item.stock > 0 ? 'Add to Cart' : 'Out of Stock' }}
                 </button>
             </li>
