@@ -1,13 +1,6 @@
 Vue 3 + Pinia Shopping Cart Project
-這是一個基於 Vue 3 (Composition API) 與 Pinia 狀態管理開發的電商購物車練習專案。本專案已完成從組件傳遞（Props/Emits）到全域狀態管理的架構重構，實現了邏輯與畫面的完全解耦。
 
-src/
-├── components/
-│   ├── Cart.vue          # 購物車顯示組件
-│   └── ProductList.vue   # 商品列表、搜尋、篩選與分頁組件
-├── stores/
-│   └── cart.js           # Pinia Store (所有邏輯核心)
-└── App.vue               # 根組件 (僅負責掛載與 API 初始化)
+這是一個基於 Vue 3 (Composition API) 與 Pinia 狀態管理開發的電商購物車練習專案。本專案已完成從組件傳遞（Props/Emits）到全域狀態管理的架構重構，實現了邏輯與畫面的完全解耦。
 
 🚀 技術棧
 Vue 3：前端開發框架。
@@ -42,3 +35,10 @@ clearCart(): 一鍵清空購物車並歸還所有商品庫存。
 庫存同步系統：加入或移除商品時，首頁商品的庫存數量（Stock）會即時增減。
 篩選與分頁：支援商品名稱搜尋、價格區間篩選、分類切換以及分頁功能。
 
+src/
+├── components/
+│   ├── Cart.vue          # 購物車顯示組件
+│   └── ProductList.vue   # 商品列表、搜尋、篩選與分頁組件
+├── stores/
+│   └── cart.js           # Pinia Store (所有邏輯核心)
+└── App.vue               # 根組件 (僅負責掛載與 API 初始化)
