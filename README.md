@@ -6,7 +6,9 @@ Vue 3 + Pinia Shopping Cart Project
 Vue 3：前端開發框架。
 
 Pinia：官方推薦的狀態管理庫（取代 Vuex）。
+
 Vite：高效的前端構建工具。
+
 Fake Store API：用於獲取模擬商品資料。
 
 🛠 核心架構：Pinia Store (cart.js)
@@ -15,24 +17,30 @@ Fake Store API：用於獲取模擬商品資料。
 State:
 
 products: 儲存從 API 獲取的商品清單。
+
 cart: 儲存購物車內的商品、數量。
 
 Getters:
 
 totalPrice: 自動計算購物車總金額。
+
 cartCount: 即時計算購物車內物品總數。
 
 Actions:
 
 fetchProducts(): 非同步獲取 API 資料並初始化庫存。
+
 addToCart() / removeFromCart(): 處理購物邏輯並同步更新 products 庫存。
+
 clearCart(): 一鍵清空購物車並歸還所有商品庫存。
 
 ✨ 主要功能
 全域狀態管理：組件（ProductList, Cart）直接與 Store 連線，無需透過 App.vue 層層傳遞資料。
 
 資料持久化：使用 watch 監聽購物車變動，並自動同步至瀏覽器 localStorage，重新整理後內容不消失。
+
 庫存同步系統：加入或移除商品時，首頁商品的庫存數量（Stock）會即時增減。
+
 篩選與分頁：支援商品名稱搜尋、價格區間篩選、分類切換以及分頁功能。
 
 src/
