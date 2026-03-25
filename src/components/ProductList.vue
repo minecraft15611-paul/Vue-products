@@ -10,6 +10,7 @@
 // ---- Define Max Price ----
     const maxPrice = ref(1000);
 
+// ---- Default Catagory as All ----
     const selectedCategory = ref('All');
 
 // ---- Define Products Stocks in Single Page ----
@@ -18,6 +19,7 @@
 // ---- Define Current Page as Page 1 ----
     const currentPage = ref(1);
 
+// ---- Classify Each Item as Their Own Catagories ----
     const categories = computed(() => {
         const list = cartStore.products.map(p => p.category);
         return ['All', ...new Set(list)];

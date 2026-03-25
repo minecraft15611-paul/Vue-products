@@ -5,8 +5,6 @@
 
 </script>
 
-
-
 <template>
     <section style="margin-top: 40px; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
         <h2>Shopping Cart ({{ cartStore.cartCount }})</h2>

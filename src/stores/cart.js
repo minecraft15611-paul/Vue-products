@@ -3,14 +3,20 @@ import { ref, computed, watch } from 'vue';
 
 export const useCartStore = defineStore('cart', () => {
     
-    // ---- Ensure Products List is Empty-----
-
+// ---- Ensure Products List is Empty-----
     const products = ref([]);
+
 
 //  ---- Shopping Cart ----
 
     const savedCart = localStorage.getItem('my_cart');
     const cart = ref(savedCart ? JSON.parse(savedCart) : []);
+    
+// ---- Stringify the New Cart and Storage ----
+
+    watch(cart, (newCart) => {
+        localStorage.setItem('my_cart', JSON.stringify(newCart));
+    }, { deep: true});
 
 
 // ---- Compute Total Price ----
@@ -38,7 +44,6 @@ export const useCartStore = defineStore('cart', () => {
         }
     };
 
-
 // ---- Single Item Remove From Cart ----
 
     const removeFromCart = (index) => {
@@ -49,7 +54,6 @@ export const useCartStore = defineStore('cart', () => {
         }
         cart.value.splice(index, 1);
     };
-
 
 // ---- Clear All Items In Cart ----
 
@@ -63,11 +67,9 @@ export const useCartStore = defineStore('cart', () => {
         cart.value = [];
     };
 
-    watch(cart, (newCart) => {
-        localStorage.setItem('my_cart', JSON.stringify(newCart));
-    }, { deep: true});
 
-    
+// ---- Fetch Data from API and Assign the Stock Property to Each Item ----
+
     const fetchProducts = async () => {
         try {
             const response = await fetch('https://fakestoreapi.com/products');
