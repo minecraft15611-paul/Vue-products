@@ -14,7 +14,8 @@ onMounted( () => cartStore.fetchProducts());
 
 <template>
   <div>
-      <ProductList />
+      <router-view></router-view>
+
       <hr>
       <Cart  />
   </div>
