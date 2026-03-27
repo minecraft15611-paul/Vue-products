@@ -3,6 +3,7 @@ import { onMounted } from 'vue';
 import { useCartStore } from './stores/cart';
 import Cart from './components/Cart.vue';
 import ProductList from './components/ProductList.vue';
+import Myheader from './components/Myheader.vue';
 
 const cartStore = useCartStore();
 
@@ -14,7 +15,11 @@ onMounted( () => cartStore.fetchProducts());
 
 <template>
   <div>
-      <router-view></router-view>
+      <Myheader />
+
+      <main>
+        <router-view></router-view>
+      </main>
 
       <hr>
       <Cart  />
