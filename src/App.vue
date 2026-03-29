@@ -18,7 +18,7 @@ onMounted( () => cartStore.fetchProducts());
   <div class="flex flex-col min-h-screen">
       <Myheader />
 
-      <main class="flex-grow">
+      <main class="grow">
         <router-view></router-view>
       </main>
 

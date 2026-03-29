@@ -7,13 +7,13 @@
         
         <div>
           <h3 class="text-base font-bold tracking-widest mb-6 pb-2 border-b border-gray-800">
-            SHOP
+            Store Info
           </h3>
           <ul class="space-y-3">
-            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">男裝</a></li>
-            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">女裝</a></li>
-            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">飾品</a></li>
-            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">電子產品</a></li>
+            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">Contact Us</a></li>
+            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">Our Story</a></li>
+            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">Store Locator</a></li>
+            
           </ul>
         </div>
 
@@ -22,9 +22,9 @@
             HELP
           </h3>
           <ul class="space-y-3">
-            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">追蹤訂單</a></li>
-            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">尺寸指南</a></li>
-            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">支付方式</a></li>
+            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">Track Order</a></li>
+            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">Size Guide</a></li>
+            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">Payment Methods</a></li>
           </ul>
         </div>
 
@@ -33,9 +33,9 @@
             COMPANY
           </h3>
           <ul class="space-y-3">
-            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">永續發展</a></li>
-            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">加入我們</a></li>
-            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">隱私權政策</a></li>
+            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">Sustainability</a></li>
+            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">Careers</a></li>
+            <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors">Privacy Policy</a></li>
           </ul>
         </div>
       </div>
