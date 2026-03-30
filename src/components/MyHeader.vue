@@ -72,10 +72,10 @@
       <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
 
         <!-- LEFT: Hamburger (mobile) / Social icons placeholder (desktop handled in top bar) -->
-        <div class="flex items-center w-1/4">
+        <div class="lg:hidden items-center w-1/4">
           <!-- Hamburger — mobile only -->
           <button
-            class="lg:hidden text-2xl focus:outline-none transition duration-300 hover:scale-110"
+            class="text-2xl focus:outline-none transition duration-300 hover:scale-110"
             @click="mobileMenuOpen = !mobileMenuOpen"
             aria-label="Toggle menu"
           >
