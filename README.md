@@ -14,7 +14,9 @@ Pinia：官方推薦的狀態管理庫（取代 Vuex）。
 
 Vite：高效的前端構建工具。
 
-Fake Store API：用於獲取模擬商品資料。
+Tailwind Css
+
+Fake Store API：用於獲取模擬商品資料。  
 
 🛠 核心架構：Pinia Store (cart.js)
 專案將所有資料流集中於 useCartStore 管理，主要包含以下部分：
