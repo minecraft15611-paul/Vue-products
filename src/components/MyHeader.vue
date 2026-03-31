@@ -140,7 +140,7 @@
               :key="cat"
               @click="setCategory(cat); mobileMenuOpen = false"
               :class="[
-                'text-left font-semibold px-3 py-2 rounded-lg tracking-wide transition duration-200 hover:bg-gray-100',
+                'text-left font-semibold px-3 py-2 rounded-lg tracking-wide transition duration-200  hover:bg-gray-100',
                 selectedCategory === cat ? 'text-pink-500 bg-pink-50' : ''
               ]"
             >
