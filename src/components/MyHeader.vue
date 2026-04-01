@@ -1,6 +1,7 @@
 <script setup>
     import { ref, computed } from 'vue';
     import { useCartStore } from '../stores/cart';
+    import { RouterLink } from 'vue-router';
 
     const cartStore = useCartStore();
 
@@ -108,9 +109,9 @@
           </div>
 
           <!-- Mobile: Cart icon only -->
-           <div class="block lg:hidden ">
-               <i class="fa-solid fa-bag-shopping text-xl"></i>
-           </div>
+           <router-link to="/ShoppingCart" class="block lg:hidden ">
+                 <i class="fa-solid fa-bag-shopping text-xl"></i>
+           </router-link>
         </div>
 
       </div>

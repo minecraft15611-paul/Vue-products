@@ -72,9 +72,10 @@ export const useCartStore = defineStore('cart', () => {
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch('https://fakestoreapi.com/products');
+            const response = await fetch('/Vue-products/api/Products.json');
             const data = await response.json();
             products.value = data.map(item => ({ ...item, stock: 5 }));
+            console.log(products)
         } catch (error) {
             console.error('data fetching failed', error);
         }
