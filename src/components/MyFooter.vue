@@ -1,4 +1,19 @@
+<script setup>
+
+import { ref } from 'vue'
+
+const open = ref(null)
+
+const toggle = (index) => {
+  // On desktop (md+), don't use accordion behaviour
+  if (window.innerWidth >= 768) return
+  open.value = open.value === index ? null : index
+}
+
+</script>
+
 <template>
+
   <footer class="bg-black text-white pt-16 pb-8 px-6 font-sans">
     <div class="max-w-7xl mx-auto">
 
@@ -91,16 +106,6 @@
 
     </div>
   </footer>
+  
 </template>
 
-<script setup>
-import { ref } from 'vue'
-
-const open = ref(null)
-
-const toggle = (index) => {
-  // On desktop (md+), don't use accordion behaviour
-  if (window.innerWidth >= 768) return
-  open.value = open.value === index ? null : index
-}
-</script>
