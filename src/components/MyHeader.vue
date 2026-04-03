@@ -84,7 +84,7 @@
             <i class="fa-regular fa-user text-xl cursor-pointer transition duration-300 hover:scale-125"></i>
             <i class="fa-regular fa-heart text-xl cursor-pointer transition duration-300 hover:scale-125"></i>
             <router-link to="/ShoppingCart">
-              <CartIcon :cartCount="cartStore.cartCount" />
+              <CartIcon :cartCount="cartStore.cartCount"  class="cursor-pointer transition duration-300 hover:scale-125"/>
             </router-link>
           </div>
 

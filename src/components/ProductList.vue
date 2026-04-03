@@ -52,7 +52,7 @@
                     <button
                         @click="cartStore.addToCart(item)"
                         :disabled="item.stock === 0"
-                        class="flex justify-end mt-auto underline decoration-1 underline-offset-4 text-gray-800"
+                        class="flex justify-end mt-auto px-2 py-1 rounded text-gray-800 transition-all ease-out duration-300 active:scale-90 active:text-white active:bg-blue-950 active:shadow-inner"
                     >
                         {{ item.stock > 0 ? 'ADD TO CART' : '×' }}
                     </button>
