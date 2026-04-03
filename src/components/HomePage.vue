@@ -1,3 +1,19 @@
+<script setup>
+  import { useCartStore } from '../stores/cart';
+  const cartStore = useCartStore();
+
+  const handleShopNow = () => {
+
+  cartStore.setCategory('All');
+  
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+};
+
+</script>
+
 <template>
   <div class="banner-wrapper w-full overflow-hidden">
     <img 
@@ -52,7 +68,8 @@
           <span class="text-white text-xs uppercase tracking-[0.5em] mb-4">Summer Collection</span>
           <h2 class="text-white text-3xl md:text-5xl font-light mb-8 ">GET UP TO <span class="font-extrabold">20% OFF</span></h2>
           <button 
-            class="bg-white text-black px-12 py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all duration-300"
+            @click="handleShopNow"
+            class=" bg-white text-black px-12 py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all duration-300"
           >
             Shop Now
           </button>

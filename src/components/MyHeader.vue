@@ -174,6 +174,16 @@
       </button>
 
       <button
+        @click="cartStore.setCategory('All') ; mobileMenuOpen = false"
+        :class="[
+          'text-left font-semibold px-3 py-2 rounded-lg tracking-wide transition duration-200 hover:bg-gray-100',
+          '...classes...', cartStore.selectedCategory === 'All' ? 'text-pink-500 bg-pink-50' : ''
+        ]"
+      >
+        All
+      </button>
+
+      <button
         v-for="cat in cartStore.categories"
         :key="cat"
         @click="cartStore.setCategory(cat)"

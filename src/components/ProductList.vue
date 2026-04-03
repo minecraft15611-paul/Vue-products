@@ -61,7 +61,7 @@
         </div>
 
         <!-- Pagination -->
-        <div class="flex items-center justify-between gap-2  px-2 pb-4">
+        <div class="flex items-center justify-between gap-2 px-2 pb-4">
 
             <!-- Prev -->
             <button
