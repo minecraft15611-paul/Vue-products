@@ -1,6 +1,7 @@
 <script setup>
     import { ref, computed } from 'vue';
     import { useCartStore } from '../stores/cart';
+    import  addToCartButton  from '../components/addToCartButton.vue'
 
 
     const cartStore = useCartStore();
@@ -49,13 +50,7 @@
                             ${{ item.price }}
                         </div>
                     </div>
-                    <button
-                        @click="cartStore.addToCart(item)"
-                        :disabled="item.stock === 0"
-                        class="flex justify-end mt-auto px-2 py-1 rounded text-gray-800 transition-all ease-out duration-300 active:scale-90 active:text-white active:bg-blue-950 active:shadow-inner"
-                    >
-                        {{ item.stock > 0 ? 'ADD TO CART' : '×' }}
-                    </button>
+                    <addToCartButton :item="item"/>
                 </div>
             </li>
         </ul>

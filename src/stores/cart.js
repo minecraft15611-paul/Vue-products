@@ -36,7 +36,7 @@ export const useCartStore = defineStore('cart', () => {
 
     const categories = computed(() => {
         const list = products.value.map(p => p.category);
-        return ['All', ...new Set(list)];
+        return [...new Set(list)];
     });
 
     const setCategory = (cat) => {
