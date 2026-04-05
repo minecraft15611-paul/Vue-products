@@ -62,7 +62,8 @@ export const useCartStore = defineStore('cart', () => {
     const filteredProducts = computed(() => {
         return products.value.filter(p => {
             const title = p.title || '';
-            const matchName = title.toLowerCase().includes(searchQuery.value.toLowerCase());
+            const name = p.name || '';
+            const matchName = title.toLowerCase().includes(searchQuery.value.toLowerCase()) || name.toLowerCase().includes(searchQuery.value.toLowerCase());
             const matchCategory = selectedCategory.value === 'All' || selectedCategory.value === 'Home' || p.category === selectedCategory.value;
             return matchName && matchCategory;
         });

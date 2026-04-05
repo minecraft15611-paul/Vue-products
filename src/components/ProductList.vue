@@ -33,27 +33,65 @@
 <template>
     <div class="product-list-container">
 
-        <ul class="grid grid-cols-2 content-start gap-3 px-4" style="min-height: 520px;">
-            <li
-                v-for="item in paginatedProducts"
-                :key="item.id"
-                class="flex flex-col bg-white mb-8 rounded-xl overflow-hidden shadow-sm"
-            >
-                <div class="grid grid-cols-1 p-3 h-55 rounded">
-                    <div class="flex justify-center">
-                        <img :src="item.img" class="w-24 h-24 object-contain">
+        <Transition name="page-fade" mode="out-in">
+            <ul :key="currentPage + '_' + cartStore.selectedCategory + '_' + cartStore.searchQuery" class="grid grid-cols-2 content-start gap-3 px-4" style="min-height: 520px;">
+                <!-- ================   mobile version   ==================== -->
+                
+                <li
+                    v-for="item in paginatedProducts"
+                    :key="item.id"
+                    class="flex lg:hidden flex-col bg-white mb-8 rounded-xl overflow-hidden shadow-sm "
+                >
+                    <div class="grid grid-cols-1 p-3 h-55 rounded hover:bg-[#F9F9F7] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border-[0.5px] border-gray-100">
+                        <div class="flex justify-center">
+                            <img :src="item.img" class="w-24 h-24 object-contain">
+                        </div>
+                        <div>
+                            <p class="h-8 font-semibold">{{ item.title }}</p>
+                            <br>
+                            <div class="font-bold text-gray-600">
+                                ${{ item.price }}
+                            </div>
+                        </div>
+                        <addToCartButton :item="item"/>
                     </div>
-                    <div>
-                        <p class="h-8 font-semibold">{{ item.title }}</p>
-                        <br>
-                        <div class="font-bold text-gray-600">
+                </li>
+    
+                <!-- ================   desktop version   =================== -->
+                
+                <li 
+                    v-for="item in paginatedProducts"
+                    :key="item.id"
+                    class="
+                        hidden lg:grid grid-cols-2 bg-white mb-8 rounded-xl overflow-hidden shadow-sm 
+                        hover:scale-102 transition-all duration-300
+                        "            
+                >
+                    <div class="flex justify-center items-center p-3 h-55 rounded hover:bg-[#F9F9F7] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border-[0.5px] border-gray-100">
+                        <img :src="item.img" class="w-100  h-70 object-contain">
+                    </div>
+                    <div class="flex flex-col items-center justify-center  px-8">
+                        <p class="h-8 mb-5 text-[10px] uppercase">
+                            {{ item.title }}
+                        </p>
+                        <div class="font-semibold mb-10">
+                            {{ item.name }}
+                        </div>
+                        <div class="flex justify-center font-medium text-blue-600">
                             ${{ item.price }}
                         </div>
+                        <addToCartButton :item="item" 
+                            class="w-full border-[0.5px] border-gray-300 
+                                 text-gray-500 py-4 px-10 rounded-full text-[10px] 
+                                   tracking-[0.2em] uppercase font-light transition-all 
+                                   duration-500 ease-out hover:bg-gray-50 hover:border-gray-500 
+                                   hover:text-gray-800 hover:tracking-[0.25em] active:scale-[0.98]" 
+                        />
                     </div>
-                    <addToCartButton :item="item"/>
-                </div>
-            </li>
-        </ul>
+                </li>
+            </ul>
+
+        </Transition>
 
         <!-- Empty State -->
         <div v-if="filteredProducts.length === 0" class="flex justify-center items-center py-16 text-gray-400 text-sm tracking-wide">
@@ -101,3 +139,19 @@
         </div>
     </div>
 </template>
+
+<style scoped>
+
+@media (min-width: 1024px) {
+    
+    .page-fade-enter-active,
+    .page-fade-leave-active {
+        transition: opacity 0.3s ease;
+    }
+
+    .page-fade-enter-from,
+    .page-fade-leave-to {
+        opacity: 0;
+    }
+}
+</style>

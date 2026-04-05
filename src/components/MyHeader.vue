@@ -189,7 +189,7 @@
         @click="cartStore.setCategory(cat)"
         :class="[
           'font-semibold px-4 py-1 rounded-full text-sm tracking-wide transition duration-300 hover:scale-105 hover:bg-gray-100',
-          cartStore.selectedCategory === cat ? 'text-pink-500 bg-pink-50' : ''
+          cartStore.selectedCategory === cat ? 'text-pink-500 bg-pink-50' : '' 
         ]"
       >
         {{ cat }}
