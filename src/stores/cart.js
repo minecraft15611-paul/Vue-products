@@ -8,6 +8,20 @@ export const useCartStore = defineStore('cart', () => {
     const isLoading = ref(false);
     const apiError = ref(null);
 
+    const toast = ref({
+        show: false,
+        message: ''
+    });
+
+    const showToast = (msg) => {
+        toast.value.show = true;
+        toast.value.message = msg;
+        
+        setTimeout(() => {
+            toast.value.show = false;
+        }, 2000);
+    };
+
 
 // ---- Shopping Cart ----
 
@@ -83,6 +97,9 @@ export const useCartStore = defineStore('cart', () => {
             } else {
                 cart.value.push({ ...product, quantity: 1 });
             }
+
+            const displayName = product.title || product.name || 'Item';
+            showToast(`${displayName} added to cart!`);
         }
     };
 
@@ -192,5 +209,6 @@ export const useCartStore = defineStore('cart', () => {
         goHome,
         searchQuery,
         filteredProducts,
+        toast
     };
 });

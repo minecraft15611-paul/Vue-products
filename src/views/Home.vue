@@ -5,6 +5,8 @@ import ProductList from '../components/ProductList.vue';
 import Myheader from '../components/MyHeader.vue';
 import MyFooter from '../components/MyFooter.vue';
 import HomePage from '../components/HomePage.vue';
+import theToast from '../components/theToast.vue';
+import TheToast from '../components/theToast.vue';
 
 const cartStore = useCartStore();
 const currentComponent = shallowRef(HomePage);
@@ -40,6 +42,8 @@ onMounted(() => cartStore.fetchProducts());
 <template>
   <div class="flex flex-col min-h-screen">
     <Myheader />
+    
+    <TheToast />
 
     <main class="grow">
         <div v-if="cartStore.isLoading" class="flex justify-center items-center h-64">
