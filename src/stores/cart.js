@@ -1,7 +1,29 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
+import { debounce } from 'lodash-es';
 
 export const useCartStore = defineStore('cart', () => {
+
+    // ---- Fetch Data from API ----
+
+    const fetchProducts = async () => {
+        isLoading.value = true;
+        apiError.value = null;
+        
+        try {
+            const response = await fetch('https://69d3044a336103955f8e82e7.mockapi.io/api/v1/products');
+            if (!response.ok) {
+            throw new Error(`Server error：${response.status}`);
+            }
+            const data = await response.json();
+            products.value = data.map(item => ({ ...item, stock: 5 }));
+        } catch (error) {
+            apiError.value = "Product load failed. Retry later."; 
+            console.error('data fetching failed', error);
+        } finally {
+        isLoading.value = false;
+        }
+    };
 
 // ---- Products List ----
     const products = ref([]);
@@ -72,6 +94,17 @@ export const useCartStore = defineStore('cart', () => {
 // ---- Search Query (shared across all components) ----
 
     const searchQuery = ref('');
+
+
+    const tempInput = ref('');
+
+    const updateSearch = debounce((newValue) => {
+        searchQuery.value = newValue;
+    }, 500);
+
+    watch(tempInput, (newVal) => {
+        updateSearch(newVal);
+    });
 
 // ---- Filtered Products ----
 
@@ -165,28 +198,7 @@ export const useCartStore = defineStore('cart', () => {
         cart.value = [];
     };
 
-// ---- Fetch Data from API ----
 
-    const fetchProducts = async () => {
-        isLoading.value = true;
-        apiError.value = null;
-        
-        try {
-            const response = await fetch('https://69d3044a336103955f8e82e7.mockapi.io/api/v1/products');
-
-            if (!response.ok) {
-            throw new Error(`Server error：${response.status}`);
-            }
-
-            const data = await response.json();
-            products.value = data.map(item => ({ ...item, stock: 5 }));
-        } catch (error) {
-            apiError.value = "Product load failed. Retry later."; 
-            console.error('data fetching failed', error);
-        } finally {
-        isLoading.value = false;
-        }
-    };
 
     return {
         isLoading,
@@ -209,6 +221,7 @@ export const useCartStore = defineStore('cart', () => {
         goHome,
         searchQuery,
         filteredProducts,
-        toast
+        toast,
+        tempInput
     };
 });

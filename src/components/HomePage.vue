@@ -1,6 +1,9 @@
 <script setup>
   import { useCartStore } from '../stores/cart';
+  import { ref } from 'vue';
   const cartStore = useCartStore();
+  const imageLoaded = ref(false);
+  const promoImageLoaded = ref(false);
 
   const handleShopNow = () => {
 
@@ -16,10 +19,20 @@
 
 <template>
   <div class="banner-wrapper w-full overflow-hidden">
+
+    <div 
+      v-if="!imageLoaded" 
+      class="w-full h-[500px] bg-gray-200 animate-pulse flex items-center justify-center"
+    >
+      <span class="text-gray-400 tracking-widest text-sm">LOADING...</span>
+    </div>
+
     <img 
+      v-show="imageLoaded"
       class="banner-img w-full h-[500px] object-cover" 
       src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop" 
       alt="Hero Banner"
+      @load="imageLoaded = true"
     >
   </div>
 
@@ -58,13 +71,23 @@
   <section class="w-full">
     <div class="w-full">
       <div class="relative group cursor-pointer overflow-hidden rounded-sm bg-gray-100">
+
+        <div 
+          v-if="!promoImageLoaded" 
+          class="w-full h-[450px] bg-gray-200 animate-pulse flex items-center justify-center"
+        >
+          <span class="text-gray-400 tracking-widest text-xs">PREVIEW...</span>
+        </div>
+
         <img 
+          v-show="promoImageLoaded" 
           src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop" 
           class="w-full h-[450px] object-cover transition-transform duration-700 group-hover:scale-105 opacity-80" 
           alt="Promotion"
+          @load="promoImageLoaded = true"
         >
         
-        <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-black/20">
+        <div v-show="promoImageLoaded" class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-black/20">
           <span class="text-white text-xs uppercase tracking-[0.5em] mb-4">Summer Collection</span>
           <h2 class="text-white text-3xl md:text-5xl font-light mb-8 ">GET UP TO <span class="font-extrabold">20% OFF</span></h2>
           <button 
@@ -74,6 +97,7 @@
             Shop Now
           </button>
         </div>
+        
       </div>
     </div>
   </section>
@@ -82,7 +106,6 @@
 <style>
     .banner-wrapper{
         width: 100%;       
-        height: 450px;  
         overflow: hidden;
     }
 

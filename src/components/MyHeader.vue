@@ -71,7 +71,7 @@
         <div class="hidden lg:flex justify-center w-1/2 px-6">
           <input
             type="text"
-            v-model="cartStore.searchQuery"
+            v-model="cartStore.tempInput"
             placeholder="Search products..."
             class="w-full border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-pink-400 transition"
           />
