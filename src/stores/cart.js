@@ -5,6 +5,8 @@ export const useCartStore = defineStore('cart', () => {
 
 // ---- Products List ----
     const products = ref([]);
+    const isLoading = ref(false);
+    const apiError = ref(null);
 
 
 // ---- Shopping Cart ----
@@ -149,16 +151,29 @@ export const useCartStore = defineStore('cart', () => {
 // ---- Fetch Data from API ----
 
     const fetchProducts = async () => {
+        isLoading.value = true;
+        apiError.value = null;
+        
         try {
-            const response = await fetch('/Vue-products/api/Products.json');
+            const response = await fetch('https://69d3044a336103955f8e82e7.mockapi.io/api/v1/products');
+
+            if (!response.ok) {
+            throw new Error(`Server error：${response.status}`);
+            }
+
             const data = await response.json();
             products.value = data.map(item => ({ ...item, stock: 5 }));
         } catch (error) {
+            apiError.value = "Product load failed. Retry later."; 
             console.error('data fetching failed', error);
+        } finally {
+        isLoading.value = false;
         }
     };
 
     return {
+        isLoading,
+        apiError,
         products,
         fetchProducts,
         cart,
