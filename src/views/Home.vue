@@ -54,7 +54,7 @@ onMounted(() => cartStore.fetchProducts());
             <p>⚠️ {{ cartStore.apiError }}</p>
             <button @click="cartStore.fetchProducts" class="px-8 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-all active:scale-95 shadow-md">Please try again</button>
         </div> -->
-        <component :is="currentComponent" />
+        <component :is="currentComponent" />      <!-- v-else -->
     </main>
 
     <hr class="border-t border-gray-200">
