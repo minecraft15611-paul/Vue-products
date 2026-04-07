@@ -1,14 +1,13 @@
-<script setup>
+<script setup lang="ts">
   import { useCartStore } from '../stores/cart';
   import { ref } from 'vue';
+
   const cartStore = useCartStore();
-  const imageLoaded = ref(false);
-  const promoImageLoaded = ref(false);
+  const imageLoaded = ref<boolean>(false);
+  const promoImageLoaded = ref<boolean>(false);
 
-  const handleShopNow = () => {
-
+  const handleShopNow = (): void => {
   cartStore.setCategory('All');
-  
   window.scrollTo({
     top: 0,
     behavior: 'smooth'

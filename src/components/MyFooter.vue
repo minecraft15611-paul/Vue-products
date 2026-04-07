@@ -1,10 +1,10 @@
-<script setup>
+<script setup lang="ts">
 
 import { ref } from 'vue'
 
-const open = ref(null)
+const open = ref<number | null>(null)
 
-const toggle = (index) => {
+const toggle = (index: number) => {
   // On desktop (md+), don't use accordion behaviour
   if (window.innerWidth >= 768) return
   open.value = open.value === index ? null : index

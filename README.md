@@ -55,5 +55,5 @@ src/
 │   ├── Cart.vue          # 購物車顯示組件
 │   └── ProductList.vue   # 商品列表、搜尋、篩選與分頁組件
 ├── stores/
-│   └── cart.js           # Pinia Store (所有邏輯核心)
+│   └── cart.ts           # Pinia Store (所有邏輯核心)
 └── App.vue               # 根組件 (僅負責掛載與 API 初始化)

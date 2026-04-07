@@ -2,6 +2,20 @@ import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { debounce } from 'lodash-es';
 
+export interface Product {
+    id: number | string;
+    title?: string;
+    name?: string;
+    price: number;
+    category: string;
+    stock: number;
+    img: string;
+}
+
+interface CartItem extends Product {
+    quantity: number;
+}
+
 export const useCartStore = defineStore('cart', () => {
 
     // ---- Fetch Data from API ----
@@ -16,7 +30,7 @@ export const useCartStore = defineStore('cart', () => {
             throw new Error(`Server error：${response.status}`);
             }
             const data = await response.json();
-            products.value = data.map(item => ({ ...item, stock: 5 }));
+            products.value = data.map((item: Product) => ({ ...item, stock: 5 }));
         } catch (error) {
             apiError.value = "Product load failed. Retry later."; 
             console.error('data fetching failed', error);
@@ -26,16 +40,16 @@ export const useCartStore = defineStore('cart', () => {
     };
 
 // ---- Products List ----
-    const products = ref([]);
-    const isLoading = ref(false);
-    const apiError = ref(null);
+    const products = ref<Product[]>([]);
+    const isLoading = ref<boolean>(false);
+    const apiError = ref<string | null>(null);
 
-    const toast = ref({
+    const toast = ref<{show: boolean; message: string}>({
         show: false,
         message: ''
     });
 
-    const showToast = (msg) => {
+    const showToast = (msg: string) => {
         toast.value.show = true;
         toast.value.message = msg;
         
@@ -48,7 +62,7 @@ export const useCartStore = defineStore('cart', () => {
 // ---- Shopping Cart ----
 
     const savedCart = localStorage.getItem('my_cart');
-    const cart = ref(savedCart ? JSON.parse(savedCart) : []);
+    const cart = ref<CartItem[]>(savedCart ? JSON.parse(savedCart) : []);
 
 // ---- Stringify the New Cart and Store ----
 
@@ -59,11 +73,11 @@ export const useCartStore = defineStore('cart', () => {
 
 // ---- Compute Total Price ----
 
-    const totalPrice = computed(() => {
+    const totalPrice = computed<number>(() => {
         return cart.value.reduce((sum, item) => sum + item.price * item.quantity, 0);
     });
 
-    const cartCount = computed(() => {
+    const cartCount = computed<number>(() => {
         return cart.value.reduce((sum, item) => sum + item.quantity, 0);
     });
 
@@ -77,7 +91,7 @@ export const useCartStore = defineStore('cart', () => {
         return [...new Set(list)];
     });
 
-    const setCategory = (cat) => {
+    const setCategory = (cat: string) => {
         selectedCategory.value = cat;
         searchQuery.value = '';
     };
@@ -98,7 +112,7 @@ export const useCartStore = defineStore('cart', () => {
 
     const tempInput = ref('');
 
-    const updateSearch = debounce((newValue) => {
+    const updateSearch = debounce((newValue: string) => {
         searchQuery.value = newValue;
     }, 500);
 
@@ -121,7 +135,7 @@ export const useCartStore = defineStore('cart', () => {
 
 // ---- Add to Cart ----
 
-    const addToCart = (product) => {
+    const addToCart = (product: Product) => {
         if (product.stock > 0) {
             product.stock--;
             const cartItem = cart.value.find((c) => c.id === product.id);
@@ -138,7 +152,7 @@ export const useCartStore = defineStore('cart', () => {
 
 // ---- Remove a Single Item From Cart (by object) ----
 
-    const removeItem = (item) => {
+    const removeItem = (item: CartItem) => {
         const index = cart.value.findIndex((c) => c.id === item.id);
         if (index !== -1) {
             const product = products.value.find((p) => p.id === item.id);
@@ -151,7 +165,7 @@ export const useCartStore = defineStore('cart', () => {
 
 // ---- Decrease Qty, Remove Item if Qty Reaches 0 ----
 
-    const decreaseQty = (item) => {
+    const decreaseQty = (item: CartItem) => {
         const cartItem = cart.value.find((c) => c.id === item.id);
         if (!cartItem) return;
         if (cartItem.quantity > 1) {
@@ -165,7 +179,7 @@ export const useCartStore = defineStore('cart', () => {
 
 // ---- Increase Qty ----
 
-    const increaseQty = (item) => {
+    const increaseQty = (item: CartItem) => {
         const cartItem = cart.value.find((c) => c.id === item.id);
         if (!cartItem) return;
         const product = products.value.find((p) => p.id === item.id);
@@ -177,7 +191,7 @@ export const useCartStore = defineStore('cart', () => {
 
 // ---- Single Item Remove From Cart (by index, kept for compatibility) ----
 
-    const removeFromCart = (index) => {
+    const removeFromCart = (index: number) => {
         const item = cart.value[index];
         const product = products.value.find((p) => p.id === item.id);
         if (product) {
@@ -189,7 +203,7 @@ export const useCartStore = defineStore('cart', () => {
 // ---- Clear All Items In Cart ----
 
     const clearCart = () => {
-        cart.value.forEach(item => {
+        cart.value.forEach((item: CartItem) => {
             const product = products.value.find(p => p.id === item.id);
             if (product) {
                 product.stock += item.quantity;

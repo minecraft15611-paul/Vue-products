@@ -1,25 +1,24 @@
-<script setup>
-import { onMounted, shallowRef, watch } from 'vue';
+<script setup lang="ts">
+import { type Component, onMounted, shallowRef, watch } from 'vue';
 import { useCartStore } from '../stores/cart';
 import ProductList from '../components/ProductList.vue';
 import Myheader from '../components/MyHeader.vue';
 import MyFooter from '../components/MyFooter.vue';
 import HomePage from '../components/HomePage.vue';
-import theToast from '../components/theToast.vue';
-import TheToast from '../components/theToast.vue';
+import TheToast from '../components/TheToast.vue';
 
 const cartStore = useCartStore();
-const currentComponent = shallowRef(HomePage);
+const currentComponent = shallowRef<Component>(HomePage);
 
 // ---- Switch to ProductList whenever any category button is clicked ----
-watch(() => cartStore.selectedCategory, (cat) => {
+watch(() => cartStore.selectedCategory, (cat: string) => {
     if (!cartStore.goingHome && cat !== 'Home') {
         currentComponent.value = ProductList;
     }
 });
 
 // ---- Switch back to HomePage when the Home button is clicked ----
-watch(() => cartStore.goingHome, (val) => {
+watch(() => cartStore.goingHome, (val: boolean) => {
     if (val) {
         currentComponent.value = HomePage;
         cartStore.goingHome = false;
@@ -27,7 +26,7 @@ watch(() => cartStore.goingHome, (val) => {
 });
 
 // ---- Also switch when the search query has content ----
-watch(() => cartStore.searchQuery, (q) => {
+watch(() => cartStore.searchQuery, (q: string) => {
     if (q.trim() !== '') {
         currentComponent.value = ProductList;
     } else if (cartStore.selectedCategory === 'All' || cartStore.selectedCategory === 'Home') {

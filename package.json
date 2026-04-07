@@ -18,8 +18,14 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.24",
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^25.5.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-vue": "^6.0.5",
     "gh-pages": "^6.3.0",
+    "typescript": "^6.0.2",
     "vite": "^8.0.0"
   }
 }

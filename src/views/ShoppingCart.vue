@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { useCartStore } from '../stores/cart'
 import { useRouter } from 'vue-router';
@@ -7,19 +7,17 @@ const cartStore = useCartStore()
 
 const router = useRouter();
 
-
-
-const goBack = () => {
+const goBack = (): void => {
   router.back(); 
 };
 
-const subtotal = computed(() =>
+const subtotal = computed<number>(() =>
   cartStore.totalPrice
 )
 
-const shipping = computed(() => (subtotal.value > 1 ? 0 : 9.99))
+const shipping = computed<number>(() => (subtotal.value > 1 ? 0 : 9.99))
 
-const total = computed(() => subtotal.value + shipping.value)
+const total = computed<number>(() => subtotal.value + shipping.value)
 </script>
 
 <template>

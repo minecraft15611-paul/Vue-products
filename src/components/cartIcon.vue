@@ -1,3 +1,27 @@
+<script setup lang="ts">
+  import { ref, watch } from 'vue';
+
+  interface Props {
+    cartCount?: number;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    cartCount: 0
+  });
+
+  const isAnimating = ref<boolean>(false);
+
+  watch(() => props.cartCount, (newVal:number, oldVal:number): void => {
+    if (newVal > oldVal) {
+      isAnimating.value = true;
+      setTimeout(() => {
+        isAnimating.value = false;
+      }, 1000);
+    }
+  });
+</script>
+
+
 <template>
   <div class="relative inline-block p-2">
     <i 
@@ -6,10 +30,10 @@
     ></i>
 
     <span 
-      v-if="cartCount > 0"
+      v-if="props.cartCount > 0"
       class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white border border-white"
     >
-      {{ cartCount }}
+      {{ props.cartCount }}
     </span>
 
     <transition name="fade-up">
@@ -23,28 +47,6 @@
   </div>
 </template>
 
-<script setup>
-import { ref, watch } from 'vue';
-
-const props = defineProps({
-  cartCount: {
-    type: Number,
-    default: 0
-  }
-});
-
-const isAnimating = ref(false);
-
-
-watch(() => props.cartCount, (newVal, oldVal) => {
-  if (newVal > oldVal) {
-    isAnimating.value = true;
-    setTimeout(() => {
-      isAnimating.value = false;
-    }, 1000);
-  }
-});
-</script>
 
 <style scoped>
 .fade-up-enter-active, .fade-up-leave-active {

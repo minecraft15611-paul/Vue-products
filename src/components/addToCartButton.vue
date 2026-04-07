@@ -1,14 +1,12 @@
-<script setup>
-import { useCartStore } from '../stores/cart.js';
+<script setup lang="ts">
+import { useCartStore } from '../stores/cart';
+import type { Product } from '../stores/cart';
 
 const cartStore = useCartStore();
 
-const props = defineProps({
-    item: {
-        type: Object,
-        required: true
-    }
-});
+const props = defineProps<{
+    item: Product
+}>();
 
 </script>
 

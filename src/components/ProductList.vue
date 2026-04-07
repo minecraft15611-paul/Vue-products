@@ -1,5 +1,5 @@
-<script setup>
-    import { ref, computed } from 'vue';
+<script setup lang="ts">
+    import { watch, ref, computed } from 'vue';
     import { useCartStore } from '../stores/cart';
     import  addToCartButton  from '../components/addToCartButton.vue'
 
@@ -7,16 +7,19 @@
     const cartStore = useCartStore();
 
 // ---- Define Products Per Page ----
-    const pageSize = ref(4);
+    const pageSize = ref<number>(4);
 
 // ---- Define Current Page ----
-    const currentPage = ref(1);
+    const currentPage = ref<number>(1);
 
 // ---- Reset to page 1 whenever the filtered list changes ----
     const filteredProducts = computed(() => {
-        currentPage.value = 1;
         return cartStore.filteredProducts;
     });
+
+    watch(() => cartStore.filteredProducts, () => {
+    currentPage.value = 1;
+    }, { deep: true });
 
 // ---- Calculate Total Pages ----
     const totalPages = computed(() => {
