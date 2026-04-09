@@ -21,6 +21,6 @@ const props = defineProps<{
             active:bg-blue-950 active:shadow-inner
             "
     >
-    {{ props.item.stock > 0 ? 'ADD TO CART' : '×' }}
+    {{ props.item.stock > 0 ? 'ADD TO BAG' : '×' }}
     </button>
 </template>

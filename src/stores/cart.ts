@@ -10,6 +10,10 @@ export interface Product {
     category: string;
     stock: number;
     img: string;
+    colors?: { name: string; hex: string }[];
+    sizes?: string[];
+    description: string;
+    material: string;
 }
 
 interface CartItem extends Product {
@@ -24,6 +28,7 @@ export const useCartStore = defineStore('cart', () => {
         isLoading.value = true;
         apiError.value = null;
         
+        // https://69d3044a336103955f8e82e7.mockapi.io/api/v1/products 這個是網路API
         try {
             const response = await fetch('https://69d3044a336103955f8e82e7.mockapi.io/api/v1/products');
             if (!response.ok) {
@@ -149,6 +154,7 @@ export const useCartStore = defineStore('cart', () => {
             showToast(`${displayName} added to cart!`);
         }
     };
+    
 
 // ---- Remove a Single Item From Cart (by object) ----
 

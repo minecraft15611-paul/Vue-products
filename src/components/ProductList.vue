@@ -2,6 +2,7 @@
     import { watch, ref, computed } from 'vue';
     import { useCartStore } from '../stores/cart';
     import  addToCartButton  from '../components/addToCartButton.vue'
+    import ProductDetail from '../views/ProductDetail.vue';
 
 
     const cartStore = useCartStore();
@@ -46,18 +47,21 @@
                     class="flex lg:hidden flex-col bg-white mb-8 rounded-xl overflow-hidden shadow-sm "
                 >
                     <div class="grid grid-cols-1 p-3 h-55 rounded hover:bg-[#F9F9F7] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border-[0.5px] border-gray-100">
-                        <div class="flex justify-center">
-                            <img :src="item.img" class="w-24 h-24 object-contain">
-                        </div>
-                        <div>
-                            <p class="h-8 font-semibold">{{ item.title }}</p>
-                            <br>
-                            <div class="font-bold text-gray-600">
-                                ${{ item.price }}
+                        <router-link :to="`/ProductDetail/${item.id}`" class="contents">
+                            <div class="flex justify-center">
+                                <img :src="item.img" class="w-24 h-24 object-contain">
                             </div>
-                        </div>
+                            <div>
+                                <p class="h-8 font-semibold">{{ item.title }}</p>
+                                <br>
+                                <div class="font-bold text-gray-600">
+                                    ${{ item.price }}
+                                </div>
+                            </div>
+                        </router-link>
                         <addToCartButton :item="item"/>
                     </div>
+                    
                 </li>
     
                 <!-- ================   desktop version   =================== -->
@@ -70,19 +74,21 @@
                         hover:scale-102 transition-all duration-300
                         "            
                 >
-                    <div class="flex justify-center items-center p-3 h-55 rounded hover:bg-[#F9F9F7] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border-[0.5px] border-gray-100">
+                    <router-link :to="`/ProductDetail/${item.id}`" class="flex justify-center items-center p-3 h-55 rounded hover:bg-[#F9F9F7] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border-[0.5px] border-gray-100">
                         <img :src="item.img" class="w-100  h-70 object-contain">
-                    </div>
+                    </router-link>
                     <div class="flex flex-col items-center justify-center  px-8">
-                        <p class="h-8 mb-5 text-[10px] uppercase">
-                            {{ item.title }}
-                        </p>
-                        <div class="font-semibold mb-10">
-                            {{ item.name }}
-                        </div>
-                        <div class="flex justify-center font-medium text-blue-600">
-                            ${{ item.price }}
-                        </div>
+                        <router-link :to="`/ProductDetail/${item.id}`" class="flex flex-col items-center w-full">
+                            <p class="h-8 mb-5 text-[10px] uppercase">
+                                {{ item.title }}
+                            </p>
+                            <div class="font-semibold mb-10">
+                                {{ item.name }}
+                            </div>
+                            <div class="flex justify-center font-medium text-blue-600">
+                                ${{ item.price }}
+                            </div>
+                        </router-link>
                         <addToCartButton :item="item" 
                             class="w-full border-[0.5px] border-gray-300 
                                  text-gray-500 py-4 px-10 rounded-full text-[10px] 
