@@ -3,8 +3,21 @@
     import { useCartStore } from '../stores/cart';
     import { RouterLink } from 'vue-router';
     import cartIcon from '../components/cartIcon.vue';
+    import { useRouter } from 'vue-router';
 
     const cartStore = useCartStore();
+
+    const router = useRouter();
+
+    const goToProducts = (cat: string) => {
+    cartStore.setCategory(cat);
+    router.push('/ProductsList');
+    };
+
+    const goHome = () => {
+        cartStore.goHome();
+        router.push('/');
+    };
 
 // ---- Hamburger Menu ----
     const mobileMenuOpen = ref<boolean>(false);
@@ -64,7 +77,7 @@
 
         <!-- CENTER: Logo -->
         <div class="flex justify-center w-1/2 lg:w-1/4">
-          <h1 @click="cartStore.goHome()" class="font-bold text-3xl lg:text-4xl tracking-tight cursor-pointer">LemonTree</h1>
+          <h1 @click="goHome()" class="font-bold text-3xl lg:text-4xl tracking-tight cursor-pointer">LemonTree</h1>
         </div>
 
         <!-- CENTER: Search Bar (desktop only) -->
@@ -113,7 +126,7 @@
 
             <!-- Home button -->
             <button
-              @click="cartStore.goHome(); mobileMenuOpen = false"
+              @click="goHome(); mobileMenuOpen = false"
               :class="[
                 'text-left font-semibold px-3 py-2 rounded-lg tracking-wide transition duration-200 hover:bg-gray-100',
                 cartStore.selectedCategory === 'Home' ? 'text-pink-500 bg-pink-50' : ''
@@ -123,10 +136,10 @@
             </button>
 
             <button
-              @click="cartStore.setCategory('All') ; mobileMenuOpen = false"
+              @click="goToProducts('All') ; mobileMenuOpen = false"
               :class="[
                 'text-left font-semibold px-3 py-2 rounded-lg tracking-wide transition duration-200 hover:bg-gray-100',
-                '...classes...', cartStore.selectedCategory === 'All' ? 'text-pink-500 bg-pink-50' : ''
+                 cartStore.selectedCategory === 'All' ? 'text-pink-500 bg-pink-50' : ''
               ]"
             >
               All
@@ -135,7 +148,7 @@
             <button
               v-for="cat in cartStore.categories"
               :key="cat"
-              @click="cartStore.setCategory(cat); mobileMenuOpen = false"
+              @click="goToProducts(cat); mobileMenuOpen = false"
               :class="[
                 'text-left font-semibold px-3 py-2 rounded-lg tracking-wide transition duration-200 hover:bg-gray-100',
                 cartStore.selectedCategory === cat ? 'text-pink-500 bg-pink-50' : ''
@@ -167,17 +180,17 @@
 
       <!-- Home button -->
       <button
-        @click="cartStore.goHome()"
+        @click="goHome()"
         class="font-semibold px-4 py-1 rounded-full text-sm tracking-wide transition duration-300 hover:scale-105 hover:bg-gray-100"
       >
         Home
       </button>
 
       <button
-        @click="cartStore.setCategory('All') ; mobileMenuOpen = false"
+        @click="goToProducts('All')"
         :class="[
           'text-left font-semibold px-3 py-2 rounded-lg tracking-wide transition duration-200 hover:bg-gray-100',
-          '...classes...', cartStore.selectedCategory === 'All' ? 'text-pink-500 bg-pink-50' : ''
+           cartStore.selectedCategory === 'All' ? 'text-pink-500 bg-pink-50' : ''
         ]"
       >
         All
@@ -186,7 +199,7 @@
       <button
         v-for="cat in cartStore.categories"
         :key="cat"
-        @click="cartStore.setCategory(cat)"
+        @click="goToProducts(cat)"
         :class="[
           'font-semibold px-4 py-1 rounded-full text-sm tracking-wide transition duration-300 hover:scale-105 hover:bg-gray-100',
           cartStore.selectedCategory === cat ? 'text-pink-500 bg-pink-50' : '' 

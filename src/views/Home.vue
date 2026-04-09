@@ -7,35 +7,12 @@ import MyFooter from '../components/MyFooter.vue';
 import HomePage from '../components/HomePage.vue';
 import TheToast from '../components/TheToast.vue';
 
+
 const cartStore = useCartStore();
-const currentComponent = shallowRef<Component>(HomePage);
-
-// ---- Switch to ProductList whenever any category button is clicked ----
-watch(() => cartStore.selectedCategory, (cat: string) => {
-    if (!cartStore.goingHome && cat !== 'Home') {
-        currentComponent.value = ProductList;
-    }
-});
-
-// ---- Switch back to HomePage when the Home button is clicked ----
-watch(() => cartStore.goingHome, (val: boolean) => {
-    if (val) {
-        currentComponent.value = HomePage;
-        cartStore.goingHome = false;
-    }
-});
-
-// ---- Also switch when the search query has content ----
-watch(() => cartStore.searchQuery, (q: string) => {
-    if (q.trim() !== '') {
-        currentComponent.value = ProductList;
-    } else if (cartStore.selectedCategory === 'All' || cartStore.selectedCategory === 'Home') {
-        currentComponent.value = HomePage;
-    }
-});
 
 /* ----- Fetch API Data on Mount -----*/
 onMounted(() => cartStore.fetchProducts());
+
 </script>
 
 <template>
@@ -53,7 +30,7 @@ onMounted(() => cartStore.fetchProducts());
             <p>⚠️ {{ cartStore.apiError }}</p>
             <button @click="cartStore.fetchProducts" class="px-8 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-all active:scale-95 shadow-md">Please try again</button>
         </div> -->
-        <component :is="currentComponent" />      <!-- v-else -->
+        <HomePage />      <!-- v-else -->
     </main>
 
     <hr class="border-t border-gray-200">
