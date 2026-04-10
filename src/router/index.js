@@ -29,7 +29,13 @@ const routes = [
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
-    routes
+    routes,
+    scrollBehavior(to, from, savedPosition) {
+        if (savedPosition) {
+            return savedPosition; // restore position on back/forward
+        }
+        return { top: 0 }; // scroll to top on every new navigation
+    }
 });
 
 export default router;

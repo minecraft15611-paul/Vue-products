@@ -9,13 +9,13 @@
 
     const cartStore = useCartStore();
 
-// ---- Define Products Per Page ----
+// ===== Define Products Per Page =====
     const pageSize = ref<number>(4);
 
-// ---- Define Current Page ----
+// ===== Define Current Page =====
     const currentPage = ref<number>(1);
 
-// ---- Reset to page 1 whenever the filtered list changes ----
+// ===== Reset to page 1 whenever the filtered list changes =====
     const filteredProducts = computed(() => {
         return cartStore.filteredProducts;
     });
@@ -24,12 +24,12 @@
     currentPage.value = 1;
     }, { deep: true });
 
-// ---- Calculate Total Pages ----
+// ===== Calculate Total Pages =====
     const totalPages = computed(() => {
         return Math.ceil(filteredProducts.value.length / pageSize.value) || 1;
     });
 
-// ---- Paginated Slice ----
+// ===== Paginated Slice =====
     const paginatedProducts = computed(() => {
         const start = (currentPage.value - 1) * pageSize.value;
         return filteredProducts.value.slice(start, start + pageSize.value);
@@ -46,7 +46,7 @@
 <template>
     <MyHeader />
     <TheToast />
-    <div class="product-list-container">
+    <div class="product-list-container mb-4">
 
         <Transition name="page-fade" mode="out-in">
             <ul :key="currentPage + '_' + cartStore.selectedCategory + '_' + cartStore.searchQuery" class="grid grid-cols-2 content-start gap-3 px-4" style="min-height: 520px;">

@@ -10,6 +10,7 @@ export interface Product {
     category: string;
     stock: number;
     img: string;
+    color?: string;
     colors?: { name: string; hex: string }[];
     sizes?: string[];
     description: string;
@@ -96,9 +97,12 @@ export const useCartStore = defineStore('cart', () => {
         return [...new Set(list)];
     });
 
+    const searchQuery = ref('');
+
     const setCategory = (cat: string) => {
         selectedCategory.value = cat;
         searchQuery.value = '';
+        goingHome.value = false;
     };
 
 // ---- Flag to signal navigation back to HomePage ----
@@ -111,8 +115,6 @@ export const useCartStore = defineStore('cart', () => {
     };
 
 // ---- Search Query (shared across all components) ----
-
-    const searchQuery = ref('');
 
 
     const tempInput = ref('');

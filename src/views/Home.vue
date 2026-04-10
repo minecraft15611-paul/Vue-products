@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { type Component, onMounted, shallowRef, watch } from 'vue';
 import { useCartStore } from '../stores/cart';
-import ProductList from '../components/ProductList.vue';
 import Myheader from '../components/MyHeader.vue';
 import MyFooter from '../components/MyFooter.vue';
 import HomePage from '../components/HomePage.vue';

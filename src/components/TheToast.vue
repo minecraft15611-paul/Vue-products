@@ -14,7 +14,7 @@ const cartStore = useCartStore()
   >
     <div 
       v-if="cartStore.toast.show" 
-      class="fixed top-4 z-[100] px-10 py-3 whitespace-nowrap overflow-hidden"
+      class="fixed top-8 z-[100] px-10 py-3 whitespace-nowrap overflow-hidden"
       style="left: 50%; transform: translateX(-50%);"
     >
       <div class="bg-black/90 backdrop-blur-md border border-white/10 text-white rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.4)] flex items-center gap-2 px-4 py-2 lg:gap-3 lg:px-8 lg:py-3">
@@ -24,7 +24,7 @@ const cartStore = useCartStore()
         <span class="text-[10px] lg:text-[13px] tracking-[0.15em] lg:tracking-[0.2em] font-medium uppercase">
           {{ cartStore.toast.message }}
         </span>
-      </div>``
+      </div>
     </div>
   </transition>
 </template>
