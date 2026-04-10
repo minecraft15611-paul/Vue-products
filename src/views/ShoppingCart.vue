@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useCartStore } from '../stores/cart'
 import { useRouter } from 'vue-router';
+import CheckoutView from './CheckoutView.vue';
 
 const cartStore = useCartStore()
 
@@ -23,7 +24,8 @@ const total = computed<number>(() => subtotal.value + shipping.value)
 <template>
   <div class="lg:hidden flex flex-col rounded-2xl overflow-hidden border border-gray-200 bg-white font-sans">
 
-    <!-- Header -->
+    <!-- =============== Header =============== -->
+
     <div class="flex items-baseline justify-between px-6 py-5 border-b border-gray-100 ">
       <div class="flex items-center gap-3">
         <button 
@@ -56,7 +58,8 @@ const total = computed<number>(() => subtotal.value + shipping.value)
     <!-- Cart Items -->
     <div class="overflow-y-auto" style="max-height: 360px;">
 
-      <!-- Populated State -->
+      <!-- =============== Populated State =============== -->
+
       <ul v-if="cartStore.cart.length > 0">
         <li
           v-for="(item, index) in cartStore.cart"
@@ -110,7 +113,8 @@ const total = computed<number>(() => subtotal.value + shipping.value)
 
     </div>
 
-    <!-- Summary & Actions -->
+    <!-- =============== Summary & Actions =============== -->
+
     <div v-if="cartStore.cart.length > 0" class="px-6 py-5 border-t border-gray-100">
 
       <div class="flex justify-between mb-2">
@@ -129,11 +133,13 @@ const total = computed<number>(() => subtotal.value + shipping.value)
       </div>
 
       <!-- Checkout Button -->
-      <button
-        class="w-full py-3 mb-2.5 bg-gray-900 text-white text-xs uppercase tracking-widest font-medium rounded-md hover:bg-gray-700 transition-colors"
-      >
+
+      <router-link to="/CheckoutView" class="flex justify-center w-full py-3 mb-2.5 bg-gray-900 text-white text-xs uppercase tracking-widest font-medium rounded-md hover:bg-gray-700 transition-colors">
         Proceed to Checkout
-      </button>
+          <svg class="w-3.5 h-3.5 transform ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+      </router-link>
 
       <!-- Clear All -->
       <button
@@ -150,14 +156,15 @@ const total = computed<number>(() => subtotal.value + shipping.value)
   
    <div class="hidden lg:block min-h-screen bg-[#f0ede4] font-sans">
  
-    <!-- ───────────── NAVBAR ───────────── -->
+          <!-- =============== NAVBAR =============== -->
+
     <nav class="bg-white border-b border-gray-200 px-6 h-14 flex items-center justify-between sticky top-0 z-50">
       <!-- Left: search + count -->
-<div class="hidden lg:flex items-center px-8 text-[10px] tracking-widest text-gray-400 uppercase ">
-  <router-link title="Back to home" to="/" class=" hover:scale-125 transition-all duration-300 text-black ">
-    ← Continue Shopping
-  </router-link>
-</div>
+      <div class="hidden lg:flex items-center px-8 text-[10px] tracking-widest text-gray-400 uppercase ">
+        <router-link title="Back to home" to="/" class=" hover:scale-125 transition-all duration-300 text-black ">
+          ← Continue Shopping
+        </router-link>
+      </div>
  
       <!-- Center: logo -->
       <span class="text-3xl tracking-[0.2em] text-gray-800 font-light  absolute left-1/2 -translate-x-1/2">LemonTree</span>
@@ -171,18 +178,17 @@ const total = computed<number>(() => subtotal.value + shipping.value)
 
       </div>
     </nav>
- 
-    <!-- ───────────── PAGE BODY ───────────── -->
-    <div class="max-w-6xl mx-auto px-6 py-10">
- 
 
- 
+    <!-- =============== PAGE BODY =============== -->
+
+    <div class="max-w-6xl mx-auto px-6 py-10">
+
       <h1 class="text-xl font-light tracking-widest mb-8">CART</h1>
       
- 
+
       <!-- ── Populated State ── -->
       <div v-if="cartStore.cart.length > 0" class="flex gap-6 items-start">
- 
+
         <!-- Cart Items List -->
         <div class="
           flex-1 bg-white rounded-xl overflow-hidden divide-y divide-gray-100 
@@ -198,7 +204,7 @@ const total = computed<number>(() => subtotal.value + shipping.value)
             <img
               :src="item.img || '/placeholder.jpg'"
               :alt="item.title"
-              class="w-20 h-20 rounded-lg object-cover bg-gray-100 flex-shrink-0"
+              class="w-20 h-20 rounded-lg object-cover bg-gray-100 flex-shrink:0"
             />
  
             <!-- Info -->
@@ -213,7 +219,7 @@ const total = computed<number>(() => subtotal.value + shipping.value)
                 <button
                   @click="cartStore.removeItem(item)"
                   class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 
-                          group-hover:translate-x-0 transition-all ml-4 flex-shrink-0 text-xl leading-none
+                          group-hover:translate-x-0 transition-all ml-4 flex-shrink:0 text-xl leading-none
                           "
                 >×</button>
               </div>
@@ -240,7 +246,8 @@ const total = computed<number>(() => subtotal.value + shipping.value)
           </div>
         </div>
  
-        <!-- Order Summary Sidebar -->
+        <!-- =============== Order Summary Sidebar =============== -->
+        
         <div class="w-80 flex-shrink-0 bg-white rounded-xl p-8 shadow-sm sticky top-10 border border-gray-50">
           <h2 class="text-lg font-semibold mb-6 tracking-tight text-gray-800">Order Summary</h2>
 
@@ -260,12 +267,12 @@ const total = computed<number>(() => subtotal.value + shipping.value)
             <span class="tracking-tighter">${{ total.toFixed(2) }}</span>
           </div>
 
-          <button class="mt-8 w-full bg-gray-900 text-white text-[11px] uppercase tracking-[0.2em] font-semibold rounded-md py-4 hover:bg-gray-800 transition-all flex items-center justify-center gap-2 group">
+          <router-link to="/CheckoutView" class="mt-8 w-full bg-gray-900 text-white text-[11px] uppercase tracking-[0.2em] font-semibold rounded-md py-4 hover:bg-gray-800 transition-all flex items-center justify-center gap-2 group">
             Proceed to Checkout
             <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </button>
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+          </router-link>
 
           <div class="mt-12 flex flex-col items-center border-t border-gray-50 pt-9">
             <p class="text-[10px] tracking-[0.3em] text-gray-400 uppercase mb-5 font-semibold">

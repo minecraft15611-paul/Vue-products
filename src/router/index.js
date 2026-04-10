@@ -3,6 +3,7 @@ import Home from '../views/Home.vue';
 import ShoppingCart from '../views/ShoppingCart.vue';
 import ProductDetail from '../views/ProductDetail.vue';
 import ProductsList from '../views/ProductsList.vue';
+import CheckoutView from '../views/CheckoutView.vue';
 
 const routes = [
     {
@@ -24,6 +25,11 @@ const routes = [
         path: '/ProductDetail/:id',
         name: 'ProductDetail',
         component: ProductDetail
+    },
+    {
+        path: '/CheckoutView',
+        name: 'CheckoutView',
+        component: CheckoutView
     }
 ];
 
