@@ -17,6 +17,7 @@
     isOpen.value = !isOpen.value
     }
     
+    
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet"></link>
 
@@ -134,6 +135,197 @@
                 <div class="flex-grow border-t border-gray-300"></div>
                 <div class="flex-shrink mx-4 text-gray-500 text-sm uppercase">OR</div>
                 <div class="flex-grow border-t border-gray-300"></div>
+            </div>
+
+            <div class="flex items-baseline justify-between mt-6">
+                <div class="text-2xl">
+                    Contact
+                </div>
+                <div class="underline text-[13px]">
+                    <a href="#">
+                        Sign in
+                    </a>
+                </div>
+            </div>
+
+                        <!-- ================= NOT FINISHED YET ===================== -->
+                         <!-- ================= NOT FINISHED YET ===================== -->
+                         <!-- ================= NOT FINISHED YET ===================== -->
+                           <!-- ================= NOT FINISHED YET ===================== -->
+                             <!-- ================= NOT FINISHED YET ===================== -->
+            <div class="relative mt-3 focus-within:ring-1 focus-within:ring-black transition-all">
+                <input 
+                    type="email" 
+                    id="email"
+                    autocomplete="email" 
+                    name="email" 
+                    placeholder=" " 
+                    class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none bg-transparent"
+                />
+                <label 
+                    for="email" 
+                    class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        peer-focus:top-1 
+                        peer-focus:text-xs 
+                        peer-focus:text-gray-800 
+                        peer-[:not(:placeholder-shown)]:top-1 
+                        peer-[:not(:placeholder-shown)]:text-xs 
+                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                >
+                    Email
+                </label>
+                <p class="mt-1 hidden text-xs text-red-600 
+                        peer-invalid:[&:not(:placeholder-shown):not(:focus)]:block"
+                >
+                    Enter a valid email
+                </p>
+            </div>
+
+ <!-- ================= NOT FINISHED YET ===================== -->
+   <!-- ================= NOT FINISHED YET ===================== -->
+     <!-- ================= NOT FINISHED YET ===================== -->
+
+                <!-- =============== Delivery =============== -->
+                 
+            <div class="mt-10">
+                <p class="text-2xl">
+                    Delivery
+                </p>
+
+                <div class="relative  w-full">
+                    <div>
+                        <select name="country" id="country"
+                        class="peer block w-full appearance-none border-[1.5px] border-black bg-white mt-3 px-3 pb-1 pt-4 text-base focus:outline-none focus:ring-0"
+                        >
+                            <option value="AR">Argentina</option>
+                            <option value="AU">Australia</option>
+                            <option value="AT">Austria</option>
+                            <option value="BS">Bahamas</option>
+                            <option value="BD">Bangladesh</option>
+                            <option value="BE">Belgium</option>
+                            <option value="BM">Bermuda</option>
+                            <option value="BR">Brazil</option>
+                            <option value="CA">Canada</option>
+                            <option value="CL">Chile</option>
+                            <option value="CN">China</option>
+                            <option value="CO">Colombia</option>
+                            <option value="CZ">Czech Republic</option>
+                            <option value="DK">Denmark</option>
+                            <option value="EG">Egypt</option>
+                            <option value="FI">Finland</option>
+                            <option value="FR">France</option>
+                            <option value="DE">Germany</option>
+                            <option value="GR">Greece</option>
+                            <option value="HK">Hong Kong</option>
+                            <option value="HU">Hungary</option>
+                            <option value="IS">Iceland</option>
+                            <option value="IN">India</option>
+                            <option value="ID">Indonesia</option>
+                            <option value="IE">Ireland</option>
+                            <option value="IL">Israel</option>
+                            <option value="IT">Italy</option>
+                            <option value="JP">Japan</option>
+                            <option value="LU">Luxembourg</option>
+                            <option value="MY">Malaysia</option>
+                            <option value="MX">Mexico</option>
+                            <option value="NL">Netherlands</option>
+                            <option value="NZ">New Zealand</option>
+                            <option value="NO">Norway</option>
+                            <option value="PH">Philippines</option>
+                            <option value="PL">Poland</option>
+                            <option value="PT">Portugal</option>
+                            <option value="SA">Saudi Arabia</option>
+                            <option value="SG">Singapore</option>
+                            <option value="ZA">South Africa</option>
+                            <option value="KR">South Korea</option>
+                            <option value="ES">Spain</option>
+                            <option value="SE">Sweden</option>
+                            <option value="CH">Switzerland</option>
+                            <option value="TW">Taiwan</option>
+                            <option value="TH">Thailand</option>
+                            <option value="TR">Turkey</option>
+                            <option value="GB">United Kingdom</option>
+                            <option value="US">United States</option>
+                            <option value="VN">Vietnam</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            for="country"
+                            class="text-[13px] pointer-events-none absolute left-3 top-1 origin-[0%] scale-90 transform text-sm text-gray-500 duration-200 peer-focus:scale-90 peer-focus:text-gray-500"
+                        >
+                            Country/Region
+                        </label>
+                    </div>
+                    <div>
+                        <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center pt-3">
+                            <svg 
+                                class="h-4 w-4 text-gray-600" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 10 24 24"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="relative mt-3 focus-within:ring-1 focus-within:ring-black transition-all">
+                    <input type="text" id="firstname" name="firstname" placeholder=" " autocomplete="given-name"
+                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none bg-transparent"
+                    >
+                    <label 
+                        for="firstname" 
+                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        peer-focus:top-1 
+                        peer-focus:text-xs 
+                        peer-focus:text-gray-800 
+                        peer-[:not(:placeholder-shown)]:top-1 
+                        peer-[:not(:placeholder-shown)]:text-xs 
+                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                    >
+                        First name
+                    </label>
+                </div>
+                
+                <div class="relative mt-3 focus-within:ring-1 focus-within:ring-black transition-all">
+                    <input type="text" id="lastname" name="lasttname" placeholder=" " 
+                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none bg-transparent"
+                    >
+                    <label 
+                        for="lastname" 
+                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        peer-focus:top-1 
+                        peer-focus:text-xs 
+                        peer-focus:text-gray-800 
+                        peer-[:not(:placeholder-shown)]:top-1 
+                        peer-[:not(:placeholder-shown)]:text-xs 
+                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                    >
+                        Last name
+                    </label>
+                </div>
+
+
+                
+                <p class="my-5 text-xl text-[15px] font-normal text-gray-900">
+                    Shipping method
+                </p>
+
+                <div class="bg-gray-100 p-5 my-5">
+                    <p class="text-[13px] text-gray-500 text-base leading-relaxed">
+                        Enter your shipping address to view available shipping methods.
+                    </p>
+                </div>
+                
+                
+            </div>
+
+
+            <div>
+
             </div>
 
 
