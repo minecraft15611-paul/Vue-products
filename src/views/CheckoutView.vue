@@ -14,8 +14,12 @@
     
     const isOpen = ref<boolean>(false)
     const toggle = () => {
-    isOpen.value = !isOpen.value
+        isOpen.value = !isOpen.value
     }
+    
+    const payment = ref<string>('credit');
+    const useShippingAsBilling = ref<boolean>(true);
+
     
     
 </script>
@@ -153,14 +157,14 @@
                          <!-- ================= NOT FINISHED YET ===================== -->
                            <!-- ================= NOT FINISHED YET ===================== -->
                              <!-- ================= NOT FINISHED YET ===================== -->
-            <div class="relative mt-3 focus-within:ring-1 focus-within:ring-black transition-all">
+            <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                 <input 
                     type="email" 
                     id="email"
                     autocomplete="email" 
                     name="email" 
                     placeholder=" " 
-                    class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none bg-transparent"
+                    class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
                 />
                 <label 
                     for="email" 
@@ -272,9 +276,9 @@
                 </div>
 
 
-                <div class="relative mt-3 focus-within:ring-1 focus-within:ring-black transition-all">
+                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="firstname" name="firstname" placeholder=" " autocomplete="given-name"
-                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none bg-transparent"
+                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
                     >
                     <label 
                         for="firstname" 
@@ -290,9 +294,9 @@
                     </label>
                 </div>
                 
-                <div class="relative mt-3 focus-within:ring-1 focus-within:ring-black transition-all">
-                    <input type="text" id="lastname" name="lasttname" placeholder=" " 
-                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none bg-transparent"
+                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                    <input type="text" id="lastname" name="lastname" placeholder=" " 
+                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
                     >
                     <label 
                         for="lastname" 
@@ -305,6 +309,114 @@
                         peer-[:not(:placeholder-shown)]:text-gray-500"
                     >
                         Last name
+                    </label>
+                </div>
+
+                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                    <input type="text" id="address" name="address" placeholder=" " 
+                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                    >
+                    <label 
+                        for="address" 
+                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        peer-focus:top-1 
+                        peer-focus:text-xs 
+                        peer-focus:text-gray-800 
+                        peer-[:not(:placeholder-shown)]:top-1 
+                        peer-[:not(:placeholder-shown)]:text-xs 
+                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                    >
+                        Address
+                    </label>
+                </div>
+
+                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                    <input type="text" id="apartment" name="apartment" autocomplete="address-line2" placeholder=" " 
+                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                    >
+                    <label 
+                        for="apartment" 
+                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        peer-focus:top-1 
+                        peer-focus:text-xs 
+                        peer-focus:text-gray-800 
+                        peer-[:not(:placeholder-shown)]:top-1 
+                        peer-[:not(:placeholder-shown)]:text-xs 
+                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                    >
+                        Apartment, suite, etc. (optional)
+                    </label>
+                </div>
+
+                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                    <input type="text" id="city" name="city" placeholder=" " 
+                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                    >
+                    <label 
+                        for="city" 
+                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        peer-focus:top-1 
+                        peer-focus:text-xs 
+                        peer-focus:text-gray-800 
+                        peer-[:not(:placeholder-shown)]:top-1 
+                        peer-[:not(:placeholder-shown)]:text-xs 
+                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                    >
+                        City
+                    </label>
+                </div>
+
+                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                    <input type="text" id="state" name="state" placeholder=" " autocomplete="address-level1"
+                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                    >
+                    <label 
+                        for="state" 
+                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        peer-focus:top-1 
+                        peer-focus:text-xs 
+                        peer-focus:text-gray-800 
+                        peer-[:not(:placeholder-shown)]:top-1 
+                        peer-[:not(:placeholder-shown)]:text-xs 
+                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                    >
+                        State / Province
+                    </label>
+                </div>
+
+                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                    <input type="text" id="postcode" name="postcode" autocomplete="postal-code" placeholder=" " 
+                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                    >
+                    <label 
+                        for="postcode" 
+                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        peer-focus:top-1 
+                        peer-focus:text-xs 
+                        peer-focus:text-gray-800 
+                        peer-[:not(:placeholder-shown)]:top-1 
+                        peer-[:not(:placeholder-shown)]:text-xs 
+                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                    >
+                        Postcode / ZIP code
+                    </label>
+                </div>
+
+                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                    <input type="text" id="phone" name="phone" placeholder=" " 
+                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                    >
+                    <label 
+                        for="phone" 
+                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        peer-focus:top-1 
+                        peer-focus:text-xs 
+                        peer-focus:text-gray-800 
+                        peer-[:not(:placeholder-shown)]:top-1 
+                        peer-[:not(:placeholder-shown)]:text-xs 
+                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                    >
+                        Phone
                     </label>
                 </div>
 
@@ -323,17 +435,335 @@
                 
             </div>
 
+                                <!-- ==================== Payment ===================== -->
 
+                        <!-- ========== Credit or Debit card ========== -->
             <div>
+                <div>
+                    <h2 class="text-[18px] font-semibold text-gray-900 leading-tight">Payment</h2>
+                </div>
 
+                <div>
+                    <p class="mt-2 text-[13px] text-gray-500 mb-3">All transactions are secure and encrypted.</p>
+                </div>
+
+                <!-- ========== Payment Method Selector ========== -->
+
+                <div class="flex relative border bg-gray-100 border-black p-3 pb-1 items-baseline">
+                    <div class="flex justify-between ml-3 ">
+                        <div class="p-1">
+                            <input type="radio" v-model="payment" value="credit" class="absolute bottom-8 left-3">
+                            <p class="text-[13px] font-medium pl-2">Credit or Debit Card</p>
+                        </div>
+                        
+                    </div>
+
+                    <div class="flex h-11 gap-2 ml-3 pl-2">
+                            <span class="text-[#1a1f71] font-bold italic text-xs">VISA</span>
+                            <div class="flex">
+                                <div class="w-3 h-3 rounded-full bg-red-500 opacity-80"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-500 opacity-80 -ml-1.5"></div>
+                            </div>
+                            <span class="flex items-center h-5 w-10 p-1 text-white bg-blue-600 rounded font-bold text-[10px]">AMEX</span>
+                            <span class="flex justify-center bg-white border border-gray-200 w-6 h-4 text-slate-500 text-[10px]">+3</span>
+                    </div>
+                </div>
+
+                <!-- ========== Accordion part of Credit or Debit card ========== -->
+
+                <Transition
+                    enter-active-class="overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out"
+                    enter-from-class="max-h-0 opacity-0"
+                    enter-to-class="max-h-[500px] opacity-100"
+                    leave-active-class="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
+                    leave-from-class="max-h-[500px] opacity-100"
+                    leave-to-class="max-h-0 opacity-0"
+                >
+                    <div class="flex-grid bg-gray-100 p-2" v-if="payment === 'credit'">
+                        
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="cardnumber" name="cardnumber" placeholder=" " 
+                                class="peer w-full h-full border border-gray-300 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none focus:ring-0 focus:border-transparent"
+                            >
+                            <label 
+                                for="cardnumber" 
+                                class="absolute left-3 bottom-3 text-[13px] text-gray-600 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                Card number
+                            </label>
+                        </div>
+
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="expriationdate" name="expriationdate" placeholder=" " 
+                                class="peer w-full h-full border border-gray-300 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none focus:ring-0 focus:border-transparent"
+                            >
+                            <label 
+                                for="expriationdate" 
+                                class="absolute left-3 bottom-3 text-[13px] text-gray-600 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                Expiration date (MM / YY)
+                            </label>
+                        </div>
+
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="securitycode" name="securitycode" placeholder=" " 
+                                class="peer w-full h-full border border-gray-300 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none focus:ring-0 focus:border-transparent"
+                            >
+                            <label 
+                                for="securitycode" 
+                                class="absolute left-3 bottom-3 text-[13px] text-gray-600 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                Security code
+                            </label>
+                        </div>
+
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="nameoncard" name="nameoncard" placeholder=" " 
+                                class="peer w-full h-full border border-gray-300 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none focus:ring-0 focus:border-transparent"
+                            >
+                            <label 
+                                for="nameoncard" 
+                                class="absolute left-3   bottom-3 text-[13px] text-gray-600 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                Name on card
+                            </label>
+                        </div>
+
+                        <label class="flex items-center space-x-3 mt-3 cursor-pointer">
+                            <input 
+                                type="checkbox" v-model="useShippingAsBilling"
+                                class="w-5 h-5 cursor-pointer appearance-none
+                                    border-2 border-black bg-white rounded-none
+                                    relative
+                                    checked:bg-black transition-colors duration-200
+                                    after:content-['✓'] after:absolute after:inset-0
+                                    after:flex after:items-center after:justify-center
+                                    after:text-white after:font-bold after:text-sm
+                                    after:scale-0 after:opacity-0
+                                    after:transition-all after:duration-300 after:ease-out
+                                    checked:after:scale-100 checked:after:opacity-100"
+                            >
+                            <span class="text-[13px] text-black">
+                                Use shipping address as billing address
+                            </span>
+                        </label>
+
+                        <div class="mt-5">
+                            <p class="text-[16px] font-normal">
+                                Biling address
+                            </p>
+                        </div>
+
+                                    <!-- ========== Use Shipping As Billing ========== -->
+
+                        <Transition
+                            enter-active-class="overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out"
+                            enter-from-class="max-h-0 opacity-0"
+                            enter-to-class="max-h-[500px] opacity-100"
+                            leave-active-class="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
+                            leave-from-class="max-h-[500px] opacity-100"
+                            leave-to-class="max-h-0 opacity-0"
+                        >
+                            <div v-if="useShippingAsBilling === false ">
+                                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                                    <input type="text" id="firstname" name="firstname" placeholder=" " autocomplete="given-name"
+                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                    >
+                                    <label 
+                                        for="firstname" 
+                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        peer-focus:top-1 
+                                        peer-focus:text-xs 
+                                        peer-focus:text-gray-800 
+                                        peer-[:not(:placeholder-shown)]:top-1 
+                                        peer-[:not(:placeholder-shown)]:text-xs 
+                                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                                    >
+                                        First name
+                                    </label>
+                                </div>
+                                
+                                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                                    <input type="text" id="lastname" name="lastname" placeholder=" " 
+                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                    >
+                                    <label 
+                                        for="lastname" 
+                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        peer-focus:top-1 
+                                        peer-focus:text-xs 
+                                        peer-focus:text-gray-800 
+                                        peer-[:not(:placeholder-shown)]:top-1 
+                                        peer-[:not(:placeholder-shown)]:text-xs 
+                                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                                    >
+                                        Last name
+                                    </label>
+                                </div>
+            
+                                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                                    <input type="text" id="address" name="address" placeholder=" " 
+                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                    >
+                                    <label 
+                                        for="address" 
+                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        peer-focus:top-1 
+                                        peer-focus:text-xs 
+                                        peer-focus:text-gray-800 
+                                        peer-[:not(:placeholder-shown)]:top-1 
+                                        peer-[:not(:placeholder-shown)]:text-xs 
+                                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                                    >
+                                        Address
+                                    </label>
+                                </div>
+            
+                                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                                    <input type="text" id="apartment" name="apartment" autocomplete="address-line2" placeholder=" " 
+                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                    >
+                                    <label 
+                                        for="apartment" 
+                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        peer-focus:top-1 
+                                        peer-focus:text-xs 
+                                        peer-focus:text-gray-800 
+                                        peer-[:not(:placeholder-shown)]:top-1 
+                                        peer-[:not(:placeholder-shown)]:text-xs 
+                                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                                    >
+                                        Apartment, suite, etc. (optional)
+                                    </label>
+                                </div>
+            
+                                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                                    <input type="text" id="city" name="city" placeholder=" " 
+                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                    >
+                                    <label 
+                                        for="city" 
+                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        peer-focus:top-1 
+                                        peer-focus:text-xs 
+                                        peer-focus:text-gray-800 
+                                        peer-[:not(:placeholder-shown)]:top-1 
+                                        peer-[:not(:placeholder-shown)]:text-xs 
+                                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                                    >
+                                        City
+                                    </label>
+                                </div>
+            
+                                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                                    <input type="text" id="state" name="state" placeholder=" " autocomplete="address-level1"
+                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                    >
+                                    <label 
+                                        for="state" 
+                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        peer-focus:top-1 
+                                        peer-focus:text-xs 
+                                        peer-focus:text-gray-800 
+                                        peer-[:not(:placeholder-shown)]:top-1 
+                                        peer-[:not(:placeholder-shown)]:text-xs 
+                                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                                    >
+                                        State / Province
+                                    </label>
+                                </div>
+            
+                                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                                    <input type="text" id="postcode" name="postcode" autocomplete="postal-code" placeholder=" " 
+                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                    >
+                                    <label 
+                                        for="postcode" 
+                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        peer-focus:top-1 
+                                        peer-focus:text-xs 
+                                        peer-focus:text-gray-800 
+                                        peer-[:not(:placeholder-shown)]:top-1 
+                                        peer-[:not(:placeholder-shown)]:text-xs 
+                                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                                    >
+                                        Postcode / ZIP code
+                                    </label>
+                                </div>
+            
+                                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                                    <input type="text" id="phone" name="phone" placeholder=" " 
+                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                    >
+                                    <label 
+                                        for="phone" 
+                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        peer-focus:top-1 
+                                        peer-focus:text-xs 
+                                        peer-focus:text-gray-800 
+                                        peer-[:not(:placeholder-shown)]:top-1 
+                                        peer-[:not(:placeholder-shown)]:text-xs 
+                                        peer-[:not(:placeholder-shown)]:text-gray-500"
+                                    >
+                                        Phone
+                                    </label>
+                                </div>
+                            </div>
+                        </Transition>
+                        
+                    </div>
+            
+                </Transition>
+
+                            
+                            <!-- ========== More Payment Options ========== -->
+                <div class="flex relative border bg-gray-100 mt-2 p-1 border-black items-center justify-between">
+                    <div class="flex justify-between ml-3 ">
+                        <div class="p-1">
+                            <input type="radio" v-model="payment" value="more" class="flex ml-1 absolute bottom-4 left-2">
+                            <p class="text-[13px] font-medium pl-4">More Payment Options</p>
+                        </div>
+                        
+                    </div>
+
+                    <div class="flex justify-center items-center h-11 pr-4">
+                        <button class="flex justify-center bg-white border border-gray-200 h-5 w-8 ">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" class="text-blue-500">
+                                <circle cx="5" cy="12" r="3"></circle>
+                                <circle cx="13" cy="12" r="3"></circle>
+                                <circle cx="21" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
             </div>
-
-
         </div>
 
-        <div>
-            <!-- Payment -->
-        </div>
 
     </div>
 
