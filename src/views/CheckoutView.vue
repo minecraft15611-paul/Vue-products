@@ -1,12 +1,22 @@
 <script setup lang="ts">
-    import { ref, computed } from 'vue';
+    import { ref, computed, onMounted } from 'vue';
     import { useCartStore } from '../stores/cart';
+    import intlTelInput from 'intl-tel-input';
+    import 'intl-tel-input/styles';
+
 
     const cartStore = useCartStore();
 
     const subtotal = computed<number>(() =>
     cartStore.totalPrice
     )
+
+    const discountcode = ref<string>('');
+    const isApplyDisabled = computed (() => {
+        return discountcode.value.length === 0
+    })
+
+    
 
     const shipping = computed<number>(() => (subtotal.value > 1 ? 0 : 9.99))
 
@@ -20,13 +30,30 @@
     const payment = ref<string>('credit');
     const useShippingAsBilling = ref<boolean>(true);
 
+    const phone = ref<string>('');
+    const phoneInputRef = ref<HTMLInputElement | null>(null);
+    let iti: any = null;
+
+    onMounted(() => {
+        if (phoneInputRef.value) {
+            iti = intlTelInput(phoneInputRef.value, {
+                nationalMode: false,        // forces international format
+                separateDialCode: false,
+                allowDropdown: false,     // shows flag + dial code separately
+                loadUtilsOnInit: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/js/utils.js'
+            });
+        }
+    });
+
+    
     
     
 </script>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet"></link>
+
 
 
 <template>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet"></link>
 
         <!-- =============== Mobile Version =============== -->
 
@@ -66,15 +93,22 @@
 
                 <!-- ========== Accordion Contents ========== -->
 
-                <div 
-                    class="transition-all duration-300 ease-in-out overflow-hidden"
-                    :class="isOpen ? 'max-h-[100-vh] opacity-100' : 'max-h-0 opacity-0'"
+
+                <Transition
+                    enter-active-class="overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out"
+                    enter-from-class="max-h-0 opacity-0"
+                    enter-to-class="max-h-[500px] opacity-100"
+                    leave-active-class="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
+                    leave-from-class="max-h-[500px] opacity-100"
+                    leave-to-class="max-h-0 opacity-0"
                 >
-                    <div class=" text-gray-600 border-t p-2 border-gray-300">
+            
+                <div v-if="isOpen">
+                    <div class=" text-gray-600 border-t p-2 border-gray-300" >
 
                         <div class="
                             flex-1 bg-white overflow-hidden  
-                            shadow-sm overflow-y-auto max-h-[70vh] hide-scrollbar scrollbar-gutter:stable 
+                            overflow-y-auto max-h-[70vh] hide-scrollbar scrollbar-gutter:stable 
                             scroll-smooth 
                         ">
                             <div
@@ -113,7 +147,66 @@
                         </div>
 
                     </div>
+
+                    <div class="flex justify-between px-3 mb-1 gap-2">
+                        <div class="relative border border-gray-300 focus-within:ring-2 focus-within:ring-black">
+                            <input type="text" id="firstname" name="firstname" 
+                                    placeholder=" " autocomplete="given-name"
+                                    v-model="discountcode"
+                                class="peer w-65 h-11 border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                            >
+                            <label 
+                                for="firstname" 
+                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                Discount code or gift card
+                            </label>
+                        </div>
+                        <button class="border text-[13px] transition-color duration-300 border-gray-300 text-gray-500 px-2"
+                                :disabled="isApplyDisabled"
+                                :class="isApplyDisabled ? 'bg-gray-50 ' : 'bg-black text-white'"
+                        >
+                            APPLY
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between mt-5 mb-2">
+                        <div class="text-[13px] pl-3">
+                            Subtotal - {{ cartStore.cart.reduce((acc, item) => acc + item.quantity, 0) }} items
+                        </div>
+                        <div class="pr-3">
+                            ${{ subtotal.toFixed(2) }}
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between">
+                        <div class="text-[13px] pl-3">
+                            Shipping 
+                        </div>
+                        <div class="pr-3">
+                            Free
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between my-5">
+                        <div class="pl-3 text-[20px]">
+                            Total
+                        </div>
+                        <div class="pr-3">
+                            ${{ total.toFixed(2) }}
+                        </div>
+                    </div>
+
+
+
                 </div>
+                </Transition>
             </div>
         </div>
 
@@ -122,7 +215,7 @@
         <div class="flex flex-col p-5">
 
             <div class="flex justify-center">
-                <p class="font-['Montserrat'] font-light text-sm text-gray-700 uppercase tracking-widest text-center">
+                <p class="font-['Montserrat'] font-light text-[11px] text-gray-700 uppercase tracking-widest text-center">
                     Express checkout
                 </p>
             </div>
@@ -164,11 +257,11 @@
                     autocomplete="email" 
                     name="email" 
                     placeholder=" " 
-                    class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                    class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 focus-within:ring-2 focus-within:ring-black bg-transparent"
                 />
                 <label 
                     for="email" 
-                    class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                    class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                         peer-focus:top-1 
                         peer-focus:text-xs 
                         peer-focus:text-gray-800 
@@ -278,11 +371,11 @@
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="firstname" name="firstname" placeholder=" " autocomplete="given-name"
-                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                        class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
                         for="firstname" 
-                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                         peer-focus:top-1 
                         peer-focus:text-xs 
                         peer-focus:text-gray-800 
@@ -296,11 +389,11 @@
                 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="lastname" name="lastname" placeholder=" " 
-                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                        class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
                         for="lastname" 
-                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                         peer-focus:top-1 
                         peer-focus:text-xs 
                         peer-focus:text-gray-800 
@@ -314,11 +407,11 @@
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="address" name="address" placeholder=" " 
-                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                        class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
                         for="address" 
-                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                         peer-focus:top-1 
                         peer-focus:text-xs 
                         peer-focus:text-gray-800 
@@ -332,11 +425,11 @@
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="apartment" name="apartment" autocomplete="address-line2" placeholder=" " 
-                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                        class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
                         for="apartment" 
-                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                         peer-focus:top-1 
                         peer-focus:text-xs 
                         peer-focus:text-gray-800 
@@ -350,11 +443,11 @@
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="city" name="city" placeholder=" " 
-                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                        class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
                         for="city" 
-                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                         peer-focus:top-1 
                         peer-focus:text-xs 
                         peer-focus:text-gray-800 
@@ -368,11 +461,11 @@
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="state" name="state" placeholder=" " autocomplete="address-level1"
-                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                        class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
                         for="state" 
-                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                         peer-focus:top-1 
                         peer-focus:text-xs 
                         peer-focus:text-gray-800 
@@ -386,11 +479,11 @@
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="postcode" name="postcode" autocomplete="postal-code" placeholder=" " 
-                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                        class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
                         for="postcode" 
-                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                         peer-focus:top-1 
                         peer-focus:text-xs 
                         peer-focus:text-gray-800 
@@ -404,11 +497,11 @@
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="phone" name="phone" placeholder=" " 
-                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                        class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
                         for="phone" 
-                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                         peer-focus:top-1 
                         peer-focus:text-xs 
                         peer-focus:text-gray-800 
@@ -483,7 +576,7 @@
                         
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" id="cardnumber" name="cardnumber" placeholder=" " 
-                                class="peer w-full h-full border border-gray-300 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none focus:ring-0 focus:border-transparent"
+                                class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
                                 for="cardnumber" 
@@ -501,7 +594,7 @@
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" id="expriationdate" name="expriationdate" placeholder=" " 
-                                class="peer w-full h-full border border-gray-300 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none focus:ring-0 focus:border-transparent"
+                                class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
                                 for="expriationdate" 
@@ -519,7 +612,7 @@
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" id="securitycode" name="securitycode" placeholder=" " 
-                                class="peer w-full h-full border border-gray-300 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none focus:ring-0 focus:border-transparent"
+                                class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
                                 for="securitycode" 
@@ -537,7 +630,7 @@
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" id="nameoncard" name="nameoncard" placeholder=" " 
-                                class="peer w-full h-full border border-gray-300 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none focus:ring-0 focus:border-transparent"
+                                class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
                                 for="nameoncard" 
@@ -591,11 +684,11 @@
                             <div v-if="useShippingAsBilling === false ">
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="firstname" name="firstname" placeholder=" " autocomplete="given-name"
-                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="firstname" 
-                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
                                         peer-focus:text-gray-800 
@@ -609,11 +702,11 @@
                                 
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="lastname" name="lastname" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="lastname" 
-                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
                                         peer-focus:text-gray-800 
@@ -627,11 +720,11 @@
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="address" name="address" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="address" 
-                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
                                         peer-focus:text-gray-800 
@@ -645,11 +738,11 @@
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="apartment" name="apartment" autocomplete="address-line2" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="apartment" 
-                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
                                         peer-focus:text-gray-800 
@@ -663,11 +756,11 @@
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="city" name="city" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="city" 
-                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
                                         peer-focus:text-gray-800 
@@ -681,11 +774,11 @@
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="state" name="state" placeholder=" " autocomplete="address-level1"
-                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="state" 
-                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
                                         peer-focus:text-gray-800 
@@ -699,11 +792,11 @@
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="postcode" name="postcode" autocomplete="postal-code" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="postcode" 
-                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
                                         peer-focus:text-gray-800 
@@ -717,11 +810,11 @@
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="phone" name="phone" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black outline-none focus:outline-none focus:ring-0 focus:border-transparent bg-transparent"
+                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="phone" 
-                                        class="absolute left-3 top-2 text-gray-400 transition-all duration-200 pointer-events-none
+                                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
                                         peer-focus:text-gray-800 
@@ -760,6 +853,84 @@
                         </button>
                     </div>
                 </div>
+
+
+
+                <div class="flex justify-between my-10">
+                    <h3>
+                        Payment Options
+                    </h3>
+                    <div class="flex gap-1 items-baseline">
+                        <div class="border border-gray-300 p-1 flex items-center justify-center">
+                            <svg width="40" height="13" viewBox="-15 0 100 30" xmlns="http://www.w3.org/2000/svg">
+                                <text x="0" y="22" font-family="Arial, sans-serif" font-weight="bold" font-size="22" fill="black">Klarna</text>
+                            </svg>
+                        </div>
+
+                        <div class="border border-gray-300 p-1 flex items-center justify-center">
+                            <svg width="35" height="13" viewBox="-10 0 100 30" xmlns="http://www.w3.org/2000/svg">
+                                <text x="0" y="22" font-family="Verdana, sans-serif" font-weight="bold" font-style="italic" font-size="22">
+                                    <tspan fill="#003087">Pay</tspan><tspan fill="#009cde">Pal</tspan>
+                                </text>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div>
+                    <p class="text-[13px] mb-3">
+                        save my information for a faster checkout
+                    </p>
+                    <div class="flex items-stretch border border-black mt-4 p-2 max-w-sm">
+                        
+                        <div class="px-2 flex items-center">
+                            <svg class="w-5 h-5 text-gray-400">...</svg>
+                        </div>
+
+                        <input
+                            ref="phoneInputRef"
+                            type="tel"
+                            v-model="phone"
+                            placeholder="Mobile phone(optional)"
+                            class="py-2 px-3 w-full border-none outline-none ring-0"
+                        />
+                    </div>
+                    <p class="text-gray-600 text-[11px] mt-5">
+                        By providing you phone number, you agreed create a Shop acccount subject to <u> Shop's Term</u> and <u>Privacy Policy</u>.
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-[13px] mt-10">
+                        By clicking below and placing your order, you agree (i) to make your purchase
+                        from Global-e as merchant of record for this transaction, subject to Global-e's
+                        <u>Terms &amp; Conditions</u>; (ii) that your information will be handled by Global-e in
+                        accordance with the Global-e <u>Privacy Policy</u>; and (iii) that your information
+                        (excluding the payment details) will be shared between Global-e and LemonTree.
+                    </p>
+                </div>
+
+                <div class="mt-10">
+                    <h3 class="text-[15px]">
+                        Carbon Offset
+                    </h3>
+                    <div class="flex">
+                        <p class="mt-2 text-gray-500 text-[13px]">
+                            Learn more about how we do this.
+                        </p>
+                        <div>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex border border-gray-300 p-2 mt-3">
+                    <input type="checkbox" name="" id="">
+                    <p class="text-[13px] pl-2">
+                        Offset CO2 emissions from shipping for $0.15
+                    </p>
+                </div>
                 
             </div>
         </div>
@@ -775,3 +946,15 @@
     </div>
     
 </template>
+
+<style>
+.iti {
+    width: 100%;
+    direction: rtl;
+}
+
+.iti__tel-input {
+    direction: ltr;
+    text-align: left;
+}
+</style>
