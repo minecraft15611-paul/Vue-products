@@ -31,6 +31,12 @@
     const bottomToggle = () => {
         isBottomOpen.value = !isBottomOpen.value;
     }
+
+    const isTextMeChecked = ref<boolean>(false);
+
+    const paymentMethod = ref<string>('Klarna');
+
+    const billingOptions = ref<string>('same');
     
     const payment = ref<string>('credit');
     const useShippingAsBilling = ref<boolean>(true);
@@ -39,13 +45,46 @@
     const phoneInputRef = ref<HTMLInputElement | null>(null);
     let iti: any = null;
 
+    function onEnter(el: Element) {
+    const htmlEl = el as HTMLElement
+    htmlEl.style.height = '0'
+    htmlEl.style.overflow = 'hidden'
+    htmlEl.style.opacity = '0'
+    htmlEl.style.transition = 'height 0.4s ease, opacity 0.4s ease'
+    requestAnimationFrame(() => {
+        htmlEl.style.height = htmlEl.scrollHeight + 'px'
+        htmlEl.style.opacity = '1'
+    })
+    }
+    function onAfterEnter(el: Element) {
+    const htmlEl = el as HTMLElement
+    htmlEl.style.height = 'auto'
+    htmlEl.style.overflow = ''
+    }
+    function onLeave(el: Element) {
+    const htmlEl = el as HTMLElement
+    htmlEl.style.height = htmlEl.scrollHeight + 'px'
+    htmlEl.style.overflow = 'hidden'
+    htmlEl.style.transition = 'height 0.3s ease, opacity 0.3s ease'
+    requestAnimationFrame(() => {
+        htmlEl.style.height = '0'
+        htmlEl.style.opacity = '0'
+    })
+    }
+    function onAfterLeave(el: Element) {
+    const htmlEl = el as HTMLElement
+    htmlEl.style.height = ''
+    htmlEl.style.opacity = ''
+    htmlEl.style.overflow = ''
+    }
+
     onMounted(() => {
         if (phoneInputRef.value) {
             iti = intlTelInput(phoneInputRef.value, {
                 nationalMode: false,        // forces international format
                 separateDialCode: false,
                 allowDropdown: false,     // shows flag + dial code separately
-                loadUtilsOnInit: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23/build/js/utils.js'
+               
             });
         }
     });
@@ -76,7 +115,7 @@
                     @click="toggle"
                     class="w-full flex  items-center p-4  hover:bg-gray-50 transition-colors"
                     >
-                        <span class="text-[14px] text-[#1a1a1a] font-normal tracking-tight mr-2">
+                        <span class="text-[13px] text-[#1a1a1a] font-normal tracking-tight mr-2">
                             Order summary
                         </span>
     
@@ -100,12 +139,10 @@
 
 
                 <Transition
-                    enter-active-class="overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out"
-                    enter-from-class="max-h-0 opacity-0"
-                    enter-to-class="max-h-[500px] opacity-100"
-                    leave-active-class="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
-                    leave-from-class="max-h-[500px] opacity-100"
-                    leave-to-class="max-h-0 opacity-0"
+                    @enter="onEnter"
+                    @after-enter="onAfterEnter"
+                    @leave="onLeave"
+                    @after-leave="onAfterLeave"
                 >
             
                 <div v-if="isOpen">
@@ -119,7 +156,7 @@
                             <div
                                 v-for="item in cartStore.cart"
                                 :key="item.id"
-                                class="flex items-start group gap-2 p-2"
+                                class="flex items-start group gap-2 p-2 pb-1"
                             >
                                 <!-- Thumbnail -->
                                 <div class="inline-block border border-gray-200 p-0.5 bg-white relative ">
@@ -155,13 +192,13 @@
 
                     <div class="flex justify-between px-3 mb-1 gap-2">
                         <div class="relative border border-gray-300 focus-within:ring-2 focus-within:ring-black">
-                            <input type="text" id="firstname" name="firstname" 
+                            <input type="text" id="discountcode" name="discountcode" 
                                     placeholder=" " autocomplete="given-name"
                                     v-model="discountcode"
                                 class="peer w-65 h-11 border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                             >
                             <label 
-                                for="firstname" 
+                                for="discountcode" 
                                 class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
@@ -185,7 +222,7 @@
                         <div class="text-[13px] pl-3">
                             Subtotal - {{ cartStore.cart.reduce((acc, item) => acc + item.quantity, 0) }} items
                         </div>
-                        <div class="pr-3">
+                        <div class="pr-3 text-[15px]">
                             ${{ subtotal.toFixed(2) }}
                         </div>
                     </div>
@@ -203,7 +240,7 @@
                         <div class="pl-3 text-[20px]">
                             Total
                         </div>
-                        <div class="pr-3">
+                        <div class="pr-3 text-[20px]">
                             ${{ total.toFixed(2) }}
                         </div>
                     </div>
@@ -220,7 +257,7 @@
         <div class="flex flex-col p-5">
 
             <div class="flex justify-center">
-                <p class="font-['Montserrat'] font-light text-[11px] text-gray-700 uppercase tracking-widest text-center">
+                <p class="font-['Montserrat'] font-light text-[10px] text-gray-700 uppercase tracking-widest text-center">
                     Express checkout
                 </p>
             </div>
@@ -240,7 +277,7 @@
             </div>
 
             <div class="flex items-baseline justify-between mt-6">
-                <div class="text-2xl">
+                <div class="text-[18px]">
                     Contact
                 </div>
                 <div class="underline text-[13px]">
@@ -290,14 +327,14 @@
                 <!-- =============== Delivery =============== -->
                  
             <div class="mt-10">
-                <p class="text-2xl">
+                <p class="text-[19px]">
                     Delivery
                 </p>
 
                 <div class="relative  w-full">
                     <div>
                         <select name="country" id="country"
-                        class="peer block w-full appearance-none border-[1.5px] border-black bg-white mt-3 px-3 pb-1 pt-4 text-base focus:outline-none focus:ring-0"
+                        class="peer block w-full appearance-none border-[1.5px] border-black bg-white mt-3 px-3 pb-1 pt-4 text-[13px] focus:outline-none focus:ring-0"
                         >
                             <option value="AR">Argentina</option>
                             <option value="AU">Australia</option>
@@ -518,6 +555,48 @@
                     </label>
                 </div>
 
+                <div class="flex my-3 items-center">
+                    <input type="checkbox" class="mx-2" v-model="isTextMeChecked">
+                    <p class="text-[13px]">
+                        Text me with news and offers
+                    </p>
+                </div>
+
+
+                <Transition
+                    @enter="onEnter"
+                    @after-enter="onAfterEnter"
+                    @leave="onLeave"
+                    @after-leave="onAfterLeave"
+                >
+                    <div class="" v-if="isTextMeChecked === true">
+                        <div class="flex items-stretch border border-black  p-2 max-w-sm">
+                            
+                            <div class="px-2 flex items-center">
+                                <svg class="w-5 h-5 text-gray-400">...</svg>
+                            </div>
+
+                            <input
+                                ref="phoneInputRef"
+                                type="tel"
+                                v-model="phone"
+                                placeholder="Mobile phone(optional)"
+                                class="py-2 px-3 w-full border-none outline-none ring-0"
+                            />
+                        </div>
+
+                        <div class="text-[11px] text-gray-500 mt-2">
+                            By signing up via text, you agree to receive recurring automated marketing messages, 
+                            including cart reminders, at the phone number provided. Consent is not a condition 
+                            of purchase. Reply STOP to unsubscribe. Reply HELP for help. Message frequency 
+                            varies. Msg & data rates may apply. View our 
+                            <a href="#" class="underline hover:text-gray-700">Privacy policy</a> 
+                            and 
+                            <a href="#" class="underline hover:text-gray-700">Terms of service</a>.
+                        </div>
+                    </div>
+                </Transition>
+
 
                 
                 <p class="my-5 text-xl text-[15px] font-normal text-gray-900">
@@ -525,7 +604,7 @@
                 </p>
 
                 <div class="bg-gray-100 p-5 my-5">
-                    <p class="text-[13px] text-gray-500 text-base leading-relaxed">
+                    <p class="text-[13px] text-gray-600 text-base leading-relaxed">
                         Enter your shipping address to view available shipping methods.
                     </p>
                 </div>
@@ -547,7 +626,9 @@
 
                 <!-- ========== Payment Method Selector ========== -->
 
-                <div class="flex relative border bg-gray-100 border-black p-3 pb-1 items-baseline">
+                <div class="flex relative    p-3 pb-1 items-baseline"
+                    :class="payment === 'credit'? 'border border-black bg-gray-100' : 'border border-gray-300 bg-white'"
+                >
                     <div class="flex justify-between ml-3 ">
                         <div class="p-1">
                             <input type="radio" v-model="payment" value="credit" class="absolute bottom-8 left-3">
@@ -563,19 +644,17 @@
                                 <div class="w-3 h-3 rounded-full bg-yellow-500 opacity-80 -ml-1.5"></div>
                             </div>
                             <span class="flex items-center h-5 w-10 p-1 text-white bg-blue-600 rounded font-bold text-[10px]">AMEX</span>
-                            <span class="flex justify-center bg-white border border-gray-200 w-6 h-4 text-slate-500 text-[10px]">+3</span>
+                            <span class="flex justify-center bg-white border border-gray-200 w-6 h-4 text-slate-900 text-[10px]">+3</span>
                     </div>
                 </div>
 
                 <!-- ========== Accordion part of Credit or Debit card ========== -->
 
                 <Transition
-                    enter-active-class="overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out"
-                    enter-from-class="max-h-0 opacity-0"
-                    enter-to-class="max-h-[500px] opacity-100"
-                    leave-active-class="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
-                    leave-from-class="max-h-[500px] opacity-100"
-                    leave-to-class="max-h-0 opacity-0"
+                    @enter="onEnter"
+                    @after-enter="onAfterEnter"
+                    @leave="onLeave"
+                    @after-leave="onAfterLeave"
                 >
                     <div class="flex-grid bg-gray-100 p-2" v-if="payment === 'credit'">
                         
@@ -598,11 +677,11 @@
                         </div>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="expriationdate" name="expriationdate" placeholder=" " 
+                            <input type="text" id="expirationdate" name="expirationdate" placeholder=" " 
                                 class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
-                                for="expriationdate" 
+                                for="expirationdate" 
                                 class="absolute left-3 bottom-3 text-[13px] text-gray-600 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
@@ -639,7 +718,7 @@
                             >
                             <label 
                                 for="nameoncard" 
-                                class="absolute left-3   bottom-3 text-[13px] text-gray-600 transition-all duration-200 pointer-events-none
+                                class="absolute left-3 bottom-3 text-[13px] text-gray-600 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
                                 peer-focus:text-gray-800 
@@ -672,27 +751,25 @@
 
                         <div class="mt-5">
                             <p class="text-[16px] font-normal">
-                                Biling address
+                                Billing address
                             </p>
                         </div>
 
                                     <!-- ========== Use Shipping As Billing ========== -->
 
                         <Transition
-                            enter-active-class="overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out"
-                            enter-from-class="max-h-0 opacity-0"
-                            enter-to-class="max-h-[500px] opacity-100"
-                            leave-active-class="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
-                            leave-from-class="max-h-[500px] opacity-100"
-                            leave-to-class="max-h-0 opacity-0"
+                            @enter="onEnter"
+                            @after-enter="onAfterEnter"
+                            @leave="onLeave"
+                            @after-leave="onAfterLeave"
                         >
                             <div v-if="useShippingAsBilling === false ">
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="firstname" name="firstname" placeholder=" " autocomplete="given-name"
-                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                                    <input type="text" id="firstnameship" name="firstnameship" placeholder=" " autocomplete="given-name"
+                                        class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="firstname" 
+                                        for="firstnameship" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -706,11 +783,11 @@
                                 </div>
                                 
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="lastname" name="lastname" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                                    <input type="text" id="lastnameship" name="lastnameship" placeholder=" " 
+                                        class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="lastname" 
+                                        for="lastnameship" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -725,7 +802,7 @@
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="address" name="address" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                                        class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="address" 
@@ -743,7 +820,7 @@
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="apartment" name="apartment" autocomplete="address-line2" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                                        class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="apartment" 
@@ -761,7 +838,7 @@
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="city" name="city" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                                        class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
                                         for="city" 
@@ -778,11 +855,11 @@
                                 </div>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="state" name="state" placeholder=" " autocomplete="address-level1"
-                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                                    <input type="text" id="stateship" name="stateship" placeholder=" " autocomplete="address-level1"
+                                        class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="state" 
+                                        for="stateship" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -796,11 +873,11 @@
                                 </div>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="postcode" name="postcode" autocomplete="postal-code" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                                    <input type="text" id="postcodeship" name="postcodeship" autocomplete="postal-code" placeholder=" " 
+                                        class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="postcode" 
+                                        for="postcodeship" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -814,11 +891,11 @@
                                 </div>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="phone" name="phone" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                                    <input type="text" id="phoneship" name="phoneship" placeholder=" " 
+                                        class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="phone" 
+                                        for="phoneship" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -827,7 +904,7 @@
                                         peer-[:not(:placeholder-shown)]:text-xs 
                                         peer-[:not(:placeholder-shown)]:text-gray-500"
                                     >
-                                        Phone
+                                        Phone (optional)
                                     </label>
                                 </div>
                             </div>
@@ -839,7 +916,9 @@
 
                             
                             <!-- ========== More Payment Options ========== -->
-                <div class="flex relative border bg-gray-100 mt-2 p-1 border-black items-center justify-between">
+                <div class="flex relative   p-1  items-center justify-between"
+                    :class="payment === 'more'? 'border border-black bg-gray-100': 'border border-gray-300 bg-white'"
+                >
                     <div class="flex justify-between ml-3 ">
                         <div class="p-1">
                             <input type="radio" v-model="payment" value="more" class="flex ml-1 absolute bottom-4 left-2">
@@ -856,6 +935,43 @@
                                 <circle cx="21" cy="12" r="3"></circle>
                             </svg>
                         </button>
+                    </div>
+                </div>
+
+                <!-- ========== This is where Klarna or PayPal choose options ========== -->
+
+                <div v-if="payment === 'more'">
+                    <div class="flex-grid mt-4 border-t border-gray-200">
+                        
+                        <label class="flex justify-between items-center border-b border-x border-gray-200 active:bg-gray-100 transition-colors">
+                            <div class="flex items-center py-4"> <input type="radio" v-model="paymentMethod" value="Klarna" name="moreOptions" class="ml-3 mr-3 w-4 h-4">
+                                <p class="text-[13px] font-medium">Klarna</p>
+                            </div>
+                            <div class="mr-4">
+                                <span class="text-[18px] font-[1000] tracking-tighter text-black font-sans">Klarna</span>
+                            </div>
+                        </label>
+
+                        <label class="flex justify-between items-center border-b border-x border-gray-200 active:bg-gray-100 transition-colors">
+                            <div class="flex items-center py-4">
+                                <input type="radio" v-model="paymentMethod" value="PayPal" name="moreOptions" class="ml-3 mr-3 w-4 h-4">
+                                <p class="text-[13px] font-medium">PayPal</p>
+                            </div>
+                            <div class="flex mr-4">
+                                <span class="text-[18px] font-[1000] italic tracking-tight text-[#003087]">Pay</span>
+                                <span class="text-[18px] font-[1000] italic tracking-tight text-[#009cde]">Pal</span>
+                            </div>
+                        </label>
+
+                    </div>
+
+                    <div class="mt-3 px-1 min-h-[40px]">
+                        <p v-if="paymentMethod === 'Klarna'" class="text-[13px] leading-relaxed text-gray-600 font-normal">
+                            After clicking <span class="whitespace-nowrap font-semibold">“Pay now”</span>, you will be redirected to Klarna to complete your purchase.
+                        </p>
+                        <p v-if="paymentMethod === 'PayPal'" class="text-[13px] leading-relaxed text-gray-600 font-normal">
+                            After clicking <span class="whitespace-nowrap font-semibold">“Pay now”</span>, you will be redirected to PayPal.com to complete your purchase.
+                        </p>
                     </div>
                 </div>
 
@@ -883,7 +999,7 @@
                 </div>
 
 
-                <div>
+                <div v-if="payment === 'credit'">
                     <p class="text-[13px] mb-3">
                         save my information for a faster checkout
                     </p>
@@ -902,9 +1018,266 @@
                         />
                     </div>
                     <p class="text-gray-600 text-[11px] mt-5">
-                        By providing you phone number, you agreed create a Shop acccount subject to <u> Shop's Term</u> and <u>Privacy Policy</u>.
+                        By providing you phone number, you agree to create a Shop acccount subject to <u> Shop's Terms</u> and <u>Privacy Policy</u>.
                     </p>
                 </div>
+
+                <div class="flex-grid">
+                    <h2 class="my-2 text-[17px]  text-gray-900 mb-3 tracking-tight">
+                        Billing address
+                    </h2>
+                    <div class="flex items-center p-4"
+                        :class="billingOptions === 'same'? 'border border-black bg-gray-200':'border border-gray-300 bg-white'"
+                    >
+                        <input type="radio" v-model="billingOptions" value="same" name="billing">
+                        <p class="ml-3 text-[13px] font-normal text-gray-800 tracking-tight">
+                            Same as shipping address
+                        </p>
+                    </div>
+                    <div class="flex items-center  p-4 "
+                        :class="billingOptions === 'different'? 'border border-black bg-gray-200':'border border-gray-300 bg-white'"
+                    >
+                        <input type="radio" v-model="billingOptions" value="different" name="billing">
+                        <p class="ml-3 text-[13px] font-normal text-gray-800 tracking-tight">
+                            Use a different billing address
+                        </p>
+                    </div>
+                </div>
+
+                <Transition
+                    @enter="onEnter"
+                    @after-enter="onAfterEnter"
+                    @leave="onLeave"
+                    @after-leave="onAfterLeave"
+                >
+                    
+                    <div class="p-2 bg-gray-100" v-if="billingOptions === 'different'">
+
+                        <div class="relative  w-full focus-within:ring-2 focus-within:ring-black transition-border duration-300">
+                            <div>
+                                <select name="country" id="country"
+                                class="peer block w-full appearance-none border-[1.5px] border-gray-300 bg-white mt-3 px-3 pb-1 pt-4 text-[13px] focus:outline-none focus:ring-0"
+                                >
+                                    <option value="AR">Argentina</option>
+                                    <option value="AU">Australia</option>
+                                    <option value="AT">Austria</option>
+                                    <option value="BS">Bahamas</option>
+                                    <option value="BD">Bangladesh</option>
+                                    <option value="BE">Belgium</option>
+                                    <option value="BM">Bermuda</option>
+                                    <option value="BR">Brazil</option>
+                                    <option value="CA">Canada</option>
+                                    <option value="CL">Chile</option>
+                                    <option value="CN">China</option>
+                                    <option value="CO">Colombia</option>
+                                    <option value="CZ">Czech Republic</option>
+                                    <option value="DK">Denmark</option>
+                                    <option value="EG">Egypt</option>
+                                    <option value="FI">Finland</option>
+                                    <option value="FR">France</option>
+                                    <option value="DE">Germany</option>
+                                    <option value="GR">Greece</option>
+                                    <option value="HK">Hong Kong</option>
+                                    <option value="HU">Hungary</option>
+                                    <option value="IS">Iceland</option>
+                                    <option value="IN">India</option>
+                                    <option value="ID">Indonesia</option>
+                                    <option value="IE">Ireland</option>
+                                    <option value="IL">Israel</option>
+                                    <option value="IT">Italy</option>
+                                    <option value="JP">Japan</option>
+                                    <option value="LU">Luxembourg</option>
+                                    <option value="MY">Malaysia</option>
+                                    <option value="MX">Mexico</option>
+                                    <option value="NL">Netherlands</option>
+                                    <option value="NZ">New Zealand</option>
+                                    <option value="NO">Norway</option>
+                                    <option value="PH">Philippines</option>
+                                    <option value="PL">Poland</option>
+                                    <option value="PT">Portugal</option>
+                                    <option value="SA">Saudi Arabia</option>
+                                    <option value="SG">Singapore</option>
+                                    <option value="ZA">South Africa</option>
+                                    <option value="KR">South Korea</option>
+                                    <option value="ES">Spain</option>
+                                    <option value="SE">Sweden</option>
+                                    <option value="CH">Switzerland</option>
+                                    <option value="TW">Taiwan</option>
+                                    <option value="TH">Thailand</option>
+                                    <option value="TR">Turkey</option>
+                                    <option value="GB">United Kingdom</option>
+                                    <option value="US">United States</option>
+                                    <option value="VN">Vietnam</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label
+                                    for="country"
+                                    class="text-[13px] pointer-events-none absolute left-3 top-1 origin-[0%] scale-90 transform text-sm text-gray-500 duration-200 peer-focus:scale-90 peer-focus:text-gray-500"
+                                >
+                                    Country/Region
+                                </label>
+                            </div>
+                            <div>
+                                <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center pt-3">
+                                    <svg 
+                                        class="h-4 w-4 text-gray-600" 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 10 24 24"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="firstnameship" name="firstnameship" placeholder=" " autocomplete="given-name"
+                                class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
+                            >
+                            <label 
+                                for="firstnameship" 
+                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                First name
+                            </label>
+                        </div>
+                        
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="lastnameship" name="lastnameship" placeholder=" " 
+                                class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
+                            >
+                            <label 
+                                for="lastnameship" 
+                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                Last name
+                            </label>
+                        </div>
+    
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="address" name="address" placeholder=" " 
+                                class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
+                            >
+                            <label 
+                                for="address" 
+                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                Address
+                            </label>
+                        </div>
+    
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="apartment" name="apartment" autocomplete="address-line2" placeholder=" " 
+                                class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
+                            >
+                            <label 
+                                for="apartment" 
+                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                Apartment, suite, etc. (optional)
+                            </label>
+                        </div>
+    
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="city" name="city" placeholder=" " 
+                                class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
+                            >
+                            <label 
+                                for="city" 
+                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                City
+                            </label>
+                        </div>
+    
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="stateship" name="stateship" placeholder=" " autocomplete="address-level1"
+                                class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
+                            >
+                            <label 
+                                for="stateship" 
+                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                State / Province
+                            </label>
+                        </div>
+    
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="postcodeship" name="postcodeship" autocomplete="postal-code" placeholder=" " 
+                                class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
+                            >
+                            <label 
+                                for="postcodeship" 
+                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                Postcode / ZIP code
+                            </label>
+                        </div>
+    
+                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+                            <input type="text" id="phoneship" name="phoneship" placeholder=" " 
+                                class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
+                            >
+                            <label 
+                                for="phoneship" 
+                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                peer-focus:top-1 
+                                peer-focus:text-xs 
+                                peer-focus:text-gray-800 
+                                peer-[:not(:placeholder-shown)]:top-1 
+                                peer-[:not(:placeholder-shown)]:text-xs 
+                                peer-[:not(:placeholder-shown)]:text-gray-500"
+                            >
+                                Phone (optional)
+                            </label>
+                        </div>
+                    </div>
+                </Transition>
+
 
                 <div>
                     <p class="text-[13px] mt-10">
@@ -940,16 +1313,14 @@
                 </div>
 
                 <Transition
-                    enter-active-class="overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out"
-                    enter-from-class="max-h-0 opacity-0"
-                    enter-to-class="max-h-[500px] opacity-100"
-                    leave-active-class="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
-                    leave-from-class="max-h-[500px] opacity-100"
-                    leave-to-class="max-h-0 opacity-0"
+                    @enter="onEnter"
+                    @after-enter="onAfterEnter"
+                    @leave="onLeave"
+                    @after-leave="onAfterLeave"
                 >
-                    <div class="mb-3" v-if="isBottomOpen">
+                    <div class="mb-3" v-if="!isBottomOpen">
                         <div  >
-                            <button class="p-2 border border-gray-200 mt-10 mb-3">
+                            <button class="p-2 text-[13px] border border-gray-200 mt-10 mb-3">
                                 Add discount
                             </button>
                         </div>
@@ -977,7 +1348,7 @@
                                     </div>
                                     <div>
                                         <svg 
-                                            :class="{'rotate-180': !isBottomOpen}"
+                                            :class="{'rotate-180': isBottomOpen}"
                                             class="w-4 h-4 transition-transform duration-300 ease-in-out text-gray-700 group-hover:text-gray-950" 
                                             fill="none" 
                                             viewBox="0 0 24 24" 
@@ -998,15 +1369,13 @@
                 <!-- =============== Bottom Total Products List Accordion =============== -->
 
                 <Transition
-                    enter-active-class="overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out"
-                    enter-from-class="max-h-0 opacity-0"
-                    enter-to-class="max-h-[500px] opacity-100"
-                    leave-active-class="overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out"
-                    leave-from-class="max-h-[500px] opacity-100"
-                    leave-to-class="max-h-0 opacity-0"
+                    @enter="onEnter"
+                    @after-enter="onAfterEnter"
+                    @leave="onLeave"
+                    @after-leave="onAfterLeave"
                 >
 
-                    <div class="w-full max-w-md mt-10 rounded-lg overflow-hidden" v-if="!isBottomOpen">
+                    <div class="w-full max-w-md mt-10 rounded-lg overflow-hidden" v-if="isBottomOpen">
                         
                         <div class="flex justify-between items-center mb-2">
                             <button 
@@ -1018,7 +1387,7 @@
                                 </span>
             
                                 <svg 
-                                    :class="{'rotate-180': !isBottomOpen}"
+                                    :class="{'rotate-180': isBottomOpen}"
                                     class="w-4 h-4 transition-transform duration-300 ease-in-out text-gray-700 group-hover:text-gray-950" 
                                     fill="none" 
                                     viewBox="0 0 24 24" 
