@@ -1,97 +1,157 @@
 <script setup lang="ts">
-    import { ref, computed, onMounted } from 'vue';
+    import { ref, computed, onMounted, onUnmounted, watchEffect } from 'vue';
     import { useCartStore } from '../stores/cart';
     import intlTelInput from 'intl-tel-input';
     import 'intl-tel-input/styles';
 
-
+    // ── Store ──────────────────────────────────────────────────────────────────
     const cartStore = useCartStore();
 
-    const subtotal = computed<number>(() =>
-    cartStore.totalPrice
-    )
+    // ── Cart / Pricing ─────────────────────────────────────────────────────────
+    const subtotal = computed<number>(() => cartStore.totalPrice);
+    const shipping = computed<number>(() => (subtotal.value > 1 ? 0 : 9.99));
+    const total    = computed<number>(() => subtotal.value + shipping.value);
 
-    const discountcode = ref<string>('');
-    const isApplyDisabled = computed (() => {
-        return discountcode.value.length === 0
-    })
+    // ── Discount Code ──────────────────────────────────────────────────────────
+    const discountcode      = ref<string>('');
+    const isApplyDisabled   = computed(() => discountcode.value.length === 0);
 
-    
+    // ── Accordion Toggles ──────────────────────────────────────────────────────
+    const isOpen       = ref<boolean>(false);
+    const toggle       = () => { isOpen.value = !isOpen.value; };
 
-    const shipping = computed<number>(() => (subtotal.value > 1 ? 0 : 9.99))
+    const isBottomOpen = ref<boolean>(false);
+    const bottomToggle = () => { isBottomOpen.value = !isBottomOpen.value; };
 
-    const total = computed<number>(() => subtotal.value + shipping.value)
-    
-    const isOpen = ref<boolean>(false)
-    const toggle = () => {
-        isOpen.value = !isOpen.value
-    }
+    // ── Tooltip ────────────────────────────────────────────────────────────────
+    const showTooltip = ref<boolean>(false);
 
-    const isBottomOpen = ref<boolean>(false)
-    const bottomToggle = () => {
-        isBottomOpen.value = !isBottomOpen.value;
-    }
+    // ── Shipping Form Fields ───────────────────────────────────────────────────
+    const email         = ref<string>('');
+    const firstName     = ref<string>('');
+    const lastName      = ref<string>('');
+    const address       = ref<string>('');
+    const apartment     = ref<string>('');
+    const city          = ref<string>('');
+    const state         = ref<string>('');
+    const postcode      = ref<string>('');
+    const country       = ref<string>('');
+    const shippingPhone = ref<string>('');   // delivery phone field
 
-    const isTextMeChecked = ref<boolean>(false);
+    // ── Billing Form Fields ────────────────────────────────────────────────────
+    const billingFirstName  = ref<string>('');
+    const billingLastName   = ref<string>('');
+    const billingAddress    = ref<string>('');
+    const billingApartment  = ref<string>('');
+    const billingCity       = ref<string>('');
+    const billingState      = ref<string>('');
+    const billingPostcode   = ref<string>('');
+    const billingPhone      = ref<string>('');
+    const billingCountry    = ref<string>('');
 
-    const paymentMethod = ref<string>('Klarna');
+    // ── Payment Form Fields ────────────────────────────────────────────────────
+    const cardNumber      = ref<string>('');
+    const expirationDate  = ref<string>('');
+    const securityCode    = ref<string>('');
+    const nameOnCard      = ref<string>('');
 
-    const billingOptions = ref<string>('same');
-    
-    const payment = ref<string>('credit');
+    // ── Payment / Billing Options ──────────────────────────────────────────────
+    const paymentMethod        = ref<string>('Klarna');
+    const payment              = ref<string>('credit');
+    const billingOptions       = ref<string>('same');
     const useShippingAsBilling = ref<boolean>(true);
 
-    const phone = ref<string>('');
+    // ── SMS / Text Me ──────────────────────────────────────────────────────────
+    const isTextMeChecked = ref<boolean>(false);
+    const smsPhone        = ref<string>('');
+    const smsPhoneInputRef = ref<HTMLInputElement | null>(null);
+    let itiSms: any = null;
+
+    // ── Shipping Phone (intl-tel-input) ────────────────────────────────────────
+    const phone        = ref<string>('');
     const phoneInputRef = ref<HTMLInputElement | null>(null);
+    const phoneContainer = ref(null);
+    const saveInfoPhoneContainer = ref(null);
+    const billingPhoneContainer = ref(null);
     let iti: any = null;
 
-    function onEnter(el: Element) {
-    const htmlEl = el as HTMLElement
-    htmlEl.style.height = '0'
-    htmlEl.style.overflow = 'hidden'
-    htmlEl.style.opacity = '0'
-    htmlEl.style.transition = 'height 0.4s ease, opacity 0.4s ease'
-    requestAnimationFrame(() => {
-        htmlEl.style.height = htmlEl.scrollHeight + 'px'
-        htmlEl.style.opacity = '1'
-    })
-    }
-    function onAfterEnter(el: Element) {
-    const htmlEl = el as HTMLElement
-    htmlEl.style.height = 'auto'
-    htmlEl.style.overflow = ''
-    }
-    function onLeave(el: Element) {
-    const htmlEl = el as HTMLElement
-    htmlEl.style.height = htmlEl.scrollHeight + 'px'
-    htmlEl.style.overflow = 'hidden'
-    htmlEl.style.transition = 'height 0.3s ease, opacity 0.3s ease'
-    requestAnimationFrame(() => {
-        htmlEl.style.height = '0'
-        htmlEl.style.opacity = '0'
-    })
-    }
-    function onAfterLeave(el: Element) {
-    const htmlEl = el as HTMLElement
-    htmlEl.style.height = ''
-    htmlEl.style.opacity = ''
-    htmlEl.style.overflow = ''
-    }
+    const co2offset = ref<boolean>(false);
 
-    onMounted(() => {
-        if (phoneInputRef.value) {
+    // Initialise intl-tel-input for the shipping phone field
+    watchEffect(() => {
+        if (phoneInputRef.value && !iti) {
             iti = intlTelInput(phoneInputRef.value, {
-                nationalMode: false,        // forces international format
+                nationalMode: false,
                 separateDialCode: false,
-                allowDropdown: false,     // shows flag + dial code separately
-               
+                allowDropdown: false,
             });
         }
     });
 
-    
-    
-    
+    // Initialise intl-tel-input for the SMS / "Save info" phone field
+    watchEffect(() => {
+        if (smsPhoneInputRef.value && !itiSms) {
+            itiSms = intlTelInput(smsPhoneInputRef.value, {
+                nationalMode: false,
+                separateDialCode: false,
+                allowDropdown: false,
+            });
+        }
+    });
+
+    // ── Tooltip – click-outside handler ───────────────────────────────────────
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+        if (phoneContainer.value && !(phoneContainer.value as HTMLElement).contains(event.target as Node)) {
+            showTooltip.value = false;
+        }
+    };
+
+    onMounted(() => {
+        window.addEventListener('mousedown', handleClickOutside);
+        window.addEventListener('touchstart', handleClickOutside);
+    });
+
+    onUnmounted(() => {
+        window.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('touchstart', handleClickOutside);
+    });
+
+    // ── Accordion CSS-transition hooks ────────────────────────────────────────
+    function onEnter(el: Element) {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.height    = '0';
+        htmlEl.style.overflow  = 'hidden';
+        htmlEl.style.opacity   = '0';
+        htmlEl.style.transition = 'height 0.4s ease, opacity 0.4s ease';
+        requestAnimationFrame(() => {
+            htmlEl.style.height  = htmlEl.scrollHeight + 'px';
+            htmlEl.style.opacity = '1';
+        });
+    }
+
+    function onAfterEnter(el: Element) {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.height   = 'auto';
+        htmlEl.style.overflow = '';
+    }
+
+    function onLeave(el: Element) {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.height    = htmlEl.scrollHeight + 'px';
+        htmlEl.style.overflow  = 'hidden';
+        htmlEl.style.transition = 'height 0.3s ease, opacity 0.3s ease';
+        requestAnimationFrame(() => {
+            htmlEl.style.height  = '0';
+            htmlEl.style.opacity = '0';
+        });
+    }
+
+    function onAfterLeave(el: Element) {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.height   = '';
+        htmlEl.style.opacity  = '';
+        htmlEl.style.overflow = '';
+    }
 </script>
 
 
@@ -108,7 +168,7 @@
         </div>
 
         <div>
-            <div class="w-full max-w-md border-y border-gray-300 rounded-lg overflow-hidden">
+            <div class="w-full max-w-md border-y border-gray-300 overflow-hidden">
                 
                 <div class="flex justify-between items-center bg-gray-100">
                     <button 
@@ -193,7 +253,7 @@
                     <div class="flex justify-between px-3 mb-1 gap-2">
                         <div class="relative border border-gray-300 focus-within:ring-2 focus-within:ring-black">
                             <input type="text" id="discountcode" name="discountcode" 
-                                    placeholder=" " autocomplete="given-name"
+                                    placeholder=" " autocomplete="off"
                                     v-model="discountcode"
                                 class="peer w-65 h-11 border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                             >
@@ -295,6 +355,7 @@
             <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                 <input 
                     type="email" 
+                    v-model="email"
                     id="email"
                     autocomplete="email" 
                     name="email" 
@@ -333,7 +394,7 @@
 
                 <div class="relative  w-full">
                     <div>
-                        <select name="country" id="country"
+                        <select name="country" id="country" v-model="country"
                         class="peer block w-full appearance-none border-[1.5px] border-black bg-white mt-3 px-3 pb-1 pt-4 text-[13px] focus:outline-none focus:ring-0"
                         >
                             <option value="AR">Argentina</option>
@@ -412,7 +473,9 @@
 
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                    <input type="text" id="firstname" name="firstname" placeholder=" " autocomplete="given-name"
+                    <input type="text" id="firstname" name="firstname" 
+                        placeholder=" " autocomplete="given-name"
+                        v-model="firstName"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -430,7 +493,9 @@
                 </div>
                 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                    <input type="text" id="lastname" name="lastname" placeholder=" " 
+                    <input type="text" id="lastname" name="lastname" autocomplete="family-name"
+                        placeholder=" " 
+                        v-model="lastName"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -448,7 +513,9 @@
                 </div>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                    <input type="text" id="address" name="address" placeholder=" " 
+                    <input type="text" id="address" name="address" autocomplete="street-address"
+                        placeholder=" " 
+                        v-model="address"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -463,10 +530,28 @@
                     >
                         Address
                     </label>
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg 
+                        class="w-4 h-4 text-gray-400" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24" 
+                        xmlns="http://www.w3.org/2000/svg"
+                        >
+                        <path 
+                            stroke-linecap="round" 
+                            stroke-linejoin="round" 
+                            stroke-width="2" 
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        ></path>
+                        </svg>
+                    </div>
                 </div>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                    <input type="text" id="apartment" name="apartment" autocomplete="address-line2" placeholder=" " 
+                    <input type="text" id="apartment" name="apartment" 
+                        autocomplete="address-line2" placeholder=" " 
+                        v-model="apartment"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -484,7 +569,9 @@
                 </div>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                    <input type="text" id="city" name="city" placeholder=" " 
+                    <input type="text" id="city" name="city" 
+                        placeholder=" " 
+                        v-model="city"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -502,7 +589,9 @@
                 </div>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                    <input type="text" id="state" name="state" placeholder=" " autocomplete="address-level1"
+                    <input type="text" id="state" name="state" 
+                        placeholder=" " autocomplete="address-level1"
+                        v-model="state"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -519,9 +608,11 @@
                     </label>
                 </div>
 
-                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                    <input type="text" id="postcode" name="postcode" autocomplete="postal-code" placeholder=" " 
-                        class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                <div class="relative mt-3 focus-within:border-black transition-all">
+                    <input type="text" id="postcode" name="postcode" 
+                        autocomplete="postal-code" placeholder=" " 
+                        v-model="postcode"
+                        class="peer w-full h-full border border-gray-300 text-[13px] pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
                         for="postcode" 
@@ -537,9 +628,12 @@
                     </label>
                 </div>
 
-                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                    <input type="text" id="phone" name="phone" placeholder=" " 
-                        class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                <div ref="billingPhoneContainer" class="relative mt-3 focus-within:border-black transition-all">
+                    <input type="text" id="phone" name="phone" 
+                        placeholder=" " 
+                        v-model="shippingPhone"
+                        @focus="showTooltip = false"
+                        class="peer pr-10 w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
                         for="phone" 
@@ -553,6 +647,36 @@
                     >
                         Phone
                     </label>
+                    <button type="button"
+                            @click="showTooltip = !showTooltip" 
+                            class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help"
+                    >
+                        <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        class="w-4 h-4 text-gray-500" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        stroke-width="1.5" 
+                        stroke-linecap="round" 
+                        stroke-linejoin="round"
+                        >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </button>
+                    <transition name="fade">
+                    <div 
+                        v-if="showTooltip"
+                        class="absolute bottom-full right-0 translate-x-2 z-10 w-40 bg-[#1a1a1a] text-white text-[12px] p-2 shadow-xl"
+                    >
+                        <p class="leading-relaxed text-center">
+                        In case we need to contact you about your order
+                        </p>
+                        <div class="absolute top-full right-5 -mt-1 border-8 border-transparent border-t-[#1a1a1a]"></div>
+                    </div>
+                    </transition>
                 </div>
 
                 <div class="flex my-3 items-center">
@@ -561,7 +685,6 @@
                         Text me with news and offers
                     </p>
                 </div>
-
 
                 <Transition
                     @enter="onEnter"
@@ -659,7 +782,9 @@
                     <div class="flex-grid bg-gray-100 p-2" v-if="payment === 'credit'">
                         
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="cardnumber" name="cardnumber" placeholder=" " 
+                            <input type="text" id="cardnumber" name="cardnumber" 
+                                placeholder=" " 
+                                v-model="cardNumber"
                                 class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
@@ -677,7 +802,9 @@
                         </div>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="expirationdate" name="expirationdate" placeholder=" " 
+                            <input type="text" id="expirationdate" name="expirationdate" 
+                                placeholder=" " 
+                                v-model="expirationDate"
                                 class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
@@ -695,7 +822,9 @@
                         </div>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="securitycode" name="securitycode" placeholder=" " 
+                            <input type="text" id="securitycode" name="securitycode" 
+                                placeholder=" " 
+                                v-model="securityCode"
                                 class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
@@ -713,7 +842,9 @@
                         </div>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="nameoncard" name="nameoncard" placeholder=" " 
+                            <input type="text" id="nameoncard" name="nameoncard" 
+                                placeholder=" " 
+                                v-model="nameOnCard"
                                 class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
@@ -749,11 +880,7 @@
                             </span>
                         </label>
 
-                        <div class="mt-5">
-                            <p class="text-[16px] font-normal">
-                                Billing address
-                            </p>
-                        </div>
+                        
 
                                     <!-- ========== Use Shipping As Billing ========== -->
 
@@ -764,12 +891,19 @@
                             @after-leave="onAfterLeave"
                         >
                             <div v-if="useShippingAsBilling === false ">
+                                <div class="mt-5">
+                                    <p class="text-[16px] font-normal">
+                                        Billing address
+                                    </p>
+                                </div>
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="firstnameship" name="firstnameship" placeholder=" " autocomplete="given-name"
+                                    <input type="text" id="billing-firstname" name="billing-firstname" 
+                                        placeholder=" " autocomplete="given-name"
+                                        v-model="billingFirstName"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="firstnameship" 
+                                        for="billing-firstname" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -783,11 +917,13 @@
                                 </div>
                                 
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="lastnameship" name="lastnameship" placeholder=" " 
+                                    <input type="text" id="billing-lastname" name="billing-lastname" autocomplete="family-name"
+                                        placeholder=" " 
+                                        v-model="billingLastName"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="lastnameship" 
+                                        for="billing-lastname" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -801,11 +937,13 @@
                                 </div>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="address" name="address" placeholder=" " 
+                                    <input type="text" id="billing-address" name="billing-address" autocomplete="street-address"
+                                        placeholder=" " 
+                                        v-model="billingAddress"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="address" 
+                                        for="billing-address" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -816,14 +954,32 @@
                                     >
                                         Address
                                     </label>
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                        <svg 
+                                        class="w-4 h-4 text-gray-400" 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 0 24 24" 
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                        <path 
+                                            stroke-linecap="round" 
+                                            stroke-linejoin="round" 
+                                            stroke-width="2" 
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                        ></path>
+                                        </svg>
+                                    </div>
                                 </div>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="apartment" name="apartment" autocomplete="address-line2" placeholder=" " 
+                                    <input type="text" id="billing-apartment" name="billing-apartment" 
+                                        autocomplete="address-line2" placeholder=" " 
+                                        v-model="billingApartment"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="apartment" 
+                                        for="billing-apartment" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -837,11 +993,13 @@
                                 </div>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="city" name="city" placeholder=" " 
+                                    <input type="text" id="billing-city" name="billing-city" 
+                                        placeholder=" " 
+                                        v-model="billingCity"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="city" 
+                                        for="billing-city" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -855,11 +1013,13 @@
                                 </div>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="stateship" name="stateship" placeholder=" " autocomplete="address-level1"
+                                    <input type="text" id="billing-state" name="billing-state" 
+                                        placeholder=" " autocomplete="address-level1"
+                                        v-model="billingState"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="stateship" 
+                                        for="billing-state" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -873,11 +1033,13 @@
                                 </div>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="postcodeship" name="postcodeship" autocomplete="postal-code" placeholder=" " 
+                                    <input type="text" id="billing-postcode" name="billing-postcode" 
+                                        autocomplete="postal-code" placeholder=" " 
+                                        v-model="billingPostcode"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="postcodeship" 
+                                        for="billing-postcode" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -890,12 +1052,15 @@
                                     </label>
                                 </div>
             
-                                <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="phoneship" name="phoneship" placeholder=" " 
-                                        class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
+                                <div ref="phoneContainer" class="relative mt-3 focus-within:border-black transition-all">
+                                    <input type="text" id="billing-phone" name="billing-phone" 
+                                        placeholder=" " 
+                                        v-model="billingPhone"
+                                        @focus="showTooltip = false"
+                                        class="peer pr-10 w-full h-full border text-[13px] bg-white border-gray-300 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black"
                                     >
                                     <label 
-                                        for="phoneship" 
+                                        for="billing-phone" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -906,6 +1071,43 @@
                                     >
                                         Phone (optional)
                                     </label>
+                                    <button type="button"
+                                            @click="showTooltip = !showTooltip" 
+                                            class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help"
+                                    >
+                                        <svg 
+                                        xmlns="http://www.w3.org/2000/svg" 
+                                        class="w-4 h-4 text-gray-500" 
+                                        viewBox="0 0 24 24" 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        stroke-width="1.5" 
+                                        stroke-linecap="round" 
+                                        stroke-linejoin="round"
+                                        >
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                        </svg>
+                                    </button>
+                                    <transition name="fade">
+                                    <div 
+                                        v-if="showTooltip"
+                                        class="absolute bottom-full right-0 translate-x-2 z-10 w-40 bg-[#1a1a1a] text-white text-[12px] p-2 shadow-xl"
+                                    >
+                                        <p class="leading-relaxed text-center">
+                                        In case we need to contact you about your order
+                                        </p>
+                                        <div class="absolute top-full right-5 -mt-1 border-8 border-transparent border-t-[#1a1a1a]"></div>
+                                    </div>
+                                    </transition>
+                                </div>
+
+                                <div class="flex my-3 items-center">
+                                    <input type="checkbox" id="textme" name="textme" class="mx-2" v-model="isTextMeChecked">
+                                    <p class="text-[13px]">
+                                        Text me with news and offers
+                                    </p>
                                 </div>
                             </div>
                         </Transition>
@@ -944,7 +1146,8 @@
                     <div class="flex-grid mt-4 border-t border-gray-200">
                         
                         <label class="flex justify-between items-center border-b border-x border-gray-200 active:bg-gray-100 transition-colors">
-                            <div class="flex items-center py-4"> <input type="radio" v-model="paymentMethod" value="Klarna" name="moreOptions" class="ml-3 mr-3 w-4 h-4">
+                            <div class="flex items-center py-4"> 
+                                <input type="radio" v-model="paymentMethod" value="Klarna" name="moreOptions" class="ml-3 mr-3 w-4 h-4">
                                 <p class="text-[13px] font-medium">Klarna</p>
                             </div>
                             <div class="mr-4">
@@ -969,7 +1172,7 @@
                         <p v-if="paymentMethod === 'Klarna'" class="text-[13px] leading-relaxed text-gray-600 font-normal">
                             After clicking <span class="whitespace-nowrap font-semibold">“Pay now”</span>, you will be redirected to Klarna to complete your purchase.
                         </p>
-                        <p v-if="paymentMethod === 'PayPal'" class="text-[13px] leading-relaxed text-gray-600 font-normal">
+                        <p v-else-if="paymentMethod === 'PayPal'" class="text-[13px] leading-relaxed text-gray-600 font-normal">
                             After clicking <span class="whitespace-nowrap font-semibold">“Pay now”</span>, you will be redirected to PayPal.com to complete your purchase.
                         </p>
                     </div>
@@ -1003,22 +1206,36 @@
                     <p class="text-[13px] mb-3">
                         save my information for a faster checkout
                     </p>
-                    <div class="flex items-stretch border border-black mt-4 p-2 max-w-sm">
+                    <div class="flex items-stretch border border-gray-300 mt-4 p-2 max-w-sm">
                         
-                        <div class="px-2 flex items-center">
-                            <svg class="w-5 h-5 text-gray-400">...</svg>
+                        <div class="flex items-center justify-center pl-2 pr-1 text-gray-500 pointer-events-none">
+                            <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                class="w-5 h-5" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                stroke-width="1.5" 
+                                stroke-linecap="round" 
+                                stroke-linejoin="round"
+                            >
+                                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                            </svg>
                         </div>
 
                         <input
-                            ref="phoneInputRef"
+                            ref="smsPhoneInputRef"
+                            id="phone-sms"
+                            name="phone-sms"
                             type="tel"
-                            v-model="phone"
-                            placeholder="Mobile phone(optional)"
-                            class="py-2 px-3 w-full border-none outline-none ring-0"
+                            v-model="smsPhone"
+                            placeholder="Mobile phone (optional)"
+                            class="placeholder:text-[13px] py-2 px-3 w-full border-none outline-none ring-0"
                         />
                     </div>
                     <p class="text-gray-600 text-[11px] mt-5">
-                        By providing you phone number, you agree to create a Shop acccount subject to <u> Shop's Terms</u> and <u>Privacy Policy</u>.
+                        By providing you phone number, you agree to create a Shop account subject to <u> Shop's Terms</u> and <u>Privacy Policy</u>.
                     </p>
                 </div>
 
@@ -1055,7 +1272,7 @@
 
                         <div class="relative  w-full focus-within:ring-2 focus-within:ring-black transition-border duration-300">
                             <div>
-                                <select name="country" id="country"
+                                <select name="billing-country" id="billing-country" v-model="billingCountry"
                                 class="peer block w-full appearance-none border-[1.5px] border-gray-300 bg-white mt-3 px-3 pb-1 pt-4 text-[13px] focus:outline-none focus:ring-0"
                                 >
                                     <option value="AR">Argentina</option>
@@ -1112,7 +1329,7 @@
                             </div>
                             <div>
                                 <label
-                                    for="country"
+                                    for="billing-country"
                                     class="text-[13px] pointer-events-none absolute left-3 top-1 origin-[0%] scale-90 transform text-sm text-gray-500 duration-200 peer-focus:scale-90 peer-focus:text-gray-500"
                                 >
                                     Country/Region
@@ -1133,11 +1350,11 @@
                         </div>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="firstnameship" name="firstnameship" placeholder=" " autocomplete="given-name"
+                            <input type="text" v-model="billingFirstName" id="billing2-firstname" name="billing2-firstname" placeholder=" " autocomplete="given-name"
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
-                                for="firstnameship" 
+                                for="billing2-firstname" 
                                 class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
@@ -1151,11 +1368,12 @@
                         </div>
                         
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="lastnameship" name="lastnameship" placeholder=" " 
+                            <input type="text" v-model="billingLastName" autocomplete="family-name"
+                                id="billing2-lastname" name="billing2-lastname" placeholder=" " 
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
-                                for="lastnameship" 
+                                for="billing2-lastname" 
                                 class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
@@ -1169,11 +1387,12 @@
                         </div>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="address" name="address" placeholder=" " 
+                            <input type="text" v-model="billingAddress" autocomplete="street-address"
+                                id="billing2-address" name="billing2-address" placeholder=" " 
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
-                                for="address" 
+                                for="billing2-address" 
                                 class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
@@ -1184,14 +1403,30 @@
                             >
                                 Address
                             </label>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <svg 
+                                class="w-4 h-4 text-gray-400" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24" 
+                                xmlns="http://www.w3.org/2000/svg"
+                                >
+                                <path 
+                                    stroke-linecap="round" 
+                                    stroke-linejoin="round" 
+                                    stroke-width="2" 
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                ></path>
+                                </svg>
+                            </div>
                         </div>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="apartment" name="apartment" autocomplete="address-line2" placeholder=" " 
+                            <input type="text" v-model="billingApartment" id="billing2-apartment" name="billing2-apartment" autocomplete="address-line2" placeholder=" " 
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
-                                for="apartment" 
+                                for="billing2-apartment" 
                                 class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
@@ -1205,11 +1440,11 @@
                         </div>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="city" name="city" placeholder=" " 
+                            <input type="text" v-model="billingCity" id="billing2-city" name="billing2-city" placeholder=" " 
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
-                                for="city" 
+                                for="billing2-city" 
                                 class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
@@ -1223,11 +1458,11 @@
                         </div>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="stateship" name="stateship" placeholder=" " autocomplete="address-level1"
+                            <input type="text" v-model="billingState" id="billing2-state" name="billing2-state" placeholder=" " autocomplete="address-level1"
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
-                                for="stateship" 
+                                for="billing2-state" 
                                 class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
@@ -1241,11 +1476,11 @@
                         </div>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="postcodeship" name="postcodeship" autocomplete="postal-code" placeholder=" " 
+                            <input type="text" v-model="billingPostcode" id="billing2-postcode" name="billing2-postcode" autocomplete="postal-code" placeholder=" " 
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
-                                for="postcodeship" 
+                                for="billing2-postcode" 
                                 class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
@@ -1258,12 +1493,13 @@
                             </label>
                         </div>
     
-                        <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="phoneship" name="phoneship" placeholder=" " 
-                                class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
+                        <div ref="saveInfoPhoneContainer" class="relative mt-3 focus-within:border-black transition-all">
+                            <input type="text" v-model="billingPhone" id="billing2-phone" name="billing2-phone" placeholder=" " 
+                                @focus="showTooltip = false"
+                                class="peer pr-10 w-full h-full border text-[13px] bg-white border-gray-300 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
-                                for="phoneship" 
+                                for="billing2-phone" 
                                 class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                 peer-focus:top-1 
                                 peer-focus:text-xs 
@@ -1274,6 +1510,36 @@
                             >
                                 Phone (optional)
                             </label>
+                            <button type="button"
+                                    @click="showTooltip = !showTooltip" 
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help"
+                            >
+                                <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                class="w-4 h-4 text-gray-500" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                stroke-width="1.5" 
+                                stroke-linecap="round" 
+                                stroke-linejoin="round"
+                                >
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </button>
+                            <transition name="fade">
+                            <div 
+                                v-if="showTooltip"
+                                class="absolute bottom-full right-0 translate-x-2 z-10 w-40 bg-[#1a1a1a] text-white text-[12px] p-2 shadow-xl"
+                            >
+                                <p class="leading-relaxed text-center">
+                                In case we need to contact you about your order
+                                </p>
+                                <div class="absolute top-full right-5 -mt-1 border-8 border-transparent border-t-[#1a1a1a]"></div>
+                            </div>
+                            </transition>
                         </div>
                     </div>
                 </Transition>
@@ -1305,7 +1571,7 @@
                     </div>
     
                     <div class="flex border border-gray-300 p-2 mt-3">
-                        <input type="checkbox" name="" id="">
+                        <input type="checkbox" name="co2-offset" id="co2-offset" v-model="co2offset">
                         <p class="text-[13px] pl-2">
                             Offset CO2 emissions from shipping for $0.15
                         </p>
@@ -1451,13 +1717,13 @@
 
                             <div class="flex justify-between mt-2 mb-1 gap-2">
                                 <div class="relative border border-gray-300 focus-within:ring-2 focus-within:ring-black">
-                                    <input type="text" id="firstname" name="firstname" 
-                                            placeholder=" " autocomplete="given-name"
+                                    <input type="text" id="discountcode-bottom" name="discountcode-bottom" 
+                                            placeholder=" " autocomplete="off"
                                             v-model="discountcode"
                                         class="peer w-62 h-11 border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
-                                        for="firstname" 
+                                        for="discountcode-bottom" 
                                         class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                         peer-focus:top-1 
                                         peer-focus:text-xs 
@@ -1561,7 +1827,7 @@
     </div>
 
 
-        <!-- =============== Desktop Version =============== -->
+        <!-- =============== Desktop Version Not Start Yet =============== -->
 
     <div>
         
@@ -1578,5 +1844,12 @@
 .iti__tel-input {
     direction: ltr;
     text-align: left;
+}
+
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+.fade-enter-from, .fade-leave-to {
+    opacity: 0;
 }
 </style>
