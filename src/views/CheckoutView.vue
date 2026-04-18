@@ -48,6 +48,7 @@
     const billingPostcode   = ref<string>('');
     const billingPhone      = ref<string>('');
     const billingCountry    = ref<string>('');
+    const billing2Phone = ref<string>('');   // Block B (standalone billing section)
 
     // ── Payment Form Fields ────────────────────────────────────────────────────
     const cardNumber      = ref<string>('');
@@ -64,40 +65,45 @@
     // ── SMS / Text Me ──────────────────────────────────────────────────────────
     const isTextMeChecked = ref<boolean>(false);
     const smsPhone        = ref<string>('');
-    const smsPhoneInputRef = ref<HTMLInputElement | null>(null);
-    let itiSms: any = null;
 
-    // ── Shipping Phone (intl-tel-input) ────────────────────────────────────────
-    const phone        = ref<string>('');
-    const phoneInputRef = ref<HTMLInputElement | null>(null);
-    const phoneContainer = ref(null);
-    const saveInfoPhoneContainer = ref(null);
-    const billingPhoneContainer = ref(null);
-    let iti: any = null;
 
-    const co2offset = ref<boolean>(false);
 
-    // Initialise intl-tel-input for the shipping phone field
+    const shippingPhoneInputRef  = ref<HTMLInputElement | null>(null);  // for input #1
+    const textMePhoneInputRef    = ref<HTMLInputElement | null>(null);  // for input #2
+    const smsPhoneInputRef       = ref<HTMLInputElement | null>(null);  // for input #3 (already exists)
+
+    let itiShipping: any = null;
+    let itiTextMe:   any = null;
+    let itiSms:      any = null;
+
     watchEffect(() => {
-        if (phoneInputRef.value && !iti) {
-            iti = intlTelInput(phoneInputRef.value, {
-                nationalMode: false,
-                separateDialCode: false,
-                allowDropdown: false,
-            });
+    if (shippingPhoneInputRef.value && !itiShipping) {
+        itiShipping = intlTelInput(shippingPhoneInputRef.value, { nationalMode: false, separateDialCode: false, allowDropdown: false });
+    }
+    });
+    watchEffect(() => {
+        if (textMePhoneInputRef.value && !itiTextMe) {
+            itiTextMe = intlTelInput(textMePhoneInputRef.value, { nationalMode: false, separateDialCode: false, allowDropdown: false });
         }
     });
-
-    // Initialise intl-tel-input for the SMS / "Save info" phone field
     watchEffect(() => {
         if (smsPhoneInputRef.value && !itiSms) {
-            itiSms = intlTelInput(smsPhoneInputRef.value, {
-                nationalMode: false,
-                separateDialCode: false,
-                allowDropdown: false,
-            });
+            itiSms = intlTelInput(smsPhoneInputRef.value, { nationalMode: false, separateDialCode: false, allowDropdown: false });
         }
     });
+
+    // ── Shipping Phone (intl-tel-input) ────────────────────────────────────────
+    const textMePhone = ref<string>('');
+
+    const phoneContainer = ref(null);
+
+
+
+
+
+
+
+    const co2offset = ref<boolean>(false);
 
     // ── Tooltip – click-outside handler ───────────────────────────────────────
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -397,6 +403,7 @@
                         <select name="country" id="country" v-model="country"
                         class="peer block w-full appearance-none border-[1.5px] border-black bg-white mt-3 px-3 pb-1 pt-4 text-[13px] focus:outline-none focus:ring-0"
                         >
+                            <option value="" disabled>Select country</option> 
                             <option value="AR">Argentina</option>
                             <option value="AU">Australia</option>
                             <option value="AT">Austria</option>
@@ -569,7 +576,7 @@
                 </div>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                    <input type="text" id="city" name="city" 
+                    <input type="text" id="city" name="city" autocomplete="address-level2"
                         placeholder=" " 
                         v-model="city"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
@@ -628,8 +635,8 @@
                     </label>
                 </div>
 
-                <div ref="billingPhoneContainer" class="relative mt-3 focus-within:border-black transition-all">
-                    <input type="text" id="phone" name="phone" 
+                <div class="relative mt-3 focus-within:border-black transition-all">
+                    <input  ref="shippingPhoneInputRef" type="tel" id="phone" name="phone" 
                         placeholder=" " 
                         v-model="shippingPhone"
                         @focus="showTooltip = false"
@@ -700,9 +707,11 @@
                             </div>
 
                             <input
-                                ref="phoneInputRef"
+                                ref="textMePhoneInputRef"
+                                id="textme-phone"
+                                name="textme-phone"
                                 type="tel"
-                                v-model="phone"
+                                v-model="textMePhone"
                                 placeholder="Mobile phone(optional)"
                                 class="py-2 px-3 w-full border-none outline-none ring-0"
                             />
@@ -782,7 +791,7 @@
                     <div class="flex-grid bg-gray-100 p-2" v-if="payment === 'credit'">
                         
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" id="cardnumber" name="cardnumber" 
+                            <input type="tel" id="cardnumber" name="cardnumber" 
                                 placeholder=" " 
                                 v-model="cardNumber"
                                 class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
@@ -993,7 +1002,7 @@
                                 </div>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="text" id="billing-city" name="billing-city" 
+                                    <input type="text" id="billing-city" name="billing-city" autocomplete="address-level2"
                                         placeholder=" " 
                                         v-model="billingCity"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
@@ -1053,7 +1062,7 @@
                                 </div>
             
                                 <div ref="phoneContainer" class="relative mt-3 focus-within:border-black transition-all">
-                                    <input type="text" id="billing-phone" name="billing-phone" 
+                                    <input type="tel" id="billing-phone" name="billing-phone" 
                                         placeholder=" " 
                                         v-model="billingPhone"
                                         @focus="showTooltip = false"
@@ -1275,6 +1284,7 @@
                                 <select name="billing-country" id="billing-country" v-model="billingCountry"
                                 class="peer block w-full appearance-none border-[1.5px] border-gray-300 bg-white mt-3 px-3 pb-1 pt-4 text-[13px] focus:outline-none focus:ring-0"
                                 >
+                                    <option value="" disabled>Select country</option> 
                                     <option value="AR">Argentina</option>
                                     <option value="AU">Australia</option>
                                     <option value="AT">Austria</option>
@@ -1440,7 +1450,8 @@
                         </div>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" v-model="billingCity" id="billing2-city" name="billing2-city" placeholder=" " 
+                            <input type="text" v-model="billingCity" autocomplete="address-level2"
+                                id="billing2-city" name="billing2-city" placeholder=" " 
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
@@ -1494,7 +1505,7 @@
                         </div>
     
                         <div ref="saveInfoPhoneContainer" class="relative mt-3 focus-within:border-black transition-all">
-                            <input type="text" v-model="billingPhone" id="billing2-phone" name="billing2-phone" placeholder=" " 
+                            <input type="tel" v-model="billing2Phone" id="billing2-phone" name="billing2-phone" placeholder=" " 
                                 @focus="showTooltip = false"
                                 class="peer pr-10 w-full h-full border text-[13px] bg-white border-gray-300 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black"
                             >
