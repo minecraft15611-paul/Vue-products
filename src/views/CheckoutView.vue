@@ -1,8 +1,12 @@
 <script setup lang="ts">
-    import { ref, computed, onMounted, onUnmounted, watchEffect } from 'vue';
+    import { ref, reactive, computed, onMounted, onUnmounted, watchEffect } from 'vue';
     import { useCartStore } from '../stores/cart';
+    import type { ZodIssue } from 'zod';
     import intlTelInput from 'intl-tel-input';
     import 'intl-tel-input/styles';
+    import { checkoutSchema } from '../schemas/checkoutSchema';
+
+    const formErrors = ref<Record<string, string>>({});
 
     // ── Store ──────────────────────────────────────────────────────────────────
     const cartStore = useCartStore();
@@ -27,40 +31,108 @@
     const showTooltip = ref<boolean>(false);
 
     // ── Shipping Form Fields ───────────────────────────────────────────────────
-    const email         = ref<string>('');
-    const firstName     = ref<string>('');
-    const lastName      = ref<string>('');
-    const address       = ref<string>('');
-    const apartment     = ref<string>('');
-    const city          = ref<string>('');
-    const state         = ref<string>('');
-    const postcode      = ref<string>('');
-    const country       = ref<string>('');
-    const shippingPhone = ref<string>('');   // delivery phone field
+    // ── Contact ──────────────────────────────────────────────────────────────────
 
-    // ── Billing Form Fields ────────────────────────────────────────────────────
-    const billingFirstName  = ref<string>('');
-    const billingLastName   = ref<string>('');
-    const billingAddress    = ref<string>('');
-    const billingApartment  = ref<string>('');
-    const billingCity       = ref<string>('');
-    const billingState      = ref<string>('');
-    const billingPostcode   = ref<string>('');
-    const billingPhone      = ref<string>('');
-    const billingCountry    = ref<string>('');
-    const billing2Phone = ref<string>('');   // Block B (standalone billing section)
 
-    // ── Payment Form Fields ────────────────────────────────────────────────────
-    const cardNumber      = ref<string>('');
-    const expirationDate  = ref<string>('');
-    const securityCode    = ref<string>('');
-    const nameOnCard      = ref<string>('');
+    // ── Checkout Form ──────────────────────────────────────────────────────────
+    const checkoutForm = reactive({
 
-    // ── Payment / Billing Options ──────────────────────────────────────────────
-    const paymentMethod        = ref<string>('Klarna');
-    const payment              = ref<string>('credit');
-    const billingOptions       = ref<string>('same');
-    const useShippingAsBilling = ref<boolean>(true);
+        email: '',
+        useShippingAsBilling: true,
+        billingOptions: 'same',
+
+        // Shipping address (Delivery section)
+        shipping: {
+            firstName: '',
+            lastName:  '',
+            address:   '',
+            apartment: '',
+            city:      '',
+            state:     '',
+            postcode:  '',
+            country:   '',
+            phone:     '',
+        },
+
+        // Block B — billing inside credit card accordion (useShippingAsBilling === false)
+        billingSameFlow: {
+            firstName: '',
+            lastName:  '',
+            address:   '',
+            apartment: '',
+            city:      '',
+            state:     '',
+            postcode:  '',
+            country:   '',
+            phone:     '',
+        },
+
+        // Block C — standalone billing section (billingOptions === 'different')
+        billingDifferent: {
+            firstName: '',
+            lastName:  '',
+            address:   '',
+            apartment: '',
+            city:      '',
+            state:     '',
+            postcode:  '',
+            country:   '',
+            phone:     '',
+        },
+
+        // Payment
+        payment: {
+            method:  'credit' as 'credit' | 'Klarna' | 'PayPal',
+            cardNumber:     '',
+            expirationDate: '',
+            securityCode:   '',
+            nameOnCard:     '',
+        },
+
+    });
+
+    function handlePayNow() {
+        formErrors.value = {};
+
+        const result = checkoutSchema.safeParse(checkoutForm);
+
+        if (!result.success) {
+            result.error.issues.forEach((issue: ZodIssue) => {
+                const key =issue.path.join('.');
+                formErrors.value[key] = issue.message;
+            });
+            return;
+        }
+
+        console.log('Valid payload:', result.data);
+    }
+
+    function validateField(path: string) {
+        // Get the value at this path from checkoutForm
+        const keys = path.split('.');
+        let value: any = checkoutForm;
+        for (const key of keys) {
+            value = value?.[key];
+        }
+
+        // Don't validate empty fields on blur — let submit handle that
+        if (value === '' || value === null || value === undefined) {
+            delete formErrors.value[path];
+            return;
+        }
+        
+        const result = checkoutSchema.safeParse(checkoutForm);
+        if (!result.success) {
+            const issue = result.error.issues.find(i => i.path.join('.') === path);
+            if (issue) {
+                formErrors.value[path] = issue.message;
+            } else {
+                delete formErrors.value[path];
+            }
+        } else {
+            delete formErrors.value[path];
+        }
+    }
 
     // ── SMS / Text Me ──────────────────────────────────────────────────────────
     const isTextMeChecked = ref<boolean>(false);
@@ -97,11 +169,7 @@
 
     const phoneContainer = ref(null);
 
-
-
-
-
-
+    const saveInfoPhoneContainer = ref(null)
 
     const co2offset = ref<boolean>(false);
 
@@ -158,6 +226,10 @@
         htmlEl.style.opacity  = '';
         htmlEl.style.overflow = '';
     }
+
+    const showMoreOptions = computed(() =>
+        checkoutForm.payment.method === 'Klarna' || checkoutForm.payment.method === 'PayPal'
+    );
 </script>
 
 
@@ -166,6 +238,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet"></link>
 
         <!-- =============== Mobile Version =============== -->
+
+    <form @submit.prevent="handlePayNow" novalidate>
+
+    
 
     <div class="flex-col">
 
@@ -177,7 +253,7 @@
             <div class="w-full max-w-md border-y border-gray-300 overflow-hidden">
                 
                 <div class="flex justify-between items-center bg-gray-100">
-                    <button 
+                    <button type="button"
                     @click="toggle"
                     class="w-full flex  items-center p-4  hover:bg-gray-50 transition-colors"
                     >
@@ -276,7 +352,8 @@
                                 Discount code or gift card
                             </label>
                         </div>
-                        <button class="border text-[13px] transition-color duration-300 border-gray-300 text-gray-500 px-2"
+                        <button type="button"
+                                class="border text-[13px] transition-color duration-300 border-gray-300 text-gray-500 px-2"
                                 :disabled="isApplyDisabled"
                                 :class="isApplyDisabled ? 'bg-gray-50 ' : 'bg-black text-white'"
                         >
@@ -329,7 +406,7 @@
             </div>
 
             <div>
-                <button class="bg-[#5a31f4] w-full mt-4 py-2 rounded flex justify-center items-center">
+                <button type="button" class="bg-[#5a31f4] w-full mt-4 py-2 rounded flex justify-center items-center">
                     <span class="font-['Poppins'] font-bold text-white text-2xl tracking-tighter lowercase">
                         shop
                     </span>
@@ -361,11 +438,12 @@
             <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                 <input 
                     type="email" 
-                    v-model="email"
+                    v-model="checkoutForm.email"
                     id="email"
                     autocomplete="email" 
                     name="email" 
-                    placeholder=" " 
+                    placeholder=" "
+                    @blur="validateField('email')"
                     class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 focus-within:ring-2 focus-within:ring-black bg-transparent"
                 />
                 <label 
@@ -386,6 +464,7 @@
                     Enter a valid email
                 </p>
             </div>
+            <p v-if="formErrors['email']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['email'] }}</p>
 
  <!-- ================= NOT FINISHED YET ===================== -->
    <!-- ================= NOT FINISHED YET ===================== -->
@@ -400,7 +479,8 @@
 
                 <div class="relative  w-full">
                     <div>
-                        <select name="country" id="country" v-model="country"
+                        <select name="country" id="country" v-model="checkoutForm.shipping.country"
+                        @blur="validateField('shipping.country')"
                         class="peer block w-full appearance-none border-[1.5px] border-black bg-white mt-3 px-3 pb-1 pt-4 text-[13px] focus:outline-none focus:ring-0"
                         >
                             <option value="" disabled>Select country</option> 
@@ -477,12 +557,13 @@
                         </div>
                     </div>
                 </div>
-
+                <p v-if="formErrors['shipping.country']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.country'] }}</p>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="firstname" name="firstname" 
                         placeholder=" " autocomplete="given-name"
-                        v-model="firstName"
+                        v-model="checkoutForm.shipping.firstName"
+                        @blur="validateField('shipping.firstName')"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -498,11 +579,13 @@
                         First name
                     </label>
                 </div>
+                <p v-if="formErrors['shipping.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.firstName'] }}</p>
                 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="lastname" name="lastname" autocomplete="family-name"
                         placeholder=" " 
-                        v-model="lastName"
+                        v-model="checkoutForm.shipping.lastName"
+                        @blur="validateField('shipping.lastName')"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -518,11 +601,13 @@
                         Last name
                     </label>
                 </div>
+                <p v-if="formErrors['shipping.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.lastName'] }}</p>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="address" name="address" autocomplete="street-address"
                         placeholder=" " 
-                        v-model="address"
+                        v-model="checkoutForm.shipping.address"
+                        @blur="validateField('shipping.address')"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -554,11 +639,12 @@
                         </svg>
                     </div>
                 </div>
+                <p v-if="formErrors['shipping.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.address'] }}</p>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="apartment" name="apartment" 
                         autocomplete="address-line2" placeholder=" " 
-                        v-model="apartment"
+                        v-model="checkoutForm.shipping.apartment"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -578,7 +664,8 @@
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="city" name="city" autocomplete="address-level2"
                         placeholder=" " 
-                        v-model="city"
+                        v-model="checkoutForm.shipping.city"
+                        @blur="validateField('shipping.city')"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -594,11 +681,13 @@
                         City
                     </label>
                 </div>
+                <p v-if="formErrors['shipping.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.city'] }}</p>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="state" name="state" 
                         placeholder=" " autocomplete="address-level1"
-                        v-model="state"
+                        v-model="checkoutForm.shipping.state"
+                        @blur="validateField('shipping.state')"
                         class="peer w-full h-full border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -614,11 +703,13 @@
                         State / Province
                     </label>
                 </div>
+                <p v-if="formErrors['shipping.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.state'] }}</p>
 
                 <div class="relative mt-3 focus-within:border-black transition-all">
                     <input type="text" id="postcode" name="postcode" 
                         autocomplete="postal-code" placeholder=" " 
-                        v-model="postcode"
+                        v-model="checkoutForm.shipping.postcode"
+                        @blur="validateField('shipping.postcode')"
                         class="peer w-full h-full border border-gray-300 text-[13px] pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
                     <label 
@@ -634,11 +725,13 @@
                         Postcode / ZIP code
                     </label>
                 </div>
+                <p v-if="formErrors['shipping.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.postcode'] }}</p>
 
                 <div class="relative mt-3 focus-within:border-black transition-all">
                     <input  ref="shippingPhoneInputRef" type="tel" id="phone" name="phone" 
                         placeholder=" " 
-                        v-model="shippingPhone"
+                        v-model="checkoutForm.shipping.phone"
+                        @blur="validateField('shipping.phone')"
                         @focus="showTooltip = false"
                         class="peer pr-10 w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                     >
@@ -685,6 +778,7 @@
                     </div>
                     </transition>
                 </div>
+                <p v-if="formErrors['shipping.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.phone'] }}</p>
 
                 <div class="flex my-3 items-center">
                     <input type="checkbox" class="mx-2" v-model="isTextMeChecked">
@@ -759,11 +853,11 @@
                 <!-- ========== Payment Method Selector ========== -->
 
                 <div class="flex relative    p-3 pb-1 items-baseline"
-                    :class="payment === 'credit'? 'border border-black bg-gray-100' : 'border border-gray-300 bg-white'"
+                    :class="checkoutForm.payment.method === 'credit'? 'border border-black bg-gray-100' : 'border border-gray-300 bg-white'"
                 >
                     <div class="flex justify-between ml-3 ">
                         <div class="p-1">
-                            <input type="radio" v-model="payment" value="credit" class="absolute bottom-8 left-3">
+                            <input type="radio" v-model="checkoutForm.payment.method" value="credit" class="absolute bottom-8 left-3">
                             <p class="text-[13px] font-medium pl-2">Credit or Debit Card</p>
                         </div>
                         
@@ -788,12 +882,13 @@
                     @leave="onLeave"
                     @after-leave="onAfterLeave"
                 >
-                    <div class="flex-grid bg-gray-100 p-2" v-if="payment === 'credit'">
+                    <div class="flex-grid bg-gray-100 p-2" v-if="checkoutForm.payment.method === 'credit'">
                         
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="tel" id="cardnumber" name="cardnumber" 
                                 placeholder=" " 
-                                v-model="cardNumber"
+                                v-model="checkoutForm.payment.cardNumber"
+                                @blur="validateField('payment.cardNumber')"
                                 class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
@@ -809,11 +904,13 @@
                                 Card number
                             </label>
                         </div>
+                        <p v-if="formErrors['payment.cardNumber']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.cardNumber'] }}</p>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" id="expirationdate" name="expirationdate" 
                                 placeholder=" " 
-                                v-model="expirationDate"
+                                v-model="checkoutForm.payment.expirationDate"
+                                @blur="validateField('payment.expirationDate')"
                                 class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
@@ -829,11 +926,13 @@
                                 Expiration date (MM / YY)
                             </label>
                         </div>
+                        <p v-if="formErrors['payment.expirationDate']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.expirationDate'] }}</p>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" id="securitycode" name="securitycode" 
                                 placeholder=" " 
-                                v-model="securityCode"
+                                v-model="checkoutForm.payment.securityCode"
+                                @blur="validateField('payment.securityCode')"
                                 class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
@@ -849,11 +948,13 @@
                                 Security code
                             </label>
                         </div>
+                        <p v-if="formErrors['payment.securityCode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.securityCode'] }}</p>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" id="nameoncard" name="nameoncard" 
                                 placeholder=" " 
-                                v-model="nameOnCard"
+                                v-model="checkoutForm.payment.nameOnCard"
+                                @blur="validateField('payment.nameOnCard')"
                                 class="peer w-full h-full border border-gray-100 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus-within:ring-2 focus-within:ring-black"
                             >
                             <label 
@@ -869,10 +970,11 @@
                                 Name on card
                             </label>
                         </div>
+                        <p v-if="formErrors['payment.nameOnCard']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.nameOnCard'] }}</p>
 
                         <label class="flex items-center space-x-3 mt-3 cursor-pointer">
                             <input 
-                                type="checkbox" v-model="useShippingAsBilling"
+                                type="checkbox" v-model="checkoutForm.useShippingAsBilling"
                                 class="w-5 h-5 cursor-pointer appearance-none
                                     border-2 border-black bg-white rounded-none
                                     relative
@@ -899,16 +1001,98 @@
                             @leave="onLeave"
                             @after-leave="onAfterLeave"
                         >
-                            <div v-if="useShippingAsBilling === false ">
+                            <div v-if="checkoutForm.useShippingAsBilling === false">
                                 <div class="mt-5">
                                     <p class="text-[16px] font-normal">
                                         Billing address
                                     </p>
                                 </div>
+                                <div class="relative  w-full">
+                                    <div>
+                                        <select name="country" id="country" v-model="checkoutForm.billingSameFlow.country"
+                                        @blur="validateField('billingSameFlow.country')"
+                                        class="peer block w-full appearance-none border-[1.5px] border-black bg-white mt-3 px-3 pb-1 pt-4 text-[13px] focus:outline-none focus:ring-0"
+                                        >
+                                            <option value="" disabled>Select country</option> 
+                                            <option value="AR">Argentina</option>
+                                            <option value="AU">Australia</option>
+                                            <option value="AT">Austria</option>
+                                            <option value="BS">Bahamas</option>
+                                            <option value="BD">Bangladesh</option>
+                                            <option value="BE">Belgium</option>
+                                            <option value="BM">Bermuda</option>
+                                            <option value="BR">Brazil</option>
+                                            <option value="CA">Canada</option>
+                                            <option value="CL">Chile</option>
+                                            <option value="CN">China</option>
+                                            <option value="CO">Colombia</option>
+                                            <option value="CZ">Czech Republic</option>
+                                            <option value="DK">Denmark</option>
+                                            <option value="EG">Egypt</option>
+                                            <option value="FI">Finland</option>
+                                            <option value="FR">France</option>
+                                            <option value="DE">Germany</option>
+                                            <option value="GR">Greece</option>
+                                            <option value="HK">Hong Kong</option>
+                                            <option value="HU">Hungary</option>
+                                            <option value="IS">Iceland</option>
+                                            <option value="IN">India</option>
+                                            <option value="ID">Indonesia</option>
+                                            <option value="IE">Ireland</option>
+                                            <option value="IL">Israel</option>
+                                            <option value="IT">Italy</option>
+                                            <option value="JP">Japan</option>
+                                            <option value="LU">Luxembourg</option>
+                                            <option value="MY">Malaysia</option>
+                                            <option value="MX">Mexico</option>
+                                            <option value="NL">Netherlands</option>
+                                            <option value="NZ">New Zealand</option>
+                                            <option value="NO">Norway</option>
+                                            <option value="PH">Philippines</option>
+                                            <option value="PL">Poland</option>
+                                            <option value="PT">Portugal</option>
+                                            <option value="SA">Saudi Arabia</option>
+                                            <option value="SG">Singapore</option>
+                                            <option value="ZA">South Africa</option>
+                                            <option value="KR">South Korea</option>
+                                            <option value="ES">Spain</option>
+                                            <option value="SE">Sweden</option>
+                                            <option value="CH">Switzerland</option>
+                                            <option value="TW">Taiwan</option>
+                                            <option value="TH">Thailand</option>
+                                            <option value="TR">Turkey</option>
+                                            <option value="GB">United Kingdom</option>
+                                            <option value="US">United States</option>
+                                            <option value="VN">Vietnam</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            for="country"
+                                            class="text-[13px] pointer-events-none absolute left-3 top-1 origin-[0%] scale-90 transform text-sm text-gray-500 duration-200 peer-focus:scale-90 peer-focus:text-gray-500"
+                                        >
+                                            Country/Region
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center pt-3">
+                                            <svg 
+                                                class="h-4 w-4 text-gray-600" 
+                                                fill="none" 
+                                                stroke="currentColor" 
+                                                viewBox="0 10 24 24"
+                                            >
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p v-if="formErrors['billingSameFlow.country']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.country'] }}</p>
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-firstname" name="billing-firstname" 
                                         placeholder=" " autocomplete="given-name"
-                                        v-model="billingFirstName"
+                                        v-model="checkoutForm.billingSameFlow.firstName"
+                                        @blur="validateField('billingSameFlow.firstName')"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
@@ -924,11 +1108,13 @@
                                         First name
                                     </label>
                                 </div>
+                                <p v-if="formErrors['billingSameFlow.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.firstName'] }}</p>
                                 
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-lastname" name="billing-lastname" autocomplete="family-name"
                                         placeholder=" " 
-                                        v-model="billingLastName"
+                                        v-model="checkoutForm.billingSameFlow.lastName"
+                                        @blur="validateField('billingSameFlow.lastName')"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
@@ -944,11 +1130,13 @@
                                         Last name
                                     </label>
                                 </div>
+                                <p v-if="formErrors['billingSameFlow.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.lastName'] }}</p>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-address" name="billing-address" autocomplete="street-address"
                                         placeholder=" " 
-                                        v-model="billingAddress"
+                                        v-model="checkoutForm.billingSameFlow.address"
+                                        @blur="validateField('billingSameFlow.address')"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
@@ -980,11 +1168,12 @@
                                         </svg>
                                     </div>
                                 </div>
+                                <p v-if="formErrors['billingSameFlow.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.address'] }}</p>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-apartment" name="billing-apartment" 
                                         autocomplete="address-line2" placeholder=" " 
-                                        v-model="billingApartment"
+                                        v-model="checkoutForm.billingSameFlow.apartment"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
@@ -1004,7 +1193,8 @@
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-city" name="billing-city" autocomplete="address-level2"
                                         placeholder=" " 
-                                        v-model="billingCity"
+                                        v-model="checkoutForm.billingSameFlow.city"
+                                        @blur="validateField('billingSameFlow.city')"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
@@ -1020,11 +1210,13 @@
                                         City
                                     </label>
                                 </div>
+                                <p v-if="formErrors['billingSameFlow.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.city'] }}</p>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-state" name="billing-state" 
                                         placeholder=" " autocomplete="address-level1"
-                                        v-model="billingState"
+                                        v-model="checkoutForm.billingSameFlow.state"
+                                        @blur="validateField('billingSameFlow.state')"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
@@ -1040,11 +1232,13 @@
                                         State / Province
                                     </label>
                                 </div>
+                                <p v-if="formErrors['billingSameFlow.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.state'] }}</p>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-postcode" name="billing-postcode" 
                                         autocomplete="postal-code" placeholder=" " 
-                                        v-model="billingPostcode"
+                                        v-model="checkoutForm.billingSameFlow.postcode"
+                                        @blur="validateField('billingSameFlow.postcode')"
                                         class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
@@ -1060,11 +1254,13 @@
                                         Postcode / ZIP code
                                     </label>
                                 </div>
+                                <p v-if="formErrors['billingSameFlow.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.postcode'] }}</p>
             
                                 <div ref="phoneContainer" class="relative mt-3 focus-within:border-black transition-all">
                                     <input type="tel" id="billing-phone" name="billing-phone" 
                                         placeholder=" " 
-                                        v-model="billingPhone"
+                                        v-model="checkoutForm.billingSameFlow.phone"
+                                        @blur="validateField('billingSameFlow.phone')"
                                         @focus="showTooltip = false"
                                         class="peer pr-10 w-full h-full border text-[13px] bg-white border-gray-300 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black"
                                     >
@@ -1111,13 +1307,9 @@
                                     </div>
                                     </transition>
                                 </div>
+                                <p v-if="formErrors['billingSameFlow.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.phone'] }}</p>
 
-                                <div class="flex my-3 items-center">
-                                    <input type="checkbox" id="textme" name="textme" class="mx-2" v-model="isTextMeChecked">
-                                    <p class="text-[13px]">
-                                        Text me with news and offers
-                                    </p>
-                                </div>
+
                             </div>
                         </Transition>
                         
@@ -1128,18 +1320,18 @@
                             
                             <!-- ========== More Payment Options ========== -->
                 <div class="flex relative   p-1  items-center justify-between"
-                    :class="payment === 'more'? 'border border-black bg-gray-100': 'border border-gray-300 bg-white'"
+                    :class="showMoreOptions ? 'border border-black bg-gray-100': 'border border-gray-300 bg-white'"
                 >
                     <div class="flex justify-between ml-3 ">
                         <div class="p-1">
-                            <input type="radio" v-model="payment" value="more" class="flex ml-1 absolute bottom-4 left-2">
+                            <input type="radio" :checked="showMoreOptions" @change="checkoutForm.payment.method = 'Klarna'" class="flex ml-1 absolute bottom-4 left-2">
                             <p class="text-[13px] font-medium pl-4">More Payment Options</p>
                         </div>
                         
                     </div>
 
                     <div class="flex justify-center items-center h-11 pr-4">
-                        <button class="flex justify-center bg-white border border-gray-200 h-5 w-8 ">
+                        <button type="button" class="flex justify-center bg-white border border-gray-200 h-5 w-8 ">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" class="text-blue-500">
                                 <circle cx="5" cy="12" r="3"></circle>
                                 <circle cx="13" cy="12" r="3"></circle>
@@ -1151,12 +1343,12 @@
 
                 <!-- ========== This is where Klarna or PayPal choose options ========== -->
 
-                <div v-if="payment === 'more'">
+                <div v-if="showMoreOptions">
                     <div class="flex-grid mt-4 border-t border-gray-200">
                         
                         <label class="flex justify-between items-center border-b border-x border-gray-200 active:bg-gray-100 transition-colors">
                             <div class="flex items-center py-4"> 
-                                <input type="radio" v-model="paymentMethod" value="Klarna" name="moreOptions" class="ml-3 mr-3 w-4 h-4">
+                                <input type="radio" v-model="checkoutForm.payment.method" value="Klarna" name="moreOptions" class="ml-3 mr-3 w-4 h-4">
                                 <p class="text-[13px] font-medium">Klarna</p>
                             </div>
                             <div class="mr-4">
@@ -1166,7 +1358,7 @@
 
                         <label class="flex justify-between items-center border-b border-x border-gray-200 active:bg-gray-100 transition-colors">
                             <div class="flex items-center py-4">
-                                <input type="radio" v-model="paymentMethod" value="PayPal" name="moreOptions" class="ml-3 mr-3 w-4 h-4">
+                                <input type="radio" v-model="checkoutForm.payment.method" value="PayPal" name="moreOptions" class="ml-3 mr-3 w-4 h-4">
                                 <p class="text-[13px] font-medium">PayPal</p>
                             </div>
                             <div class="flex mr-4">
@@ -1178,10 +1370,10 @@
                     </div>
 
                     <div class="mt-3 px-1 min-h-[40px]">
-                        <p v-if="paymentMethod === 'Klarna'" class="text-[13px] leading-relaxed text-gray-600 font-normal">
+                        <p v-if="checkoutForm.payment.method === 'Klarna'" class="text-[13px] leading-relaxed text-gray-600 font-normal">
                             After clicking <span class="whitespace-nowrap font-semibold">“Pay now”</span>, you will be redirected to Klarna to complete your purchase.
                         </p>
-                        <p v-else-if="paymentMethod === 'PayPal'" class="text-[13px] leading-relaxed text-gray-600 font-normal">
+                        <p v-else-if="checkoutForm.payment.method === 'PayPal'" class="text-[13px] leading-relaxed text-gray-600 font-normal">
                             After clicking <span class="whitespace-nowrap font-semibold">“Pay now”</span>, you will be redirected to PayPal.com to complete your purchase.
                         </p>
                     </div>
@@ -1211,7 +1403,7 @@
                 </div>
 
 
-                <div v-if="payment === 'credit'">
+                <div v-if="showMoreOptions" class="flex-grid">
                     <p class="text-[13px] mb-3">
                         save my information for a faster checkout
                     </p>
@@ -1248,27 +1440,26 @@
                     </p>
                 </div>
 
-                <div class="flex-grid">
+                <div v-if="showMoreOptions" class="flex-grid">
                     <h2 class="my-2 text-[17px]  text-gray-900 mb-3 tracking-tight">
                         Billing address
                     </h2>
                     <div class="flex items-center p-4"
-                        :class="billingOptions === 'same'? 'border border-black bg-gray-200':'border border-gray-300 bg-white'"
+                        :class="checkoutForm.billingOptions === 'same'? 'border border-black bg-gray-200':'border border-gray-300 bg-white'"
                     >
-                        <input type="radio" v-model="billingOptions" value="same" name="billing">
+                        <input type="radio" v-model="checkoutForm.billingOptions" value="same" name="billing">
                         <p class="ml-3 text-[13px] font-normal text-gray-800 tracking-tight">
                             Same as shipping address
                         </p>
                     </div>
                     <div class="flex items-center  p-4 "
-                        :class="billingOptions === 'different'? 'border border-black bg-gray-200':'border border-gray-300 bg-white'"
+                        :class="checkoutForm.billingOptions === 'different'? 'border border-black bg-gray-200':'border border-gray-300 bg-white'"
                     >
-                        <input type="radio" v-model="billingOptions" value="different" name="billing">
+                        <input type="radio" v-model="checkoutForm.billingOptions" value="different" name="billing">
                         <p class="ml-3 text-[13px] font-normal text-gray-800 tracking-tight">
                             Use a different billing address
                         </p>
                     </div>
-                </div>
 
                 <Transition
                     @enter="onEnter"
@@ -1277,11 +1468,11 @@
                     @after-leave="onAfterLeave"
                 >
                     
-                    <div class="p-2 bg-gray-100" v-if="billingOptions === 'different'">
+                    <div class="p-2 bg-gray-100" v-if="checkoutForm.billingOptions === 'different'">
 
                         <div class="relative  w-full focus-within:ring-2 focus-within:ring-black transition-border duration-300">
                             <div>
-                                <select name="billing-country" id="billing-country" v-model="billingCountry"
+                                <select name="billing-country" id="billing-country" v-model="checkoutForm.billingDifferent.country"
                                 class="peer block w-full appearance-none border-[1.5px] border-gray-300 bg-white mt-3 px-3 pb-1 pt-4 text-[13px] focus:outline-none focus:ring-0"
                                 >
                                     <option value="" disabled>Select country</option> 
@@ -1360,7 +1551,8 @@
                         </div>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" v-model="billingFirstName" id="billing2-firstname" name="billing2-firstname" placeholder=" " autocomplete="given-name"
+                            <input type="text" v-model="checkoutForm.billingDifferent.firstName" id="billing2-firstname" name="billing2-firstname" placeholder=" " autocomplete="given-name"
+                                @blur="validateField('billingDifferent.firstName')"
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
@@ -1376,10 +1568,12 @@
                                 First name
                             </label>
                         </div>
+                        <p v-if="formErrors['billingDifferent.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.firstName'] }}</p>
                         
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" v-model="billingLastName" autocomplete="family-name"
-                                id="billing2-lastname" name="billing2-lastname" placeholder=" " 
+                            <input type="text" v-model="checkoutForm.billingDifferent.lastName" autocomplete="family-name"
+                                id="billing2-lastname" name="billing2-lastname" placeholder=" "
+                                @blur="validateField('billingDifferent.lastName')"
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
@@ -1395,10 +1589,12 @@
                                 Last name
                             </label>
                         </div>
+                        <p v-if="formErrors['billingDifferent.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.lastName'] }}</p>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" v-model="billingAddress" autocomplete="street-address"
-                                id="billing2-address" name="billing2-address" placeholder=" " 
+                            <input type="text" v-model="checkoutForm.billingDifferent.address" autocomplete="street-address"
+                                id="billing2-address" name="billing2-address" placeholder=" "
+                                @blur="validateField('billingDifferent.address')"
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
@@ -1430,9 +1626,10 @@
                                 </svg>
                             </div>
                         </div>
+                        <p v-if="formErrors['billingDifferent.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.address'] }}</p>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" v-model="billingApartment" id="billing2-apartment" name="billing2-apartment" autocomplete="address-line2" placeholder=" " 
+                            <input type="text" v-model="checkoutForm.billingDifferent.apartment" id="billing2-apartment" name="billing2-apartment" autocomplete="address-line2" placeholder=" " 
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
@@ -1450,8 +1647,9 @@
                         </div>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" v-model="billingCity" autocomplete="address-level2"
-                                id="billing2-city" name="billing2-city" placeholder=" " 
+                            <input type="text" v-model="checkoutForm.billingDifferent.city" autocomplete="address-level2"
+                                id="billing2-city" name="billing2-city" placeholder=" "
+                                @blur="validateField('billingDifferent.city')"
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
@@ -1467,9 +1665,11 @@
                                 City
                             </label>
                         </div>
+                        <p v-if="formErrors['billingDifferent.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.city'] }}</p>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" v-model="billingState" id="billing2-state" name="billing2-state" placeholder=" " autocomplete="address-level1"
+                            <input type="text" v-model="checkoutForm.billingDifferent.state" id="billing2-state" name="billing2-state" placeholder=" " autocomplete="address-level1"
+                                @blur="validateField('billingDifferent.state')"
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
@@ -1485,9 +1685,11 @@
                                 State / Province
                             </label>
                         </div>
+                        <p v-if="formErrors['billingDifferent.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.state'] }}</p>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
-                            <input type="text" v-model="billingPostcode" id="billing2-postcode" name="billing2-postcode" autocomplete="postal-code" placeholder=" " 
+                            <input type="text" v-model="checkoutForm.billingDifferent.postcode" id="billing2-postcode" name="billing2-postcode" autocomplete="postal-code" placeholder=" "
+                                @blur="validateField('billingDifferent.postcode')"
                                 class="peer w-full h-full border text-[13px] bg-white border-gray-200 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black transition-border duration-500 bg-transparent"
                             >
                             <label 
@@ -1503,9 +1705,11 @@
                                 Postcode / ZIP code
                             </label>
                         </div>
+                        <p v-if="formErrors['billingDifferent.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.postcode'] }}</p>
     
                         <div ref="saveInfoPhoneContainer" class="relative mt-3 focus-within:border-black transition-all">
-                            <input type="tel" v-model="billing2Phone" id="billing2-phone" name="billing2-phone" placeholder=" " 
+                            <input type="tel" v-model="checkoutForm.billingDifferent.phone" id="billing2-phone" name="billing2-phone" placeholder=" " 
+                                @blur="validateField('billingDifferent.phone')"
                                 @focus="showTooltip = false"
                                 class="peer pr-10 w-full h-full border text-[13px] bg-white border-gray-300 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black"
                             >
@@ -1552,8 +1756,10 @@
                             </div>
                             </transition>
                         </div>
+                        <p v-if="formErrors['billingDifferent.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.phone'] }}</p>
                     </div>
                 </Transition>
+                </div><!-- end v-if="checkoutForm.payment.method === 'more'" -->
 
 
                 <div>
@@ -1597,13 +1803,13 @@
                 >
                     <div class="mb-3" v-if="!isBottomOpen">
                         <div  >
-                            <button class="p-2 text-[13px] border border-gray-200 mt-10 mb-3">
+                            <button type="button" class="p-2 text-[13px] border border-gray-200 mt-10 mb-3">
                                 Add discount
                             </button>
                         </div>
 
                         
-                        <button 
+                        <button type="button"
                             @click="bottomToggle"
                             class="block w-full text-left appearance-none bg-transparent p-0 m-0 border-none outline-none group"
                         >
@@ -1655,7 +1861,7 @@
                     <div class="w-full max-w-md mt-10 rounded-lg overflow-hidden" v-if="isBottomOpen">
                         
                         <div class="flex justify-between items-center mb-2">
-                            <button 
+                            <button type="button"
                             @click="bottomToggle"
                             class="w-full flex justify-between items-center  hover:bg-gray-50 transition-colors"
                             >
@@ -1746,7 +1952,8 @@
                                         Discount code or gift card
                                     </label>
                                 </div>
-                                <button class="border text-[13px] transition-color duration-300 border-gray-300 text-gray-500 px-2"
+                                <button type="button"
+                                        class="border text-[13px] transition-color duration-300 border-gray-300 text-gray-500 px-2"
                                         :disabled="isApplyDisabled"
                                         :class="isApplyDisabled ? 'bg-gray-50 ' : 'bg-black text-white'"
                                 >
@@ -1789,7 +1996,8 @@
 
                 <div class="flex-grid ">
                     <div class="w-full">
-                        <button class="flex w-full justify-center items-center bg-black text-white text-[15px] py-3 ">
+                        <button type="submit"
+                            class="flex w-full justify-center items-center bg-black text-white text-[15px] py-3 ">
                             PAY NOW
                         </button>
                     </div>
@@ -1843,6 +2051,8 @@
     <div>
         
     </div>
+
+    </form>
     
 </template>
 
