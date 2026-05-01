@@ -1,10 +1,11 @@
 <script setup lang="ts">
-    import { ref, reactive, computed, onMounted, onUnmounted, watchEffect } from 'vue';
+    import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue';
     import { useCartStore } from '../stores/cart';
     import type { ZodIssue } from 'zod';
-    import intlTelInput from 'intl-tel-input';
-    import 'intl-tel-input/styles';
+    import { VueTelInput } from 'vue-tel-input';
+    import 'vue-tel-input/vue-tel-input.css';
     import { checkoutSchema } from '../schemas/checkoutSchema';
+    import { useDiscount } from '../composables/useDiscount';
 
     const formErrors = ref<Record<string, string>>({});
 
@@ -14,11 +15,25 @@
     // ── Cart / Pricing ─────────────────────────────────────────────────────────
     const subtotal = computed<number>(() => cartStore.totalPrice);
     const shipping = computed<number>(() => (subtotal.value > 1 ? 0 : 9.99));
-    const total    = computed<number>(() => subtotal.value + shipping.value);
 
     // ── Discount Code ──────────────────────────────────────────────────────────
-    const discountcode      = ref<string>('');
-    const isApplyDisabled   = computed(() => discountcode.value.length === 0);
+    const isApplying      = ref<boolean>(false);
+    const isApplyDisabled = computed(() => checkoutForm.discountCode.length === 0 || isApplying.value);
+
+    const { appliedCoupon, discountAmount, error: couponError, applyCoupon } = useDiscount(subtotal);
+
+    async function handleApplyCoupon() {
+        if (isApplying.value) return;
+        isApplying.value = true;
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        applyCoupon(checkoutForm.discountCode);
+        isApplying.value = false;
+    }
+
+    const CO2_OFFSET_PRICE = 0.15;
+    const total = computed<number>(() =>
+        subtotal.value - discountAmount.value + shipping.value + (co2offset.value ? CO2_OFFSET_PRICE : 0)
+    );
 
     // ── Accordion Toggles ──────────────────────────────────────────────────────
     const isOpen       = ref<boolean>(false);
@@ -34,9 +49,12 @@
     // ── Contact ──────────────────────────────────────────────────────────────────
 
 
+    
+
     // ── Checkout Form ──────────────────────────────────────────────────────────
     const checkoutForm = reactive({
 
+        discountCode: '',
         email: '',
         useShippingAsBilling: true,
         billingOptions: 'same',
@@ -89,18 +107,67 @@
             nameOnCard:     '',
         },
 
+        // SMS / Text Me
+        textMeChecked: false,
+        textMePhone:   '',
+        saveInfoPhone: '',
+
     });
+
+    function scrollToFirstError(errors: Record<string, string>) {
+        const errorKeys = Object.keys(errors);
+        if (errorKeys.length === 0) return;
+
+        // Collect all error elements and sort by their vertical DOM position
+        // so we always scroll to the topmost error on screen, regardless of
+        // the order Zod emits issues (superRefine appends after base fields).
+        const candidates = errorKeys
+            .map(key => ({
+                key,
+                el: document.querySelector<HTMLElement>(`[data-field="${key}"]`)
+                    ?? document.getElementById(key.split('.').pop()!)
+            }))
+            .filter((c): c is { key: string; el: HTMLElement } => c.el !== null)
+            .sort((a, b) =>
+                (a.el.getBoundingClientRect().top + window.scrollY) -
+                (b.el.getBoundingClientRect().top + window.scrollY)
+            );
+
+        if (candidates.length === 0) return;
+
+        const { el } = candidates[0];
+        const elTop = el.getBoundingClientRect().top + window.scrollY;
+        const offset = window.innerHeight / 2 - el.offsetHeight / 2;
+        window.scrollTo({ top: elTop - offset, behavior: 'smooth' });
+
+        // Focus the nearest input so the error is visually obvious
+        const input = el.parentElement?.querySelector<HTMLElement>('input, select, textarea')
+            ?? document.getElementById(candidates[0].key.split('.').pop()!);
+        input?.focus({ preventScroll: true });
+    }
 
     function handlePayNow() {
         formErrors.value = {};
+
+        // Block submission if a code was typed but never successfully applied
+        if (checkoutForm.discountCode.trim().length > 0 && !appliedCoupon.value) {
+            formErrors.value['discountCode'] = 'Apply the discount code before continuing, or clear it';
+            // The discount field lives inside the mobile accordion — open it so the
+            // element is rendered in the DOM before we try to scroll to it.
+            isOpen.value = true;
+            nextTick(() => scrollToFirstError(formErrors.value));
+            return;
+        }
 
         const result = checkoutSchema.safeParse(checkoutForm);
 
         if (!result.success) {
             result.error.issues.forEach((issue: ZodIssue) => {
-                const key =issue.path.join('.');
+                const key = issue.path.join('.');
                 formErrors.value[key] = issue.message;
             });
+            // Wait one tick so Vue renders the error messages, then scroll
+            nextTick(() => scrollToFirstError(formErrors.value));
             return;
         }
 
@@ -115,8 +182,16 @@
             value = value?.[key];
         }
 
+        // For phone fields, VueTelInput pre-fills the dial code (e.g. "+1") even when
+        // the user hasn't typed anything — treat those as empty so we don't show errors
+        // on untouched fields. Let submit (handlePayNow) catch truly missing phones.
+        const isPhoneField = path.endsWith('phone') || path === 'textMePhone';
+        const dialCodeOnly = isPhoneField &&
+            typeof value === 'string' &&
+            /^\+\d{1,4}\s*$/.test(value.trim());
+
         // Don't validate empty fields on blur — let submit handle that
-        if (value === '' || value === null || value === undefined) {
+        if (value === '' || value === null || value === undefined || dialCodeOnly) {
             delete formErrors.value[path];
             return;
         }
@@ -134,50 +209,37 @@
         }
     }
 
-    // ── SMS / Text Me ──────────────────────────────────────────────────────────
-    const isTextMeChecked = ref<boolean>(false);
-    const smsPhone        = ref<string>('');
-
-
-
-    const shippingPhoneInputRef  = ref<HTMLInputElement | null>(null);  // for input #1
-    const textMePhoneInputRef    = ref<HTMLInputElement | null>(null);  // for input #2
-    const smsPhoneInputRef       = ref<HTMLInputElement | null>(null);  // for input #3 (already exists)
-
-    let itiShipping: any = null;
-    let itiTextMe:   any = null;
-    let itiSms:      any = null;
-
-    watchEffect(() => {
-    if (shippingPhoneInputRef.value && !itiShipping) {
-        itiShipping = intlTelInput(shippingPhoneInputRef.value, { nationalMode: false, separateDialCode: false, allowDropdown: false });
+    // Clears an error for a field as soon as the user starts correcting it,
+    // without showing a new error mid-typing. Used by @on-input on VueTelInput.
+    function clearFieldError(path: string) {
+        delete formErrors.value[path];
     }
-    });
-    watchEffect(() => {
-        if (textMePhoneInputRef.value && !itiTextMe) {
-            itiTextMe = intlTelInput(textMePhoneInputRef.value, { nationalMode: false, separateDialCode: false, allowDropdown: false });
-        }
-    });
-    watchEffect(() => {
-        if (smsPhoneInputRef.value && !itiSms) {
-            itiSms = intlTelInput(smsPhoneInputRef.value, { nationalMode: false, separateDialCode: false, allowDropdown: false });
-        }
-    });
 
-    // ── Shipping Phone (intl-tel-input) ────────────────────────────────────────
-    const textMePhone = ref<string>('');
+    // ── Phone refs (vue-tel-input) ─────────────────────────────────────────────
 
-    const phoneContainer = ref(null);
-
-    const saveInfoPhoneContainer = ref(null)
+    const mobileShippingPhoneContainer  = ref<HTMLElement | null>(null);
+    const desktopShippingPhoneContainer = ref<HTMLElement | null>(null);
+    const billingSameFlowPhoneContainer = ref<HTMLElement | null>(null);
+    const saveInfoPhoneContainer        = ref<HTMLElement | null>(null);
+    const mobileShippingTooltipRef  = ref<HTMLElement | null>(null);
+    const desktopShippingTooltipRef = ref<HTMLElement | null>(null);
+    const billingSameFlowTooltipRef = ref<HTMLElement | null>(null);
+    const saveInfoTooltipRef        = ref<HTMLElement | null>(null);
 
     const co2offset = ref<boolean>(false);
 
     // ── Tooltip – click-outside handler ───────────────────────────────────────
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-        if (phoneContainer.value && !(phoneContainer.value as HTMLElement).contains(event.target as Node)) {
-            showTooltip.value = false;
-        }
+        const containers = [
+            mobileShippingTooltipRef.value,
+            desktopShippingTooltipRef.value,
+            billingSameFlowTooltipRef.value,
+            saveInfoTooltipRef.value,
+        ];
+        const clickedInside = containers.some(
+            el => el && (el as HTMLElement).contains(event.target as Node)
+        );
+        if (!clickedInside) showTooltip.value = false;
     };
 
     onMounted(() => {
@@ -239,12 +301,12 @@
 
         <!-- =============== Mobile Version =============== -->
 
-    <form @submit.prevent="handlePayNow" novalidate >
+    <div>
 
     
 
     <div class="flex-col lg:hidden">
-
+        <form @submit.prevent="handlePayNow" novalidate>
         <div class="flex justify-center items-center bg-white px-8 h-16 my-4 ">
             <h1 class="text-3xl tracking-[0.2em] text-gray-800 font-light">LemonTree</h1>
         </div>
@@ -334,11 +396,11 @@
 
                     </div>
 
-                    <div class="flex justify-between px-3 mb-1 gap-2">
+                    <div class="flex justify-between px-3 mb-1 gap-2" data-field="discountCode">
                         <div class="relative border border-gray-300 focus-within:ring-2 focus-within:ring-black">
                             <input type="text" id="discountcode" name="discountcode" 
                                     placeholder=" " autocomplete="off"
-                                    v-model="discountcode"
+                                    v-model="checkoutForm.discountCode"
                                 class="peer w-65 h-11 border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                             >
                             <label 
@@ -355,12 +417,32 @@
                             </label>
                         </div>
                         <button type="button"
-                                class="border text-[13px] transition-color duration-300 border-gray-300 text-gray-500 px-2"
+                                class="border text-[13px] transition-color duration-300 border-gray-300 text-gray-500 px-2 min-w-[60px] flex items-center justify-center gap-1"
                                 :disabled="isApplyDisabled"
                                 :class="isApplyDisabled ? 'bg-gray-50 ' : 'bg-black text-white'"
+                                @click="handleApplyCoupon"
                         >
-                            APPLY
+                            <svg v-if="isApplying" class="animate-spin w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                            </svg>
+                            <span>{{ isApplying ? '' : 'APPLY' }}</span>
                         </button>
+                    </div>
+
+                    <!-- Coupon feedback -->
+                    <div class="min-h-[20px] pl-3 mt-1">
+                        <p v-if="couponError" class="text-[12px] text-red-500">
+                            {{ couponError }}
+                        </p>
+
+                        <p v-else-if="appliedCoupon" class="text-[12px] text-green-600">
+                            ✓ "{{ appliedCoupon.code }}" applied
+                        </p>
+
+                        <p v-if="formErrors['discountCode']" class="text-[12px] text-red-500">
+                            {{ formErrors['discountCode'] }}
+                        </p>
                     </div>
 
                     <div class="flex justify-between mt-5 mb-2">
@@ -372,13 +454,25 @@
                         </div>
                     </div>
 
+                    <!-- Discount (mobile) -->
+                    <div v-if="discountAmount > 0" class="flex justify-between mb-2">
+                        <div class="text-[13px] pl-3 text-green-600">Discount ({{ appliedCoupon?.code }})</div>
+                        <div class="pr-3 text-[13px] text-green-600">−${{ discountAmount.toFixed(2) }}</div>
+                    </div>
+
                     <div class="flex justify-between">
                         <div class="text-[13px] pl-3">
                             Shipping 
                         </div>
                         <div class="pr-3">
-                            Free
+                            {{ shipping === 0 ? 'Free' : 'Enter shipping address' }}
                         </div>
+                    </div>
+
+                    <!-- CO2 Offset (mobile) -->
+                    <div v-if="co2offset" class="flex justify-between mt-2">
+                        <div class="text-[13px] pl-3 text-gray-700">Carbon offset</div>
+                        <div class="pr-3 text-[13px] text-gray-900">$0.15</div>
                     </div>
 
                     <div class="flex justify-between my-5">
@@ -466,7 +560,7 @@
                     Enter a valid email
                 </p>
             </div>
-            <p v-if="formErrors['email']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['email'] }}</p>
+            <p data-field="email" v-if="formErrors['email']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['email'] }}</p>
 
  <!-- ================= NOT FINISHED YET ===================== -->
    <!-- ================= NOT FINISHED YET ===================== -->
@@ -559,7 +653,7 @@
                         </div>
                     </div>
                 </div>
-                <p v-if="formErrors['shipping.country']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.country'] }}</p>
+                <p data-field="shipping.country" v-if="formErrors['shipping.country']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.country'] }}</p>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="firstname" name="firstname" 
@@ -581,7 +675,7 @@
                         First name
                     </label>
                 </div>
-                <p v-if="formErrors['shipping.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.firstName'] }}</p>
+                <p data-field="shipping.firstName" v-if="formErrors['shipping.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.firstName'] }}</p>
                 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="lastname" name="lastname" autocomplete="family-name"
@@ -603,7 +697,7 @@
                         Last name
                     </label>
                 </div>
-                <p v-if="formErrors['shipping.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.lastName'] }}</p>
+                <p data-field="shipping.lastName" v-if="formErrors['shipping.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.lastName'] }}</p>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="address" name="address" autocomplete="street-address"
@@ -641,7 +735,7 @@
                         </svg>
                     </div>
                 </div>
-                <p v-if="formErrors['shipping.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.address'] }}</p>
+                <p data-field="shipping.address" v-if="formErrors['shipping.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.address'] }}</p>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="apartment" name="apartment" 
@@ -683,7 +777,7 @@
                         City
                     </label>
                 </div>
-                <p v-if="formErrors['shipping.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.city'] }}</p>
+                <p data-field="shipping.city" v-if="formErrors['shipping.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.city'] }}</p>
 
                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                     <input type="text" id="state" name="state" 
@@ -705,7 +799,7 @@
                         State / Province
                     </label>
                 </div>
-                <p v-if="formErrors['shipping.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.state'] }}</p>
+                <p data-field="shipping.state" v-if="formErrors['shipping.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.state'] }}</p>
 
                 <div class="relative mt-3 focus-within:border-black transition-all">
                     <input type="text" id="postcode" name="postcode" 
@@ -727,31 +821,22 @@
                         Postcode / ZIP code
                     </label>
                 </div>
-                <p v-if="formErrors['shipping.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.postcode'] }}</p>
+                <p data-field="shipping.postcode" v-if="formErrors['shipping.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.postcode'] }}</p>
 
-                <div class="relative mt-3 focus-within:border-black transition-all">
-                    <input  ref="shippingPhoneInputRef" type="tel" id="phone" name="phone" 
-                        placeholder=" " 
+                <div ref="mobileShippingPhoneContainer" class="relative mt-3">
+                    <VueTelInput
                         v-model="checkoutForm.shipping.phone"
+                        mode="international"
+                        :preferred-countries="['US', 'GB', 'AU', 'TW']"
                         @blur="validateField('shipping.phone')"
+                        @on-input="clearFieldError('shipping.phone')"
                         @focus="showTooltip = false"
-                        class="peer pr-10 w-full h-full border text-[13px] border-gray-300 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
-                    >
-                    <label 
-                        for="phone" 
-                        class="absolute left-10 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
-                        peer-focus:top-1 
-                        peer-focus:text-xs 
-                        peer-focus:text-gray-800 
-                        peer-[:not(:placeholder-shown)]:top-1 
-                        peer-[:not(:placeholder-shown)]:text-xs 
-                        peer-[:not(:placeholder-shown)]:text-gray-500"
-                    >
-                        Phone
-                    </label>
+                        class="vue-tel-input-checkout"
+                    />
+                    <div ref="mobileShippingTooltipRef">
                     <button type="button"
                             @click="showTooltip = !showTooltip" 
-                            class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help z-10"
                     >
                         <svg 
                         xmlns="http://www.w3.org/2000/svg" 
@@ -779,11 +864,12 @@
                         <div class="absolute top-full right-5 -mt-1 border-8 border-transparent border-t-[#1a1a1a]"></div>
                     </div>
                     </transition>
+                    </div>
                 </div>
-                <p v-if="formErrors['shipping.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.phone'] }}</p>
+                <p data-field="shipping.phone" v-if="formErrors['shipping.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.phone'] }}</p>
 
                 <div class="flex my-3 items-center">
-                    <input type="checkbox" class="mx-2" v-model="isTextMeChecked">
+                    <input type="checkbox" class="mx-2" v-model="checkoutForm.textMeChecked">
                     <p class="text-[13px]">
                         Text me with news and offers
                     </p>
@@ -795,23 +881,20 @@
                     @leave="onLeave"
                     @after-leave="onAfterLeave"
                 >
-                    <div class="" v-if="isTextMeChecked === true">
-                        <div class="relative flex items-center border">
-                            
-                            <div class="px-2 flex items-center">
-                                <svg class="w-5 h-5 text-gray-400">...</svg>
-                            </div>
-
-                            <input
-                                ref="textMePhoneInputRef"
-                                id="textme-phone"
-                                name="textme-phone"
-                                type="tel"
-                                v-model="textMePhone"
-                                placeholder="Mobile phone(optional)"
-                                class="py-2 px-3 w-full border-none outline-none ring-0"
-                            />
-                        </div>
+                    <div v-if="checkoutForm.textMeChecked === true">
+                        <VueTelInput
+                            v-model="checkoutForm.textMePhone"
+                            mode="international"
+                            :preferred-countries="['US', 'GB', 'AU', 'TW']"
+                            placeholder="Mobile phone number"
+                            @blur="validateField('textMePhone')"
+                            @on-input="clearFieldError('textMePhone')"
+                            class="vue-tel-input-checkout"
+                        />
+                        <p data-field="textMePhone" v-if="formErrors['textMePhone']"
+                           class="text-red-500 text-xs mt-1 px-1">
+                            {{ formErrors['textMePhone'] }}
+                        </p>
 
                         <div class="text-[11px] text-gray-500 mt-2">
                             By signing up via text, you agree to receive recurring automated marketing messages, 
@@ -906,7 +989,7 @@
                                 Card number
                             </label>
                         </div>
-                        <p v-if="formErrors['payment.cardNumber']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.cardNumber'] }}</p>
+                        <p data-field="payment.cardNumber" v-if="formErrors['payment.cardNumber']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.cardNumber'] }}</p>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" id="expirationdate" name="expirationdate" 
@@ -928,7 +1011,7 @@
                                 Expiration date (MM / YY)
                             </label>
                         </div>
-                        <p v-if="formErrors['payment.expirationDate']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.expirationDate'] }}</p>
+                        <p data-field="payment.expirationDate" v-if="formErrors['payment.expirationDate']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.expirationDate'] }}</p>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" id="securitycode" name="securitycode" 
@@ -950,7 +1033,7 @@
                                 Security code
                             </label>
                         </div>
-                        <p v-if="formErrors['payment.securityCode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.securityCode'] }}</p>
+                        <p data-field="payment.securityCode" v-if="formErrors['payment.securityCode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.securityCode'] }}</p>
 
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" id="nameoncard" name="nameoncard" 
@@ -972,7 +1055,7 @@
                                 Name on card
                             </label>
                         </div>
-                        <p v-if="formErrors['payment.nameOnCard']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.nameOnCard'] }}</p>
+                        <p data-field="payment.nameOnCard" v-if="formErrors['payment.nameOnCard']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.nameOnCard'] }}</p>
 
                         <label class="flex items-center space-x-3 mt-3 cursor-pointer">
                             <input 
@@ -1089,7 +1172,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <p v-if="formErrors['billingSameFlow.country']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.country'] }}</p>
+                                <p data-field="billingSameFlow.country" v-if="formErrors['billingSameFlow.country']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.country'] }}</p>
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-firstname" name="billing-firstname" 
                                         placeholder=" " autocomplete="given-name"
@@ -1110,7 +1193,7 @@
                                         First name
                                     </label>
                                 </div>
-                                <p v-if="formErrors['billingSameFlow.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.firstName'] }}</p>
+                                <p data-field="billingSameFlow.firstName" v-if="formErrors['billingSameFlow.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.firstName'] }}</p>
                                 
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-lastname" name="billing-lastname" autocomplete="family-name"
@@ -1132,7 +1215,7 @@
                                         Last name
                                     </label>
                                 </div>
-                                <p v-if="formErrors['billingSameFlow.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.lastName'] }}</p>
+                                <p data-field="billingSameFlow.lastName" v-if="formErrors['billingSameFlow.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.lastName'] }}</p>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-address" name="billing-address" autocomplete="street-address"
@@ -1170,7 +1253,7 @@
                                         </svg>
                                     </div>
                                 </div>
-                                <p v-if="formErrors['billingSameFlow.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.address'] }}</p>
+                                <p data-field="billingSameFlow.address" v-if="formErrors['billingSameFlow.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.address'] }}</p>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-apartment" name="billing-apartment" 
@@ -1212,7 +1295,7 @@
                                         City
                                     </label>
                                 </div>
-                                <p v-if="formErrors['billingSameFlow.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.city'] }}</p>
+                                <p data-field="billingSameFlow.city" v-if="formErrors['billingSameFlow.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.city'] }}</p>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-state" name="billing-state" 
@@ -1234,7 +1317,7 @@
                                         State / Province
                                     </label>
                                 </div>
-                                <p v-if="formErrors['billingSameFlow.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.state'] }}</p>
+                                <p data-field="billingSameFlow.state" v-if="formErrors['billingSameFlow.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.state'] }}</p>
             
                                 <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                                     <input type="text" id="billing-postcode" name="billing-postcode" 
@@ -1256,31 +1339,22 @@
                                         Postcode / ZIP code
                                     </label>
                                 </div>
-                                <p v-if="formErrors['billingSameFlow.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.postcode'] }}</p>
+                                <p data-field="billingSameFlow.postcode" v-if="formErrors['billingSameFlow.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.postcode'] }}</p>
             
-                                <div ref="phoneContainer" class="relative mt-3 focus-within:border-black transition-all">
-                                    <input type="tel" id="billing-phone" name="billing-phone" 
-                                        placeholder=" " 
+                                <div ref="billingSameFlowPhoneContainer" class="relative mt-3">
+                                    <VueTelInput
                                         v-model="checkoutForm.billingSameFlow.phone"
+                                        mode="international"
+                                        :preferred-countries="['US', 'GB', 'AU', 'TW']"
                                         @blur="validateField('billingSameFlow.phone')"
+                                        @on-input="clearFieldError('billingSameFlow.phone')"
                                         @focus="showTooltip = false"
-                                        class="peer pr-10 w-full h-full border text-[13px] bg-white border-gray-300 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black"
-                                    >
-                                    <label 
-                                        for="billing-phone" 
-                                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
-                                        peer-focus:top-1 
-                                        peer-focus:text-xs 
-                                        peer-focus:text-gray-800 
-                                        peer-[:not(:placeholder-shown)]:top-1 
-                                        peer-[:not(:placeholder-shown)]:text-xs 
-                                        peer-[:not(:placeholder-shown)]:text-gray-500"
-                                    >
-                                        Phone (optional)
-                                    </label>
+                                        class="vue-tel-input-checkout"
+                                    />
+                                    <div ref="billingSameFlowTooltipRef">
                                     <button type="button"
                                             @click="showTooltip = !showTooltip" 
-                                            class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help"
+                                            class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help z-10"
                                     >
                                         <svg 
                                         xmlns="http://www.w3.org/2000/svg" 
@@ -1308,8 +1382,9 @@
                                         <div class="absolute top-full right-5 -mt-1 border-8 border-transparent border-t-[#1a1a1a]"></div>
                                     </div>
                                     </transition>
+                                    </div>
                                 </div>
-                                <p v-if="formErrors['billingSameFlow.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.phone'] }}</p>
+                                <p data-field="billingSameFlow.phone" v-if="formErrors['billingSameFlow.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.phone'] }}</p>
 
 
                             </div>
@@ -1409,34 +1484,13 @@
                     <p class="text-[13px] mb-3">
                         save my information for a faster checkout
                     </p>
-                    <div class="flex items-stretch border border-gray-300 mt-4 p-2 max-w-sm">
-                        
-                        <div class="flex items-center justify-center pl-2 pr-1 text-gray-500 pointer-events-none">
-                            <svg 
-                                xmlns="http://www.w3.org/2000/svg" 
-                                class="w-5 h-5" 
-                                viewBox="0 0 24 24" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                stroke-width="1.5" 
-                                stroke-linecap="round" 
-                                stroke-linejoin="round"
-                            >
-                                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                                <line x1="12" y1="18" x2="12.01" y2="18"></line>
-                            </svg>
-                        </div>
-
-                        <input
-                            ref="smsPhoneInputRef"
-                            id="phone-sms"
-                            name="phone-sms"
-                            type="tel"
-                            v-model="smsPhone"
+                        <VueTelInput
+                            v-model="checkoutForm.saveInfoPhone"
+                            mode="international"
+                            :preferred-countries="['US', 'GB', 'AU', 'TW']"
                             placeholder="Mobile phone (optional)"
-                            class="placeholder:text-[13px] py-2 px-3 w-full border-none outline-none ring-0"
+                            class="vue-tel-input-checkout mt-4 max-w-sm"
                         />
-                    </div>
                     <p class="text-gray-600 text-[11px] mt-5">
                         By providing you phone number, you agree to create a Shop account subject to <u> Shop's Terms</u> and <u>Privacy Policy</u>.
                     </p>
@@ -1570,7 +1624,7 @@
                                 First name
                             </label>
                         </div>
-                        <p v-if="formErrors['billingDifferent.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.firstName'] }}</p>
+                        <p data-field="billingDifferent.firstName" v-if="formErrors['billingDifferent.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.firstName'] }}</p>
                         
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" v-model="checkoutForm.billingDifferent.lastName" autocomplete="family-name"
@@ -1591,7 +1645,7 @@
                                 Last name
                             </label>
                         </div>
-                        <p v-if="formErrors['billingDifferent.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.lastName'] }}</p>
+                        <p data-field="billingDifferent.lastName" v-if="formErrors['billingDifferent.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.lastName'] }}</p>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" v-model="checkoutForm.billingDifferent.address" autocomplete="street-address"
@@ -1628,7 +1682,7 @@
                                 </svg>
                             </div>
                         </div>
-                        <p v-if="formErrors['billingDifferent.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.address'] }}</p>
+                        <p data-field="billingDifferent.address" v-if="formErrors['billingDifferent.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.address'] }}</p>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" v-model="checkoutForm.billingDifferent.apartment" id="billing2-apartment" name="billing2-apartment" autocomplete="address-line2" placeholder=" " 
@@ -1667,7 +1721,7 @@
                                 City
                             </label>
                         </div>
-                        <p v-if="formErrors['billingDifferent.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.city'] }}</p>
+                        <p data-field="billingDifferent.city" v-if="formErrors['billingDifferent.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.city'] }}</p>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" v-model="checkoutForm.billingDifferent.state" id="billing2-state" name="billing2-state" placeholder=" " autocomplete="address-level1"
@@ -1687,7 +1741,7 @@
                                 State / Province
                             </label>
                         </div>
-                        <p v-if="formErrors['billingDifferent.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.state'] }}</p>
+                        <p data-field="billingDifferent.state" v-if="formErrors['billingDifferent.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.state'] }}</p>
     
                         <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                             <input type="text" v-model="checkoutForm.billingDifferent.postcode" id="billing2-postcode" name="billing2-postcode" autocomplete="postal-code" placeholder=" "
@@ -1707,29 +1761,22 @@
                                 Postcode / ZIP code
                             </label>
                         </div>
-                        <p v-if="formErrors['billingDifferent.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.postcode'] }}</p>
+                        <p data-field="billingDifferent.postcode" v-if="formErrors['billingDifferent.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.postcode'] }}</p>
     
-                        <div ref="saveInfoPhoneContainer" class="relative mt-3 focus-within:border-black transition-all">
-                            <input type="tel" v-model="checkoutForm.billingDifferent.phone" id="billing2-phone" name="billing2-phone" placeholder=" " 
+                        <div ref="saveInfoPhoneContainer" class="relative mt-3">
+                            <VueTelInput
+                                v-model="checkoutForm.billingDifferent.phone"
+                                mode="international"
+                                :preferred-countries="['US', 'GB', 'AU', 'TW']"
                                 @blur="validateField('billingDifferent.phone')"
+                                @on-input="clearFieldError('billingDifferent.phone')"
                                 @focus="showTooltip = false"
-                                class="peer pr-10 w-full h-full border text-[13px] bg-white border-gray-300 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black"
-                            >
-                            <label 
-                                for="billing2-phone" 
-                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
-                                peer-focus:top-1 
-                                peer-focus:text-xs 
-                                peer-focus:text-gray-800 
-                                peer-[:not(:placeholder-shown)]:top-1 
-                                peer-[:not(:placeholder-shown)]:text-xs 
-                                peer-[:not(:placeholder-shown)]:text-gray-500"
-                            >
-                                Phone (optional)
-                            </label>
+                                class="vue-tel-input-checkout"
+                            />
+                            <div ref="saveInfoTooltipRef">
                             <button type="button"
                                     @click="showTooltip = !showTooltip" 
-                                    class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help z-10"
                             >
                                 <svg 
                                 xmlns="http://www.w3.org/2000/svg" 
@@ -1757,8 +1804,9 @@
                                 <div class="absolute top-full right-5 -mt-1 border-8 border-transparent border-t-[#1a1a1a]"></div>
                             </div>
                             </transition>
+                            </div>
                         </div>
-                        <p v-if="formErrors['billingDifferent.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.phone'] }}</p>
+                        <p data-field="billingDifferent.phone" v-if="formErrors['billingDifferent.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.phone'] }}</p>
                     </div>
                 </Transition>
                 </div><!-- end v-if="checkoutForm.payment.method === 'more'" -->
@@ -1789,7 +1837,7 @@
                         </div>
                     </div>
     
-                    <div class="flex border border-gray-300 p-2 mt-3">
+                    <div class="flex border items-center border-gray-300 p-2 mt-3">
                         <input type="checkbox" name="co2-offset" id="co2-offset" v-model="co2offset">
                         <p class="text-[13px] pl-2">
                             Offset CO2 emissions from shipping for $0.15
@@ -1829,7 +1877,7 @@
                                 </div>
                                 <div class="flex justify-end gap-2 items-baseline">
                                     <div class="flex justify-end text-[18px] font-bold">
-                                        ${{ subtotal.toFixed(2) }}
+                                        ${{ total.toFixed(2) }}
                                     </div>
                                     <div>
                                         <svg 
@@ -1938,7 +1986,7 @@
                                 <div class="relative border border-gray-300 focus-within:ring-2 focus-within:ring-black">
                                     <input type="text" id="discountcode-bottom" name="discountcode-bottom" 
                                             placeholder=" " autocomplete="off"
-                                            v-model="discountcode"
+                                            v-model="checkoutForm.discountCode"
                                         class="peer w-62 h-11 border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
                                     >
                                     <label 
@@ -1955,12 +2003,32 @@
                                     </label>
                                 </div>
                                 <button type="button"
-                                        class="border text-[13px] transition-color duration-300 border-gray-300 text-gray-500 px-2"
+                                        class="border text-[13px] transition-color duration-300 border-gray-300 text-gray-500 px-2 min-w-[60px] flex items-center justify-center gap-1"
                                         :disabled="isApplyDisabled"
                                         :class="isApplyDisabled ? 'bg-gray-50 ' : 'bg-black text-white'"
+                                        @click="handleApplyCoupon"
                                 >
-                                    APPLY
+                                    <svg v-if="isApplying" class="animate-spin w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                                    </svg>
+                                    <span>{{ isApplying ? '' : 'APPLY' }}</span>
                                 </button>
+                            </div>
+
+                            <!-- Coupon feedback -->
+                            <div class="min-h-[20px] pl-3 mt-1">
+                                <p v-if="couponError" class="text-[12px] text-red-500">
+                                    {{ couponError }}
+                                </p>
+
+                                <p v-else-if="appliedCoupon" class="text-[12px] text-green-600">
+                                    ✓ "{{ appliedCoupon.code }}" applied
+                                </p>
+
+                                <p v-if="formErrors['discountCode']" class="text-[12px] text-red-500">
+                                    {{ formErrors['discountCode'] }}
+                                </p>
                             </div>
 
                             <div class="flex justify-between mt-5 mb-2">
@@ -1972,13 +2040,25 @@
                                 </div>
                             </div>
 
+                            <!-- Discount (bottom) -->
+                            <div v-if="discountAmount > 0" class="flex justify-between mb-2">
+                                <div class="text-[13px] text-green-600">Discount ({{ appliedCoupon?.code }})</div>
+                                <div class="text-[13px] text-green-600">−${{ discountAmount.toFixed(2) }}</div>
+                            </div>
+
                             <div class="flex justify-between">
                                 <div class="text-[13px] ">
                                     Shipping 
                                 </div>
                                 <div class="">
-                                    Free
+                                    {{ shipping === 0 ? 'Free' : 'Enter shipping address' }}
                                 </div>
+                            </div>
+
+                            <!-- CO2 Offset (bottom accordion) -->
+                            <div v-if="co2offset" class="flex justify-between mt-2">
+                                <div class="text-[13px] text-gray-700">Carbon offset</div>
+                                <div class="text-[13px] text-gray-900">$0.15</div>
                             </div>
 
                             <div class="flex justify-between my-5">
@@ -2043,7 +2123,7 @@
                 <div>Contact</div>
             </div>
         </div>
-
+        </form>
     </div>
 
 
@@ -2107,12 +2187,8 @@
                                 peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                             >Email</label>
                         </div>
-                        <p v-if="formErrors['email']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['email'] }}</p>
- 
-                        <div class="flex items-center mt-3">
-                            <input type="checkbox" id="news-desktop" class="mr-2">
-                            <label for="news-desktop" class="text-[13px] text-gray-700">Email me with news and offers</label>
-                        </div>
+                        <p data-field="email" v-if="formErrors['email']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['email'] }}</p>
+
                     </div>
  
                     <!-- ── Delivery ── -->
@@ -2169,15 +2245,19 @@
                             </select>
                             <label
                                 for="country-desktop"
-                                class="absolute left-3 top-1.5 text-[11px] text-gray-400 pointer-events-none"
-                            >Country/Region</label>
+                                :class="checkoutForm.shipping.country
+                                    ? 'top-1.5 text-[11px] text-gray-400'
+                                    : 'top-3 text-[13px] text-gray-400'"
+                                class="absolute left-3 pointer-events-none transition-all duration-200"
+                            >Country/Region
+                            </label>
                             <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
                                 <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                 </svg>
                             </div>
                         </div>
-                        <p v-if="formErrors['shipping.country']" class="text-red-500 text-xs mt-1 px-1 mb-2">{{ formErrors['shipping.country'] }}</p>
+                        <p data-field="shipping.country" v-if="formErrors['shipping.country']" class="text-red-500 text-xs mt-1 px-1 mb-2">{{ formErrors['shipping.country'] }}</p>
  
                         <!-- First / Last name -->
                         <div class="grid grid-cols-2 gap-3 mb-3">
@@ -2194,7 +2274,7 @@
                                         peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                                     >First name</label>
                                 </div>
-                                <p v-if="formErrors['shipping.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.firstName'] }}</p>
+                                <p data-field="shipping.firstName" v-if="formErrors['shipping.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.firstName'] }}</p>
                             </div>
                             <div>
                                 <div class="relative border border-gray-300 focus-within:border-black transition-all">
@@ -2209,7 +2289,7 @@
                                         peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                                     >Last name</label>
                                 </div>
-                                <p v-if="formErrors['shipping.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.lastName'] }}</p>
+                                <p data-field="shipping.lastName" v-if="formErrors['shipping.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.lastName'] }}</p>
                             </div>
                         </div>
  
@@ -2231,7 +2311,7 @@
                                 </svg>
                             </div>
                         </div>
-                        <p v-if="formErrors['shipping.address']" class="text-red-500 text-xs mt-1 px-1 mb-2">{{ formErrors['shipping.address'] }}</p>
+                        <p data-field="shipping.address" v-if="formErrors['shipping.address']" class="text-red-500 text-xs mt-1 px-1 mb-2">{{ formErrors['shipping.address'] }}</p>
  
                         <!-- Apartment -->
                         <div class="relative border border-gray-300 focus-within:border-black transition-all mb-3">
@@ -2261,7 +2341,7 @@
                                         peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                                     >City</label>
                                 </div>
-                                <p v-if="formErrors['shipping.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.city'] }}</p>
+                                <p data-field="shipping.city" v-if="formErrors['shipping.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.city'] }}</p>
                             </div>
                             <div>
                                 <div class="relative border border-gray-300 focus-within:border-black transition-all">
@@ -2276,7 +2356,7 @@
                                         peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                                     >State</label>
                                 </div>
-                                <p v-if="formErrors['shipping.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.state'] }}</p>
+                                <p data-field="shipping.state" v-if="formErrors['shipping.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.state'] }}</p>
                             </div>
                             <div>
                                 <div class="relative border border-gray-300 focus-within:border-black transition-all">
@@ -2291,27 +2371,25 @@
                                         peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                                     >Postcode</label>
                                 </div>
-                                <p v-if="formErrors['shipping.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.postcode'] }}</p>
+                                <p data-field="shipping.postcode" v-if="formErrors['shipping.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.postcode'] }}</p>
                             </div>
                         </div>
  
                         <!-- Phone -->
-                        <div class="relative border border-gray-300 focus-within:border-black transition-all" ref="phoneContainer">
-                            <input
-                                ref="shippingPhoneInputRef"
-                                type="tel" id="phone-desktop" name="phone" placeholder=" "
+                        <div class="relative" ref="desktopShippingPhoneContainer">
+                            <VueTelInput
                                 v-model="checkoutForm.shipping.phone"
+                                mode="international"
+                                :preferred-countries="['US', 'GB', 'AU', 'TW']"
                                 @blur="validateField('shipping.phone')"
-                                class="peer w-full border-0 text-[13px] pt-5 pb-1 pl-10 pr-10 text-black bg-transparent focus:outline-none"
+                                @on-input="clearFieldError('shipping.phone')"
+                                @focus="showTooltip = false"
+                                class="vue-tel-input-checkout"
                             />
-                            <label for="phone-desktop"
-                                class="absolute left-10 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
-                                peer-focus:top-1 peer-focus:text-xs peer-focus:text-gray-800
-                                peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
-                            >Phone</label>
+                            <div ref="desktopShippingTooltipRef">
                             <button type="button"
                                 @click="showTooltip = !showTooltip"
-                                class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center p-1 cursor-help z-10"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500"
                                     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -2329,25 +2407,30 @@
                                     <div class="absolute top-full right-5 -mt-1 border-8 border-transparent border-t-[#1a1a1a]"></div>
                                 </div>
                             </transition>
+                            </div>
                         </div>
-                        <p v-if="formErrors['shipping.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.phone'] }}</p>
+                        <p data-field="shipping.phone" v-if="formErrors['shipping.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['shipping.phone'] }}</p>
  
                         <div class="flex items-center mt-3">
-                            <input type="checkbox" id="textme-desktop" class="mr-2" v-model="isTextMeChecked">
+                            <input type="checkbox" id="textme-desktop" class="mr-2" v-model="checkoutForm.textMeChecked">
                             <label for="textme-desktop" class="text-[13px]">Text me with news and offers</label>
                         </div>
  
                         <Transition @enter="onEnter" @after-enter="onAfterEnter" @leave="onLeave" @after-leave="onAfterLeave">
-                            <div v-if="isTextMeChecked" class="mt-3">
-                                <div class="relative flex items-center border border-gray-300">
-                                    <input
-                                        ref="textMePhoneInputRef"
-                                        id="textme-phone-desktop" name="textme-phone" type="tel"
-                                        v-model="textMePhone"
-                                        placeholder="Mobile phone (optional)"
-                                        class="py-3 px-3 w-full border-none outline-none ring-0 text-[13px]"
-                                    />
-                                </div>
+                            <div v-if="checkoutForm.textMeChecked" class="mt-3">
+                                <VueTelInput
+                                    v-model="checkoutForm.textMePhone"
+                                    mode="international"
+                                    :preferred-countries="['US', 'GB', 'AU', 'TW']"
+                                    placeholder="Mobile phone number"
+                                    @blur="validateField('textMePhone')"
+                                    @on-input="clearFieldError('textMePhone')"
+                                    class="vue-tel-input-checkout"
+                                />
+                                <p data-field="textMePhone" v-if="formErrors['textMePhone']"
+                                   class="text-red-500 text-xs mt-1 px-1">
+                                    {{ formErrors['textMePhone'] }}
+                                </p>
                                 <p class="text-[11px] text-gray-500 mt-2 leading-relaxed">
                                     By signing up via text, you agree to receive recurring automated marketing messages,
                                     including cart reminders, at the phone number provided. Consent is not a condition of purchase.
@@ -2409,7 +2492,7 @@
                                             peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                                         >Card number</label>
                                     </div>
-                                    <p v-if="formErrors['payment.cardNumber']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.cardNumber'] }}</p>
+                                    <p data-field="payment.cardNumber" v-if="formErrors['payment.cardNumber']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.cardNumber'] }}</p>
  
                                     <!-- Expiry + Security side by side -->
                                     <div class="grid grid-cols-2 gap-3 mt-3">
@@ -2426,7 +2509,7 @@
                                                     peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                                                 >Expiration (MM / YY)</label>
                                             </div>
-                                            <p v-if="formErrors['payment.expirationDate']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.expirationDate'] }}</p>
+                                            <p data-field="payment.expirationDate" v-if="formErrors['payment.expirationDate']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.expirationDate'] }}</p>
                                         </div>
                                         <div>
                                             <div class="relative border border-gray-300 focus-within:border-black transition-all">
@@ -2441,7 +2524,7 @@
                                                     peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                                                 >Security code</label>
                                             </div>
-                                            <p v-if="formErrors['payment.securityCode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.securityCode'] }}</p>
+                                            <p data-field="payment.securityCode" v-if="formErrors['payment.securityCode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.securityCode'] }}</p>
                                         </div>
                                     </div>
  
@@ -2458,7 +2541,7 @@
                                             peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                                         >Name on card</label>
                                     </div>
-                                    <p v-if="formErrors['payment.nameOnCard']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.nameOnCard'] }}</p>
+                                    <p data-field="payment.nameOnCard" v-if="formErrors['payment.nameOnCard']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['payment.nameOnCard'] }}</p>
  
                                     <!-- Use shipping as billing -->
                                     <label class="flex items-center space-x-3 mt-3 cursor-pointer">
@@ -2536,6 +2619,18 @@
                                                     <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                                         peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">Postcode</label>
                                                 </div>
+                                                <!-- Phone -->
+                                                <div class="relative mt-3">
+                                                    <VueTelInput
+                                                        v-model="checkoutForm.billingSameFlow.phone"
+                                                        mode="international"
+                                                        :preferred-countries="['US', 'GB', 'AU', 'TW']"
+                                                        @blur="validateField('billingSameFlow.phone')"
+                                                        @on-input="clearFieldError('billingSameFlow.phone')"
+                                                        class="vue-tel-input-checkout"
+                                                    />
+                                                </div>
+                                                <p data-field="billingSameFlow.phone" v-if="formErrors['billingSameFlow.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingSameFlow.phone'] }}</p>
                                             </div>
                                         </div>
                                     </Transition>
@@ -2596,7 +2691,7 @@
  
                         <!-- Payment Options row -->
                         <div class="flex justify-between mt-8">
-                            <h3 class="text-[13px] text-gray-700">Payment Options</h3>
+                            <h3 class="text-[16px] text-gray-700">Payment Options</h3>
                             <div class="flex gap-1 items-center">
                                 <div class="border border-gray-300 p-1 flex items-center justify-center">
                                     <svg width="40" height="13" viewBox="-15 0 100 30" xmlns="http://www.w3.org/2000/svg">
@@ -2612,6 +2707,22 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <div v-if="showMoreOptions" class="flex-grid mb-10">
+                        <p class="text-[13px] mb-3">
+                            save my information for a faster checkout
+                        </p>
+                            <VueTelInput
+                                v-model="checkoutForm.saveInfoPhone"
+                                mode="international"
+                                :preferred-countries="['US', 'GB', 'AU', 'TW']"
+                                placeholder="Mobile phone (optional)"
+                                class="vue-tel-input-checkout mt-4 max-w-sm"
+                            />
+                        <p class="text-gray-600 text-[11px] mt-5">
+                            By providing you phone number, you agree to create a Shop account subject to <u> Shop's Terms</u> and <u>Privacy Policy</u>.
+                        </p>
                     </div>
  
                     <!-- ── Billing Address ── -->
@@ -2696,33 +2807,37 @@
 
                                 <!-- First / Last name -->
                                 <div class="grid grid-cols-2 gap-3 mb-3">
-                                    <div class="relative border border-gray-300 focus-within:border-black transition-all">
-                                        <input type="text" id="bd-firstname-desktop" placeholder=" " autocomplete="given-name"
-                                            v-model="checkoutForm.billingDifferent.firstName"
-                                            @blur="validateField('billingDifferent.firstName')"
-                                            class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none"
-                                        />
-                                        <label for="bd-firstname-desktop"
-                                            class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
-                                            peer-focus:top-1 peer-focus:text-xs peer-focus:text-gray-800
-                                            peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
-                                        >First name</label>
+                                    <div>
+                                        <div class="relative border border-gray-300 focus-within:border-black transition-all">
+                                            <input type="text" id="bd-firstname-desktop" placeholder=" " autocomplete="given-name"
+                                                v-model="checkoutForm.billingDifferent.firstName"
+                                                @blur="validateField('billingDifferent.firstName')"
+                                                class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none"
+                                            />
+                                            <label for="bd-firstname-desktop"
+                                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                                peer-focus:top-1 peer-focus:text-xs peer-focus:text-gray-800
+                                                peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
+                                            >First name</label>
+                                        </div>
+                                        <p data-field="billingDifferent.firstName" v-if="formErrors['billingDifferent.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.firstName'] }}</p>
                                     </div>
-                                    <div class="relative border border-gray-300 focus-within:border-black transition-all">
-                                        <input type="text" id="bd-lastname-desktop" placeholder=" " autocomplete="family-name"
-                                            v-model="checkoutForm.billingDifferent.lastName"
-                                            @blur="validateField('billingDifferent.lastName')"
-                                            class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none"
-                                        />
-                                        <label for="bd-lastname-desktop"
-                                            class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
-                                            peer-focus:top-1 peer-focus:text-xs peer-focus:text-gray-800
-                                            peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
-                                        >Last name</label>
+                                    <div>
+                                        <div class="relative border border-gray-300 focus-within:border-black transition-all">
+                                            <input type="text" id="bd-lastname-desktop" placeholder=" " autocomplete="family-name"
+                                                v-model="checkoutForm.billingDifferent.lastName"
+                                                @blur="validateField('billingDifferent.lastName')"
+                                                class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none"
+                                            />
+                                            <label for="bd-lastname-desktop"
+                                                class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                                peer-focus:top-1 peer-focus:text-xs peer-focus:text-gray-800
+                                                peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
+                                            >Last name</label>
+                                        </div>
+                                        <p data-field="billingDifferent.lastName" v-if="formErrors['billingDifferent.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.lastName'] }}</p>
                                     </div>
                                 </div>
-                                <p v-if="formErrors['billingDifferent.firstName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.firstName'] }}</p>
-                                <p v-if="formErrors['billingDifferent.lastName']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.lastName'] }}</p>
 
                                 <!-- Address -->
                                 <div class="relative border border-gray-300 focus-within:border-black transition-all mb-3">
@@ -2737,7 +2852,7 @@
                                         peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                                     >Address</label>
                                 </div>
-                                <p v-if="formErrors['billingDifferent.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.address'] }}</p>
+                                <p data-field="billingDifferent.address" v-if="formErrors['billingDifferent.address']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.address'] }}</p>
 
                                 <!-- Apartment -->
                                 <div class="relative border border-gray-300 focus-within:border-black transition-all mb-3">
@@ -2754,49 +2869,53 @@
 
                                 <!-- City / State / Postcode -->
                                 <div class="grid grid-cols-3 gap-3 mb-3">
-                                    <div class="relative border border-gray-300 focus-within:border-black transition-all">
-                                        <input type="text" placeholder=" " autocomplete="address-level2"
-                                            v-model="checkoutForm.billingDifferent.city"
-                                            @blur="validateField('billingDifferent.city')"
-                                            class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none" />
-                                        <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
-                                            peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">City</label>
+                                    <div>
+                                        <div class="relative border border-gray-300 focus-within:border-black transition-all">
+                                            <input type="text" placeholder=" " autocomplete="address-level2"
+                                                v-model="checkoutForm.billingDifferent.city"
+                                                @blur="validateField('billingDifferent.city')"
+                                                class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none" />
+                                            <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                                peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">City</label>
+                                        </div>
+                                        <p data-field="billingDifferent.city" v-if="formErrors['billingDifferent.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.city'] }}</p>
                                     </div>
-                                    <div class="relative border border-gray-300 focus-within:border-black transition-all">
-                                        <input type="text" placeholder=" " autocomplete="address-level1"
-                                            v-model="checkoutForm.billingDifferent.state"
-                                            @blur="validateField('billingDifferent.state')"
-                                            class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none" />
-                                        <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
-                                            peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">State</label>
+                                    <div>
+                                        <div class="relative border border-gray-300 focus-within:border-black transition-all">
+                                            <input type="text" placeholder=" " autocomplete="address-level1"
+                                                v-model="checkoutForm.billingDifferent.state"
+                                                @blur="validateField('billingDifferent.state')"
+                                                class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none" />
+                                            <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                                peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">State</label>
+                                        </div>
+                                        <p data-field="billingDifferent.state" v-if="formErrors['billingDifferent.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.state'] }}</p>
                                     </div>
-                                    <div class="relative border border-gray-300 focus-within:border-black transition-all">
-                                        <input type="text" placeholder=" " autocomplete="postal-code"
-                                            v-model="checkoutForm.billingDifferent.postcode"
-                                            @blur="validateField('billingDifferent.postcode')"
-                                            class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none" />
-                                        <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
-                                            peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">Postcode</label>
+                                    <div>
+                                        <div class="relative border border-gray-300 focus-within:border-black transition-all">
+                                            <input type="text" placeholder=" " autocomplete="postal-code"
+                                                v-model="checkoutForm.billingDifferent.postcode"
+                                                @blur="validateField('billingDifferent.postcode')"
+                                                class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none" />
+                                            <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
+                                                peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">Postcode</label>
+                                        </div>
+                                        <p data-field="billingDifferent.postcode" v-if="formErrors['billingDifferent.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.postcode'] }}</p>
                                     </div>
                                 </div>
-                                <p v-if="formErrors['billingDifferent.city']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.city'] }}</p>
-                                <p v-if="formErrors['billingDifferent.state']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.state'] }}</p>
-                                <p v-if="formErrors['billingDifferent.postcode']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.postcode'] }}</p>
 
                                 <!-- Phone -->
-                                <div class="relative border border-gray-300 focus-within:border-black transition-all">
-                                    <input type="tel" id="bd-phone-desktop" placeholder=" "
+                                <div class="relative mt-3">
+                                    <VueTelInput
                                         v-model="checkoutForm.billingDifferent.phone"
+                                        mode="international"
+                                        :preferred-countries="['US', 'GB', 'AU', 'TW']"
                                         @blur="validateField('billingDifferent.phone')"
-                                        class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none"
+                                        @on-input="clearFieldError('billingDifferent.phone')"
+                                        class="vue-tel-input-checkout"
                                     />
-                                    <label for="bd-phone-desktop"
-                                        class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
-                                        peer-focus:top-1 peer-focus:text-xs peer-focus:text-gray-800
-                                        peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
-                                    >Phone (optional)</label>
                                 </div>
-                                <p v-if="formErrors['billingDifferent.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.phone'] }}</p>
+                                <p data-field="billingDifferent.phone" v-if="formErrors['billingDifferent.phone']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['billingDifferent.phone'] }}</p>
                             </div>
                         </Transition>
                     </div>
@@ -2826,7 +2945,7 @@
                         <div class="flex items-center border border-gray-300 p-4">
                             <input type="checkbox" name="co2-offset-desktop" id="co2-offset-desktop" v-model="co2offset" class="mr-3">
                             <label for="co2-offset-desktop" class="text-[13px] text-gray-800 cursor-pointer">
-                                Offset CO2 emissions from shipping for $0.16
+                                Offset CO2 emissions from shipping for $0.15
                             </label>
                         </div>
                     </div>
@@ -2888,10 +3007,10 @@
                     <div class="border-t border-gray-200 mb-5"></div>
  
                     <!-- Discount code -->
-                    <div class="flex gap-2 mb-5">
+                    <div class="flex gap-2 mb-5" data-field="discountCode">
                         <div class="relative border border-gray-300 focus-within:border-black transition-all flex-1">
                             <input type="text" id="discountcode-desktop" placeholder=" " autocomplete="off"
-                                v-model="discountcode"
+                                v-model="checkoutForm.discountCode"
                                 class="peer w-full h-11 border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-transparent focus:outline-none"
                             />
                             <label for="discountcode-desktop"
@@ -2903,15 +3022,35 @@
                         <button type="button"
                             :disabled="isApplyDisabled"
                             :class="isApplyDisabled ? 'bg-gray-50 text-gray-400 border-gray-300' : 'bg-black text-white border-black'"
-                            class="border text-[13px] transition-colors duration-300 px-4 h-11"
+                            class="border text-[13px] transition-colors duration-300 px-4 h-11 min-w-[72px] flex items-center justify-center gap-1.5"
+                            @click="handleApplyCoupon"
                         >
-                            APPLY
+                            <svg v-if="isApplying" class="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                            </svg>
+                            <span>{{ isApplying ? '' : 'APPLY' }}</span>
                         </button>
                     </div>
- 
+
+                    <!-- Coupon feedback -->
+                    <div class="min-h-[20px] pl-3 mt-1">
+                        <p v-if="couponError" class="text-[12px] text-red-500">
+                            {{ couponError }}
+                        </p>
+
+                        <p v-else-if="appliedCoupon" class="text-[12px] text-green-600">
+                            ✓ "{{ appliedCoupon.code }}" applied
+                        </p>
+
+                        <p v-if="formErrors['discountCode']" class="text-[12px] text-red-500">
+                            {{ formErrors['discountCode'] }}
+                        </p>
+                    </div>
+
                     <!-- Divider -->
                     <div class="border-t border-gray-200 mb-5"></div>
- 
+
                     <!-- Subtotal -->
                     <div class="flex justify-between mb-2">
                         <span class="text-[13px] text-gray-700">
@@ -2919,11 +3058,23 @@
                         </span>
                         <span class="text-[13px] text-gray-900">${{ subtotal.toFixed(2) }}</span>
                     </div>
- 
+
+                    <!-- Discount -->
+                    <div v-if="discountAmount > 0" class="flex justify-between mb-2">
+                        <span class="text-[13px] text-green-600">Discount ({{ appliedCoupon?.code }})</span>
+                        <span class="text-[13px] text-green-600">−${{ discountAmount.toFixed(2) }}</span>
+                    </div>
+
                     <!-- Shipping -->
-                    <div class="flex justify-between mb-5">
+                    <div class="flex justify-between mb-2">
                         <span class="text-[13px] text-gray-700">Shipping</span>
                         <span class="text-[13px] text-gray-500">{{ shipping === 0 ? 'Free' : 'Enter shipping address' }}</span>
+                    </div>
+
+                    <!-- CO2 Offset -->
+                    <div v-if="co2offset" class="flex justify-between mb-5">
+                        <span class="text-[13px] text-gray-700">Carbon offset</span>
+                        <span class="text-[13px] text-gray-900">$0.15</span>
                     </div>
  
                     <!-- Total -->
@@ -2962,19 +3113,33 @@
         </div>
  
     </div>
-    </form>
+</div>
     
 </template>
 
 <style>
-.iti {
+.vue-tel-input-checkout {
+    border: 1px solid #d1d5db;
+    border-radius: 0;
     width: 100%;
-    direction: rtl;
+    font-size: 13px;
 }
-
-.iti__tel-input {
-    direction: ltr;
-    text-align: left;
+.vue-tel-input-checkout:focus-within {
+    border-color: #000;
+    box-shadow: none;
+    outline: none;
+}
+.vue-tel-input-checkout .vti__input {
+    font-size: 13px;
+    background: transparent;
+    padding: 12px 8px;
+}
+.vue-tel-input-checkout .vti__dropdown {
+    border-right: 1px solid #d1d5db;
+    background: transparent;
+}
+.vue-tel-input-checkout .vti__dropdown:hover {
+    background-color: #f9fafb;
 }
 
 .fade-enter-active, .fade-leave-active {

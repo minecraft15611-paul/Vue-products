@@ -9,7 +9,15 @@ const addressSchema = z.object({
     city: z.string().min(1, 'Enter a city'),
     state: z.string().min(1, 'Enter a state name'),
     postcode: z.string().min(1, 'Enter a ZIP / postcode'),
-    phone: z.string().min(7, 'Enter a valid phone number')
+    phone: z.string()
+            .refine(
+        val => {
+            const cleaned = val.replace(/[\s\-().]/g, '');
+            const normalized = cleaned.startsWith('+') ? cleaned : '+' + cleaned;
+            return /^\+[1-9]\d{6,14}$/.test(normalized);
+        },
+        'Enter a valid phone number with country code (e.g. +1 234 567 8900)'
+  )
 });
 
 const creditCardSchema = z.object({
@@ -23,6 +31,15 @@ export const checkoutSchema = z.object({
     email: z.string().email('Enter an email'),
 
     shipping: addressSchema,
+
+    discountCode: z.string()
+        .max(20, 'Discount code is too long')
+        .optional()
+        .or(z.literal('')), 
+
+    textMeChecked: z.boolean(),
+    textMePhone: z.string().optional().or(z.literal('')),
+    saveInfoPhone: z.string().optional().or(z.literal('')),
 
     payment: z.object({
         method: z.enum(['credit', 'Klarna', 'PayPal']),
@@ -68,6 +85,19 @@ export const checkoutSchema = z.object({
             );
         }
     }
+
+    if (data.textMeChecked === true) {
+    const phoneValid = /^\+[1-9]\d{6,14}$/.test(
+        data.textMePhone?.replace(/[\s\-().]/g, '') ?? ''
+    );
+    if (!phoneValid) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Enter a valid phone number with country code (e.g. +1 234 567 8900)',
+            path: ['textMePhone'],
+        });
+    }
+}
 
 }); 
 
