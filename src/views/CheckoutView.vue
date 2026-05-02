@@ -42,8 +42,24 @@
     const isBottomOpen = ref<boolean>(false);
     const bottomToggle = () => { isBottomOpen.value = !isBottomOpen.value; };
 
+    // ── Add Discount Button (mobile) ───────────────────────────────────────────
+    const discountInputRef = ref<HTMLInputElement | null>(null);
+
+    async function handleAddDiscount() {
+        isBottomOpen.value = true;
+        await nextTick();
+        setTimeout(() => {
+            discountInputRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => discountInputRef.value?.focus(), 400);
+        }, 480);
+    }
+
     // ── Tooltip ────────────────────────────────────────────────────────────────
     const showTooltip = ref<boolean>(false);
+
+    // ── CO2 Tooltip ────────────────────────────────────────────────────────────
+    const showCO2Tooltip = ref<boolean>(false);
+    const co2TooltipRef  = ref<HTMLElement | null>(null);
 
     // ── Shipping Form Fields ───────────────────────────────────────────────────
     // ── Contact ──────────────────────────────────────────────────────────────────
@@ -240,6 +256,11 @@
             el => el && (el as HTMLElement).contains(event.target as Node)
         );
         if (!clickedInside) showTooltip.value = false;
+
+        // Close CO2 tooltip on outside click
+        if (co2TooltipRef.value && !co2TooltipRef.value.contains(event.target as Node)) {
+            showCO2Tooltip.value = false;
+        }
     };
 
     onMounted(() => {
@@ -258,7 +279,7 @@
         htmlEl.style.height    = '0';
         htmlEl.style.overflow  = 'hidden';
         htmlEl.style.opacity   = '0';
-        htmlEl.style.transition = 'height 0.4s ease, opacity 0.4s ease';
+        htmlEl.style.transition = 'height 0.45s ease-in-out, opacity 0.4s ease-in-out';
         requestAnimationFrame(() => {
             htmlEl.style.height  = htmlEl.scrollHeight + 'px';
             htmlEl.style.opacity = '1';
@@ -275,7 +296,7 @@
         const htmlEl = el as HTMLElement;
         htmlEl.style.height    = htmlEl.scrollHeight + 'px';
         htmlEl.style.overflow  = 'hidden';
-        htmlEl.style.transition = 'height 0.3s ease, opacity 0.3s ease';
+        htmlEl.style.transition = 'height 0.4s ease-in-out, opacity 0.35s ease-in-out';
         requestAnimationFrame(() => {
             htmlEl.style.height  = '0';
             htmlEl.style.opacity = '0';
@@ -1529,6 +1550,7 @@
                         <div class="relative  w-full focus-within:ring-2 focus-within:ring-black transition-border duration-300">
                             <div>
                                 <select name="billing-country" id="billing-country" v-model="checkoutForm.billingDifferent.country"
+                                @blur="validateField('billingDifferent.country')"
                                 class="peer block w-full appearance-none border-[1.5px] border-gray-300 bg-white mt-3 px-3 pb-1 pt-4 text-[13px] focus:outline-none focus:ring-0"
                                 >
                                     <option value="" disabled>Select country</option> 
@@ -1827,13 +1849,36 @@
                         <h3 class="text-[15px]">
                             Carbon Offset
                         </h3>
-                        <div class="flex">
-                            <p class="mt-2 text-gray-500 text-[13px]">
+                        <div class="flex items-center gap-1 mt-2 relative" ref="co2TooltipRef">
+                            <p class="text-gray-500 text-[13px]">
                                 Learn more about how we do this.
                             </p>
-                            <div>
-                                
-                            </div>
+                            <button
+                                type="button"
+                                @click="showCO2Tooltip = !showCO2Tooltip"
+                                class="flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                                aria-label="Learn more about carbon offset"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </button>
+
+                            <!-- CO2 Tooltip Popup -->
+                            <Transition name="fade">
+                                <div
+                                    v-if="showCO2Tooltip"
+                                    class="absolute bottom-full left-0 mb-2 w-72 bg-white border border-gray-200 shadow-lg rounded-sm p-4 z-50 text-[13px] text-gray-700 leading-relaxed"
+                                >
+                                    <p>
+                                        We partner with Native, a Public Benefit Corporation, to offset the carbon emissions from shipping your order. Our current project: regenerating degraded pastureland in Brazil's Vale do Paraíba with native Macaúba palms. These silvopasture systems lock carbon in the soil, provide shade for livestock, restore soil biodiversity, and create new income streams for smallholder farms.
+                                    </p>
+                                    <!-- Arrow -->
+                                    <div class="absolute -bottom-1.5 left-4 w-3 h-3 bg-white border-r border-b border-gray-200 rotate-45"></div>
+                                </div>
+                            </Transition>
                         </div>
                     </div>
     
@@ -1852,8 +1897,8 @@
                     @after-leave="onAfterLeave"
                 >
                     <div class="mb-3" v-if="!isBottomOpen">
-                        <div  >
-                            <button type="button" class="p-2 text-[13px] border border-gray-200 mt-10 mb-3">
+                        <div>
+                            <button type="button" @click="handleAddDiscount" class="p-2 text-[13px] border border-gray-200 mt-10 mb-3">
                                 Add discount
                             </button>
                         </div>
@@ -1984,7 +2029,7 @@
 
                             <div class="flex justify-between mt-2 mb-1 gap-2">
                                 <div class="relative border border-gray-300 focus-within:ring-2 focus-within:ring-black">
-                                    <input type="text" id="discountcode-bottom" name="discountcode-bottom" 
+                                    <input ref="discountInputRef" type="text" id="discountcode-bottom" name="discountcode-bottom" 
                                             placeholder=" " autocomplete="off"
                                             v-model="checkoutForm.discountCode"
                                         class="peer w-62 h-11 border text-[13px] border-gray-100 pt-5 pb-1 px-3 text-black focus-within:ring-2 focus-within:ring-black bg-transparent"
@@ -2568,21 +2613,61 @@
                                                     class="peer block w-full appearance-none border border-gray-300 focus:border-black bg-white px-3 pb-1 pt-5 text-[13px] focus:outline-none"
                                                 >
                                                     <option value="" disabled>Select country</option>
+                                                    <option value="" disabled>Select country</option>
+                                                    <option value="AR">Argentina</option>
+                                                    <option value="AU">Australia</option>
+                                                    <option value="AT">Austria</option>
+                                                    <option value="BS">Bahamas</option>
+                                                    <option value="BD">Bangladesh</option>
+                                                    <option value="BE">Belgium</option>
+                                                    <option value="BR">Brazil</option>
+                                                    <option value="CA">Canada</option>
+                                                    <option value="CN">China</option>
+                                                    <option value="DK">Denmark</option>
+                                                    <option value="FI">Finland</option>
+                                                    <option value="FR">France</option>
+                                                    <option value="DE">Germany</option>
+                                                    <option value="GR">Greece</option>
+                                                    <option value="HK">Hong Kong</option>
+                                                    <option value="IN">India</option>
+                                                    <option value="IE">Ireland</option>
+                                                    <option value="IL">Israel</option>
+                                                    <option value="IT">Italy</option>
+                                                    <option value="JP">Japan</option>
+                                                    <option value="MX">Mexico</option>
+                                                    <option value="NL">Netherlands</option>
+                                                    <option value="NZ">New Zealand</option>
+                                                    <option value="NO">Norway</option>
+                                                    <option value="PH">Philippines</option>
+                                                    <option value="PL">Poland</option>
+                                                    <option value="PT">Portugal</option>
+                                                    <option value="SG">Singapore</option>
+                                                    <option value="ZA">South Africa</option>
+                                                    <option value="KR">South Korea</option>
+                                                    <option value="ES">Spain</option>
+                                                    <option value="SE">Sweden</option>
+                                                    <option value="CH">Switzerland</option>
+                                                    <option value="TW">Taiwan</option>
+                                                    <option value="TH">Thailand</option>
+                                                    <option value="TR">Turkey</option>
+                                                    <option value="AE">United Arab Emirates</option>
                                                     <option value="GB">United Kingdom</option>
                                                     <option value="US">United States</option>
-                                                    <option value="TW">Taiwan</option>
+                                                    <option value="VN">Vietnam</option>
                                                 </select>
                                                 <label class="absolute left-3 top-1.5 text-[11px] text-gray-400 pointer-events-none">Country/Region</label>
                                             </div>
                                             <div class="grid grid-cols-2 gap-3 mb-3">
                                                 <div class="relative border border-gray-300 focus-within:border-black transition-all">
                                                     <input type="text" placeholder=" " v-model="checkoutForm.billingSameFlow.firstName"
+                                                        @blur="validateField('billingSameFlow.firstName')"
                                                         class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none" />
                                                     <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                                         peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">First name</label>
                                                 </div>
                                                 <div class="relative border border-gray-300 focus-within:border-black transition-all">
                                                     <input type="text" placeholder=" " v-model="checkoutForm.billingSameFlow.lastName"
+                                                        @blur="validateField('billingSameFlow.lastName')"
                                                         class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none" />
                                                     <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                                         peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">Last name</label>
@@ -2590,6 +2675,7 @@
                                             </div>
                                             <div class="relative border border-gray-300 focus-within:border-black transition-all mb-3">
                                                 <input type="text" placeholder=" " v-model="checkoutForm.billingSameFlow.address"
+                                                    @blur="validateField('billingSameFlow.address')"
                                                     class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none" />
                                                 <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                                     peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">Address</label>
@@ -2603,18 +2689,21 @@
                                             <div class="grid grid-cols-3 gap-3">
                                                 <div class="relative border border-gray-300 focus-within:border-black transition-all">
                                                     <input type="text" placeholder=" " v-model="checkoutForm.billingSameFlow.city"
+                                                        @blur="validateField('billingSameFlow.city')"
                                                         class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none" />
                                                     <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                                         peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">City</label>
                                                 </div>
                                                 <div class="relative border border-gray-300 focus-within:border-black transition-all">
                                                     <input type="text" placeholder=" " v-model="checkoutForm.billingSameFlow.state"
+                                                        @blur="validateField('billingSameFlow.state')"
                                                         class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none" />
                                                     <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                                         peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">State</label>
                                                 </div>
                                                 <div class="relative border border-gray-300 focus-within:border-black transition-all">
                                                     <input type="text" placeholder=" " v-model="checkoutForm.billingSameFlow.postcode"
+                                                        @blur="validateField('billingSameFlow.postcode')"
                                                         class="peer w-full border-0 text-[13px] pt-5 pb-1 px-3 text-black bg-white focus:outline-none" />
                                                     <label class="absolute left-3 top-3 text-[13px] text-gray-400 transition-all duration-200 pointer-events-none
                                                         peer-focus:top-1 peer-focus:text-xs peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs">Postcode</label>
@@ -2751,6 +2840,7 @@
                                 <!-- Country -->
                                 <div class="relative w-full mb-3">
                                     <select name="billing-country-desktop" id="billing-country-desktop" v-model="checkoutForm.billingDifferent.country"
+                                        @blur="validateField('billingDifferent.country')"
                                         class="peer block w-full appearance-none border border-gray-300 focus:border-black bg-white px-3 pb-1 pt-5 text-[13px] focus:outline-none transition-all"
                                     >
                                         <option value="" disabled>Select country</option>
@@ -2934,13 +3024,34 @@
                     <!-- ── Carbon Offset ── -->
                     <div class="mb-8">
                         <h2 class="text-[15px] font-medium text-gray-900 mb-1">Carbon Offset</h2>
-                        <div class="flex items-center gap-1 mb-3">
+                        <div class="flex items-center gap-1 mb-3 relative" ref="co2TooltipRef">
                             <p class="text-[13px] text-gray-500">Learn more about how we do this.</p>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                            </svg>
+                            <button
+                                type="button"
+                                @click="showCO2Tooltip = !showCO2Tooltip"
+                                class="flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                                aria-label="Learn more about carbon offset"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </button>
+
+                            <!-- CO2 Tooltip Popup -->
+                            <Transition name="fade">
+                                <div
+                                    v-if="showCO2Tooltip"
+                                    class="absolute bottom-full left-0 mb-2 w-80 bg-white border border-gray-200 shadow-lg rounded-sm p-4 z-50 text-[13px] text-gray-700 leading-relaxed"
+                                >
+                                    <p>
+                                        We partner with Native, a Public Benefit Corporation, to offset the carbon emissions from shipping your order. Our current project: regenerating degraded pastureland in Brazil's Vale do Paraíba with native Macaúba palms. These silvopasture systems lock carbon in the soil, provide shade for livestock, restore soil biodiversity, and create new income streams for smallholder farms.
+                                    </p>
+                                    <!-- Arrow -->
+                                    <div class="absolute -bottom-1.5 left-4 w-3 h-3 bg-white border-r border-b border-gray-200 rotate-45"></div>
+                                </div>
+                            </Transition>
                         </div>
                         <div class="flex items-center border border-gray-300 p-4">
                             <input type="checkbox" name="co2-offset-desktop" id="co2-offset-desktop" v-model="co2offset" class="mr-3">

@@ -35,10 +35,13 @@ export function useDiscount(subtotal: Ref<number>) {
         return true;
     };
 
+    const clearError = () => { error.value = ''; };
+
     return {
         appliedCoupon,
         discountAmount,
         error,
-        applyCoupon
+        applyCoupon,
+        clearError,
     };
 }
