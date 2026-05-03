@@ -129,9 +129,9 @@
               v-model="cartStore.tempInput"
               placeholder="Search products..."
               class="w-full border border-gray-300 rounded-full pl-10 pr-4 py-2 text-sm 
-         transition-all duration-300 
-         focus:outline-none 
-         focus:border-black/70 focus:ring-4 focus:ring-black/10"
+              transition-all duration-300 
+              focus:outline-none 
+              focus:border-black/70 focus:ring-4 focus:ring-black/10"
             />
           </div>
         </div>
@@ -143,7 +143,9 @@
           <!-- =============== Desktop icons =============== -->
 
           <div class="hidden lg:flex items-center space-x-4">
-            <i class="fa-regular fa-user text-xl cursor-pointer transition duration-300 hover:scale-125"></i>
+            <router-link to="/LoginView">
+              <i class="fa-regular fa-user text-xl cursor-pointer transition duration-300 hover:scale-125"></i>
+            </router-link>
             <i class="fa-regular fa-heart text-xl cursor-pointer transition duration-300 hover:scale-125"></i>
             <router-link to="/ShoppingCart">
               <cartIcon :cartCount="cartStore.cartCount"  class="cursor-pointer transition duration-300 hover:scale-125"/>
@@ -222,7 +224,9 @@
               <a href="#"><i class="fa-brands fa-instagram text-lg transition hover:text-pink-500"></i></a>
             </div>
             <div class="flex items-center space-x-4">
-              <i class="fa-regular fa-user text-lg cursor-pointer"></i>
+              <router-link to="/LoginView">
+                <i class="fa-regular fa-user text-lg cursor-pointer"></i>
+              </router-link>
               <i class="fa-regular fa-heart text-lg cursor-pointer"></i>
             </div>
           </div>
