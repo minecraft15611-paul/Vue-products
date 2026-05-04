@@ -17,7 +17,7 @@
       setTimeout(() => {
         isAnimating.value = false;
       }, 1000);
-    }
+    } 
   });
 </script>
 
