@@ -5,6 +5,7 @@ import ProductDetail from '../views/ProductDetail.vue';
 import ProductsList from '../views/ProductsList.vue';
 import CheckoutView from '../views/CheckoutView.vue';
 import LoginView from '../views/LoginView.vue';
+import LoginCallbackView from '../views/LoginCallbackView.vue';
 
 const routes = [
     {
@@ -36,6 +37,11 @@ const routes = [
         path: '/LoginView',
         name: 'LoginView',
         component: LoginView
+    },
+    {
+    path: '/login-callback',
+    name: 'LoginCallback',
+    component: LoginCallbackView
     }
 ];
 
