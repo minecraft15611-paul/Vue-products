@@ -3,10 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # 確保這是你的主分支名稱
+      - dev-tailwind  # 這裡改成了你目前使用的分支
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
@@ -37,5 +39,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist # Vite 預設打包後的資料夾
-          publish_branch: gh-pages # 推送到你截圖中的那個分支
+          publish_dir: ./dist
+          publish_branch: gh-pages
