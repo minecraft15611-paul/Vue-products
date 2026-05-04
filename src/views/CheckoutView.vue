@@ -328,9 +328,11 @@
 
     <div class="flex-col lg:hidden">
         <form @submit.prevent="handlePayNow" novalidate>
-        <div class="flex justify-center items-center bg-white px-8 h-16 my-4 ">
-            <h1 class="text-3xl tracking-[0.2em] text-gray-800 font-light">LemonTree</h1>
-        </div>
+            <router-link to="/">
+                <div class="flex justify-center items-center bg-white px-8 h-16 my-4 ">
+                    <h1 class="text-3xl tracking-[0.2em] text-gray-800 font-light">LemonTree</h1>
+                </div>
+            </router-link>
 
         <div>
             <div class="w-full max-w-md border-y border-gray-300 overflow-hidden">
@@ -2178,9 +2180,11 @@
     <div class="hidden lg:flex flex-col min-h-screen bg-white">
  
         <!-- ── Full-width brand header ── -->
-        <div class="w-full flex justify-center items-center h-24 border-b border-gray-200 flex-shrink-0 ">
-            <h1 class="text-3xl tracking-[0.2em] text-gray-800 font-light">LemonTree</h1>
-        </div>
+        <router-link to="/">
+            <div class="w-full flex justify-center items-center h-24 border-b border-gray-200 flex-shrink-0 ">
+                <h1 class="text-3xl tracking-[0.2em] text-gray-800 font-light">LemonTree</h1>
+            </div>
+        </router-link>
  
         <form @submit.prevent="handlePayNow" novalidate class="flex flex-1 justify-center">
  

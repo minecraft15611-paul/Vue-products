@@ -1,3 +1,24 @@
+<script setup lang="ts">
+    import { useForm } from 'vee-validate';
+    import { toTypedSchema } from '@vee-validate/zod';
+    import { loginSchema } from '../schemas/authSchema';
+    import { useAuthStore } from '../stores/auth';
+
+    const authStore = useAuthStore();
+
+    const { handleSubmit, errors, defineField } = useForm({
+    validationSchema: toTypedSchema(loginSchema),
+    });
+
+    const [email, emailProps] = defineField('email');
+    const [password, passwordProps] = defineField('password');
+
+    const onSubmit = handleSubmit((values) => {
+    authStore.login(values);
+    });
+</script>
+
+
 <template>
                         <!--=============== Mobile Version ===============-->
 
@@ -6,9 +27,11 @@
 
         <div class="flex flex-col items-center h-[65%] px-5">
 
-            <div class="text-[28px] tracking-[0.2em] mb-10">
-                LemonTree
-            </div>
+            <router-link to="/">
+                <div class="text-[28px] tracking-[0.2em] mb-10">
+                    LemonTree
+                </div>
+            </router-link>
 
             <div class="text-xl font-light self-start mb-1">
                 Sign in
@@ -55,12 +78,14 @@
 
                         <!--=============== Desktop Version ===============-->
 
-    <div class="hidden lg:flex flex-col items-center pt-30 min-h-screen bg-white relative">
+    <div class="hidden lg:flex flex-col items-center pt-35 min-h-screen bg-white relative">
 
         <!-- Logo -->
-        <div class="px-10 mb-10 tracking-[0.3em] text-[26px]">
-            LemonTree
-        </div>
+        <router-link to="/">
+            <div class="px-10 mb-10 tracking-[0.3em] text-[26px]">
+                LemonTree
+            </div>
+        </router-link>
 
         <!-- Form Area -->
         <div class="w-full max-w-[380px] flex flex-col">
