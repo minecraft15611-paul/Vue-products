@@ -21,7 +21,7 @@ const addressSchema = z.object({
 });
 
 const creditCardSchema = z.object({
-    cardNumber: z.string().regex(/^\d{16}$/, 'Enter a valid card number'),
+    cardNumber: z.string().refine(v => /^\d{16}$/.test(v.replace(/\s/g, '')), 'Enter a valid card number'),
     expirationDate: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Enter a valid expiration date'),
     securityCode: z.string().regex(/^\d{3,4}$/, 'Enter the CVV or security code on your card'),
     nameOnCard: z.string().min(1, 'Enter the name on your card'),
@@ -52,8 +52,28 @@ export const checkoutSchema = z.object({
     useShippingAsBilling: z.boolean(),
     billingOptions: z.enum(['same', 'different']),
 
-    billingSameFlow: addressSchema.optional(),
-    billingDifferent: addressSchema.optional(),
+    billingSameFlow: z.object({
+        country:   z.string().optional().or(z.literal('')),
+        firstName: z.string().optional().or(z.literal('')),
+        lastName:  z.string().optional().or(z.literal('')),
+        address:   z.string().optional().or(z.literal('')),
+        apartment: z.string().optional().or(z.literal('')),
+        city:      z.string().optional().or(z.literal('')),
+        state:     z.string().optional().or(z.literal('')),
+        postcode:  z.string().optional().or(z.literal('')),
+        phone:     z.string().optional().or(z.literal('')),
+    }).optional(),
+    billingDifferent: z.object({
+        country:   z.string().optional().or(z.literal('')),
+        firstName: z.string().optional().or(z.literal('')),
+        lastName:  z.string().optional().or(z.literal('')),
+        address:   z.string().optional().or(z.literal('')),
+        apartment: z.string().optional().or(z.literal('')),
+        city:      z.string().optional().or(z.literal('')),
+        state:     z.string().optional().or(z.literal('')),
+        postcode:  z.string().optional().or(z.literal('')),
+        phone:     z.string().optional().or(z.literal('')),
+    }).optional(),
 })
 
 .superRefine((data, ctx) => {

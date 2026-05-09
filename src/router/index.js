@@ -6,6 +6,7 @@ import ProductsList from '../views/ProductsList.vue';
 import CheckoutView from '../views/CheckoutView.vue';
 import LoginView from '../views/LoginView.vue';
 import LoginCallbackView from '../views/LoginCallbackView.vue';
+import SuccessView from '../views/SuccessView.vue';
 
 const routes = [
     {
@@ -39,9 +40,14 @@ const routes = [
         component: LoginView
     },
     {
-    path: '/login-callback',
-    name: 'LoginCallback',
-    component: LoginCallbackView
+        path: '/login-callback',
+        name: 'LoginCallback',
+        component: LoginCallbackView
+    },
+    {
+        path: '/SuccessView',
+        name: 'SuccessView',
+        component: SuccessView
     }
 ];
 

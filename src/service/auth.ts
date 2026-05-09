@@ -3,7 +3,6 @@ import { sendSignInLinkToEmail } from 'firebase/auth';
 
 export const sendLoginLink = async (email: string) => {
     const actionCodeSettings = {
-        // 這裡填寫你 Vue 專案運行的網址，驗證完後會跳轉回來
         url: 'http://localhost:5173/Vue-products/login-callback',
         handleCodeInApp: true,
     };

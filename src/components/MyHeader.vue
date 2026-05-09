@@ -40,7 +40,6 @@
     });
 </script>
 
-
 <template>
 
     <header class="sticky top-0 z-50 shadow-md bg-white w-full relative">
@@ -76,7 +75,6 @@
 
       <div class="flex items-center justify-between px-5 py-2 border-b border-gray-200">
 
-        <!-- LEFT: Hamburger (mobile only) -->
         <div class="lg:hidden flex items-center w-1/4">
           <button
             class="text-2xl focus:outline-none transition duration-300 hover:scale-110"
@@ -87,12 +85,10 @@
           </button>
         </div>
 
-        <!-- CENTER: Logo -->
         <div class="flex justify-center w-1/2 lg:w-1/4">
           <h1 @click="goHome()" class="font-bold text-3xl lg:text-4xl tracking-tight cursor-pointer">LemonTree</h1>
         </div>
 
-        <!-- CENTER: Search Bar (desktop only) -->
         <div class="hidden lg:flex justify-center w-1/2 px-6">
           <div class="relative w-full max-w-lg"> 
             <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -111,26 +107,26 @@
           </div>
         </div>
 
-        <!-- RIGHT: Icons -->
         <div class="flex justify-end items-center w-1/4 space-x-4 px-2">
 
           <!-- Desktop icons -->
           <div class="hidden lg:flex items-center space-x-4">
 
-            <!-- Not logged in → sign in link -->
             <router-link v-if="!authStore.user" to="/LoginView">
               <i class="fa-regular fa-user text-xl cursor-pointer transition duration-300 hover:scale-125"></i>
             </router-link>
 
-            <!-- Logged in → sign out button -->
             <button
               v-else
               @click="authStore.signOut()"
               :disabled="authStore.signingOut"
-              class="text-xs uppercase tracking-widest transition duration-300"
-              :class="authStore.signingOut ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:text-black'"
+              class="flex items-center justify-center w-6 h-6 cursor-pointer disabled:cursor-not-allowed transition duration-300"
             >
-              {{ authStore.signingOut ? 'Signing out...' : 'Sign out' }}
+              <svg v-if="authStore.signingOut" class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+              </svg>
+              <span v-else class="text-xs uppercase tracking-widest text-gray-600 hover:text-black transition duration-300">Sign out</span>
             </button>
 
             <i class="fa-regular fa-heart text-xl cursor-pointer transition duration-300 hover:scale-125"></i>
@@ -139,7 +135,6 @@
             </router-link>
           </div>
 
-          <!-- Mobile: Cart icon only -->
           <router-link to="/ShoppingCart" class="block lg:hidden">
             <cartIcon :cartCount="cartStore.cartCount" />
           </router-link>
@@ -168,18 +163,14 @@
                 'relative mx-4 py-2 w-fit text-xs font-medium tracking-[0.2em] uppercase group',
                 cartStore.selectedCategory === 'Home' ? 'text-black border-b border-black' : 'text-black/60'
               ]"
-            >
-              Home
-            </button>
+            >Home</button>
             <button
               @click="goToProducts('All'); mobileMenuOpen = false"
               :class="[
                 'relative mx-4 py-2 w-fit text-xs font-medium tracking-[0.2em] uppercase group',
                 cartStore.selectedCategory === 'All' ? 'text-black border-b border-black' : 'text-black/60'
               ]"
-            >
-              All
-            </button>
+            >All</button>
             <button
               v-for="cat in cartStore.categories"
               :key="cat"
@@ -188,9 +179,7 @@
                 'relative mx-4 py-2 w-fit text-xs font-medium tracking-[0.2em] uppercase group',
                 cartStore.selectedCategory === cat ? 'text-black border-b border-black' : 'text-black/60'
               ]"
-            >
-              {{ cat }}
-            </button>
+            >{{ cat }}</button>
           </div>
 
           <div class="flex justify-between items-center space-x-4 pt-2 border-t border-gray-300">
@@ -200,20 +189,21 @@
             </div>
             <div class="flex items-center space-x-4">
 
-              <!-- Mobile: not logged in -->
               <router-link v-if="!authStore.user" to="/LoginView" @click="mobileMenuOpen = false">
                 <i class="fa-regular fa-user text-lg cursor-pointer"></i>
               </router-link>
 
-              <!-- Mobile: logged in -->
               <button
                 v-else
                 @click="authStore.signOut(); mobileMenuOpen = false"
                 :disabled="authStore.signingOut"
-                class="text-xs uppercase tracking-widest transition"
-                :class="authStore.signingOut ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:text-black'"
+                class="flex items-center justify-center cursor-pointer disabled:cursor-not-allowed transition"
               >
-                {{ authStore.signingOut ? 'Signing out...' : 'Sign out' }}
+                <svg v-if="authStore.signingOut" class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+                <span v-else class="text-xs uppercase tracking-widest text-gray-600 hover:text-black transition">Sign out</span>
               </button>
 
               <i class="fa-regular fa-heart text-lg cursor-pointer"></i>

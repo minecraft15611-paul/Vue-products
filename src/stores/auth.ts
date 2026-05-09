@@ -4,7 +4,6 @@ import { signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { sendLoginLink } from '../service/auth';
 import type { LoginForm } from '../schemas/authSchema';
-import { useCartStore } from './cart';
 import { useRouter } from 'vue-router';
 
 export const useAuthStore = defineStore('auth', {
@@ -30,17 +29,11 @@ export const useAuthStore = defineStore('auth', {
         },
 
         async signOut() {
-            const cartStore = useCartStore();
             const router = useRouter();
             try {
                 this.signingOut = true;
-
-                // Immediately clean everything
                 await firebaseSignOut(auth);
                 this.user = null;
-                cartStore.clearCart();
-
-                // UX delay before redirect
                 await new Promise(resolve => setTimeout(resolve, 800));
                 router.push('/LoginView');
             } catch (error) {

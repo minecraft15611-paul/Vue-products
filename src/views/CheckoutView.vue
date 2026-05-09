@@ -1,16 +1,25 @@
 <script setup lang="ts">
-    import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue';
+    import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
     import { useCartStore } from '../stores/cart';
+    import { useAuthStore } from '../stores/auth';
     import type { ZodIssue } from 'zod';
     import { VueTelInput } from 'vue-tel-input';
     import 'vue-tel-input/vue-tel-input.css';
     import { checkoutSchema } from '../schemas/checkoutSchema';
     import { useDiscount } from '../composables/useDiscount';
+    import LoginView from './LoginView.vue';
+    import { useRouter } from 'vue-router';
 
     const formErrors = ref<Record<string, string>>({});
 
     // ── Store ──────────────────────────────────────────────────────────────────
+    const router = useRouter();
     const cartStore = useCartStore();
+    const authStore = useAuthStore();
+
+    // ── Contact dropdown (logout menu) ────────────────────────────────────────
+    const showContactMenu = ref(false);
+    const payingNow = ref(false);
 
     // ── Cart / Pricing ─────────────────────────────────────────────────────────
     const subtotal = computed<number>(() => cartStore.totalPrice);
@@ -21,6 +30,19 @@
     const isApplyDisabled = computed(() => checkoutForm.discountCode.length === 0 || isApplying.value);
 
     const { appliedCoupon, discountAmount, error: couponError, applyCoupon } = useDiscount(subtotal);
+
+    // Persist discount to localStorage whenever it changes so SuccessView can read it.
+    // This runs immediately on apply/clear — Pay Now wiring is not required for this to work.
+    watch(appliedCoupon, (coupon) => {
+        if (coupon) {
+            localStorage.setItem('last_order_discount', JSON.stringify({
+                code:   coupon.code,
+                amount: discountAmount.value,
+            }));
+        } else {
+            localStorage.removeItem('last_order_discount');
+        }
+    });
 
     async function handleApplyCoupon() {
         if (isApplying.value) return;
@@ -130,6 +152,13 @@
 
     });
 
+    // Auto-fill email when logged in
+    watch(() => authStore.user, (user) => {
+        if (user?.email) {
+            checkoutForm.email = user.email;
+        }
+    }, { immediate: true });
+
     function scrollToFirstError(errors: Record<string, string>) {
         const errorKeys = Object.keys(errors);
         if (errorKeys.length === 0) return;
@@ -162,7 +191,12 @@
         input?.focus({ preventScroll: true });
     }
 
-    function handlePayNow() {
+    async function handlePayNow() {
+        // Show spinner immediately — nothing runs until 800ms is done
+        payingNow.value = true;
+        await new Promise(resolve => setTimeout(resolve, 800));
+        payingNow.value = false;
+
         formErrors.value = {};
 
         // Block submission if a code was typed but never successfully applied
@@ -187,7 +221,78 @@
             return;
         }
 
-        console.log('Valid payload:', result.data);
+        // ── Goal 2: Generate order number ─────────────────────────────────────
+        const today = new Date();
+        const datePart = today.toISOString().slice(0, 10).replace(/-/g, '');
+        const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const orderNumber = `ORD-${datePart}-${randomSuffix}`;
+
+        // ── Goal 3: Print full order snapshot to console ───────────────────────
+        const billingAddress = (() => {
+            if (checkoutForm.billingOptions === 'different') return checkoutForm.billingDifferent;
+            if (!checkoutForm.useShippingAsBilling)          return checkoutForm.billingSameFlow;
+            return checkoutForm.shipping;
+        })();
+
+        const orderSnapshot = {
+            orderNumber,
+            orderDate: today.toISOString(),
+            customer: {
+                email:         checkoutForm.email,
+                textMeChecked: checkoutForm.textMeChecked,
+                textMePhone:   checkoutForm.textMeChecked ? checkoutForm.textMePhone : null,
+            },
+            shippingAddress: {
+                firstName: checkoutForm.shipping.firstName,
+                lastName:  checkoutForm.shipping.lastName,
+                address:   checkoutForm.shipping.address,
+                apartment: checkoutForm.shipping.apartment,
+                city:      checkoutForm.shipping.city,
+                state:     checkoutForm.shipping.state,
+                postcode:  checkoutForm.shipping.postcode,
+                country:   checkoutForm.shipping.country,
+                phone:     checkoutForm.shipping.phone,
+            },
+            billingAddress: {
+                sameAsShipping: checkoutForm.billingOptions !== 'different' && checkoutForm.useShippingAsBilling,
+                firstName: billingAddress.firstName,
+                lastName:  billingAddress.lastName,
+                address:   billingAddress.address,
+                apartment: billingAddress.apartment,
+                city:      billingAddress.city,
+                state:     billingAddress.state,
+                postcode:  billingAddress.postcode,
+                country:   billingAddress.country,
+                phone:     billingAddress.phone,
+            },
+            payment: {
+                method:         checkoutForm.payment.method,
+                nameOnCard:     checkoutForm.payment.method === 'credit' ? checkoutForm.payment.nameOnCard     : null,
+                cardNumber:     checkoutForm.payment.method === 'credit' ? checkoutForm.payment.cardNumber     : null,
+                expirationDate: checkoutForm.payment.method === 'credit' ? checkoutForm.payment.expirationDate : null,
+                securityCode:   checkoutForm.payment.method === 'credit' ? checkoutForm.payment.securityCode   : null,
+            },
+            cart: cartStore.cart.map(item => ({
+                id:       item.id,
+                name:     item.title || item.name,
+                price:    item.price,
+                quantity: item.quantity,
+                subtotal: +(item.price * item.quantity).toFixed(2),
+            })),
+            pricing: {
+                subtotal:       +subtotal.value.toFixed(2),
+                discount:       appliedCoupon.value ? { code: appliedCoupon.value.code, amount: +discountAmount.value.toFixed(2) } : null,
+                shipping:       +shipping.value.toFixed(2),
+                co2Offset:      co2offset.value ? 0.15 : 0,
+                total:          +total.value.toFixed(2),
+            },
+        };
+
+        // ── Save snapshot to localStorage so SuccessView can log + clear ────────
+        localStorage.setItem('last_order_snapshot', JSON.stringify(orderSnapshot));
+
+        // ── Navigate to SuccessView (cart intentionally NOT cleared yet) ────────
+        router.push({ name: 'SuccessView', state: { orderNumber } });
     }
 
     function validateField(path: string) {
@@ -245,6 +350,8 @@
     const co2offset = ref<boolean>(false);
 
     // ── Tooltip – click-outside handler ───────────────────────────────────────
+    const contactMenuRef = ref<HTMLElement | null>(null);
+
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
         const containers = [
             mobileShippingTooltipRef.value,
@@ -256,6 +363,11 @@
             el => el && (el as HTMLElement).contains(event.target as Node)
         );
         if (!clickedInside) showTooltip.value = false;
+
+        // Close contact menu on outside click
+        if (contactMenuRef.value && !contactMenuRef.value.contains(event.target as Node)) {
+            showContactMenu.value = false;
+        }
 
         // Close CO2 tooltip on outside click
         if (co2TooltipRef.value && !co2TooltipRef.value.contains(event.target as Node)) {
@@ -313,6 +425,35 @@
     const showMoreOptions = computed(() =>
         checkoutForm.payment.method === 'Klarna' || checkoutForm.payment.method === 'PayPal'
     );
+
+    // ── Autofill Mock Data (for demo / interview) ──────────────────────────────
+    function autofillMockData() {
+        checkoutForm.email = 'james.carter@example.com';
+
+        checkoutForm.shipping.firstName = 'James';
+        checkoutForm.shipping.lastName  = 'Carter';
+        checkoutForm.shipping.address   = '47 Maple Street';
+        checkoutForm.shipping.apartment = 'Apt 3B';
+        checkoutForm.shipping.city      = 'Austin';
+        checkoutForm.shipping.state     = 'Texas';
+        checkoutForm.shipping.postcode  = '73301';
+        checkoutForm.shipping.country   = 'US';
+        checkoutForm.shipping.phone     = '+1 512 000 0000';
+
+        // Keep billing same as shipping (default)
+        checkoutForm.useShippingAsBilling = true;
+        checkoutForm.billingOptions       = 'same';
+
+        checkoutForm.payment.method         = 'credit';
+        checkoutForm.payment.nameOnCard     = 'James Carter';
+        checkoutForm.payment.cardNumber     = '4111 1111 1111 1111';
+        checkoutForm.payment.expirationDate = '12/28';
+        checkoutForm.payment.securityCode   = '123';
+
+        // Clear any leftover validation errors
+        formErrors.value = {};
+    }
+    
 </script>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap" rel="stylesheet"></link>
@@ -538,14 +679,10 @@
                 <div class="flex-grow border-t border-gray-300"></div>
             </div>
 
-            <div class="flex items-baseline justify-between mt-6">
-                <div class="text-[18px]">
-                    Contact
-                </div>
+            <div v-if="!authStore.user" class="flex items-baseline justify-between mt-6">
+                <div class="text-[18px]">Contact</div>
                 <div class="underline text-[13px]">
-                    <a href="#">
-                        Sign in
-                    </a>
+                    <router-link to="/LoginView">Sign in</router-link>
                 </div>
             </div>
 
@@ -554,7 +691,39 @@
                          <!-- ================= NOT FINISHED YET ===================== -->
                            <!-- ================= NOT FINISHED YET ===================== -->
                              <!-- ================= NOT FINISHED YET ===================== -->
-            <div class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
+
+            <!-- Logged in: read-only email display -->
+            <div v-if="authStore.user" class="relative mt-3 border border-gray-200 px-3 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[13px] font-medium text-gray-700 flex-shrink-0">
+                        {{ authStore.user.email?.[0].toUpperCase() }}
+                    </div>
+                    <span class="text-[13px] text-gray-800 truncate">{{ authStore.user.email }}</span>
+                </div>
+                <div class="relative flex-shrink-0" ref="contactMenuRef">
+                    <button type="button" @click="showContactMenu = !showContactMenu" class="p-1 text-gray-400 hover:text-gray-700 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                        </svg>
+                    </button>
+                    <div v-if="showContactMenu" class="absolute right-0 top-7 bg-white border border-gray-200 shadow-md z-50 min-w-[120px]">
+                        <button type="button"
+                            @click="authStore.signOut(); showContactMenu = false"
+                            :disabled="authStore.signingOut"
+                            class="w-full flex items-center justify-center px-4 py-2 text-[13px] text-gray-700 hover:bg-gray-50 transition disabled:cursor-not-allowed"
+                        >
+                            <svg v-if="authStore.signingOut" class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                            <span v-else>Log out</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Not logged in: email input -->
+            <div v-else class="relative mt-3 border border-gray-300 focus-within:border-black transition-all">
                 <input 
                     type="email" 
                     v-model="checkoutForm.email"
@@ -577,13 +746,8 @@
                 >
                     Email
                 </label>
-                <p class="mt-1 hidden text-xs text-red-600 
-                        peer-invalid:[&:not(:placeholder-shown):not(:focus)]:block"
-                >
-                    Enter a valid email
-                </p>
             </div>
-            <p data-field="email" v-if="formErrors['email']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['email'] }}</p>
+            <p data-field="email" v-if="formErrors['email'] && !authStore.user" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['email'] }}</p>
 
  <!-- ================= NOT FINISHED YET ===================== -->
    <!-- ================= NOT FINISHED YET ===================== -->
@@ -2126,8 +2290,13 @@
                 <div class="flex-grid ">
                     <div class="w-full">
                         <button type="submit"
-                            class="flex w-full justify-center items-center bg-black text-white text-[15px] py-3 ">
-                            PAY NOW
+                            :disabled="payingNow"
+                            class="flex w-full justify-center items-center bg-black text-white text-[15px] py-3 disabled:opacity-70 transition-all">
+                            <svg v-if="payingNow" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                            <span v-else>PAY NOW</span>
                         </button>
                     </div>
                     <div class="flex p-5 gap-3 bg-gray-100 border border-gray-200 mt-4">
@@ -2216,12 +2385,48 @@
  
                     <!-- ── Contact ── -->
                     <div class="mb-8">
-                        <div class="flex justify-between items-baseline mb-3">
+                        <div v-if="!authStore.user" class="flex justify-between items-baseline mb-3">
                             <h2 class="text-[15px] font-medium text-gray-900">Contact</h2>
-                            <a href="#" class="text-[13px] text-gray-600 underline underline-offset-2">Sign in</a>
+                            <router-link 
+                                to="/LoginView" 
+                                class="text-[13px] text-gray-600 underline underline-offset-2"
+                            >
+                                Sign in
+                            </router-link>
                         </div>
- 
-                        <div class="relative border border-gray-300 focus-within:border-black transition-all">
+
+                        <!-- Logged in: read-only email display -->
+                        <div v-if="authStore.user" class="relative border border-gray-200 px-3 py-3 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-[13px] font-medium text-gray-700 flex-shrink-0">
+                                    {{ authStore.user.email?.[0].toUpperCase() }}
+                                </div>
+                                <span class="text-[13px] text-gray-800 truncate">{{ authStore.user.email }}</span>
+                            </div>
+                            <div class="relative flex-shrink-0" ref="contactMenuRef">
+                                <button type="button" @click="showContactMenu = !showContactMenu" class="p-1 text-gray-400 hover:text-gray-700 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                                    </svg>
+                                </button>
+                                <div v-if="showContactMenu" class="absolute right-0 top-7 bg-white border border-gray-200 shadow-md z-50 min-w-[120px]">
+                                        <button type="button"
+                                        @click="authStore.signOut(); showContactMenu = false"
+                                        :disabled="authStore.signingOut"
+                                        class="w-full flex items-center justify-center px-4 py-2 text-[13px] text-gray-700 hover:bg-gray-50 transition disabled:cursor-not-allowed"
+                                    >
+                                        <svg v-if="authStore.signingOut" class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                        </svg>
+                                        <span v-else>Log out</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Not logged in: email input -->
+                        <div v-else class="relative border border-gray-300 focus-within:border-black transition-all">
                             <input
                                 type="email" id="email-desktop" name="email"
                                 placeholder=" "
@@ -2236,7 +2441,7 @@
                                 peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:text-gray-500"
                             >Email</label>
                         </div>
-                        <p data-field="email" v-if="formErrors['email']" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['email'] }}</p>
+                        <p data-field="email" v-if="formErrors['email'] && !authStore.user" class="text-red-500 text-xs mt-1 px-1">{{ formErrors['email'] }}</p>
 
                     </div>
  
@@ -3067,9 +3272,14 @@
 
                     <!-- ── PAY NOW button ── -->
                     <button type="submit"
-                        class="flex w-full justify-center items-center bg-black text-white text-[15px] py-4 hover:bg-gray-900 transition-colors duration-200 mb-6"
+                        :disabled="payingNow"
+                        class="flex w-full justify-center cursor-pointer items-center bg-black text-white text-[15px] py-4 hover:bg-gray-900 transition-colors duration-200 mb-6 disabled:opacity-70"
                     >
-                        PAY NOW
+                        <svg v-if="payingNow" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                        </svg>
+                        <span v-else>PAY NOW</span>
                     </button>
  
                     
@@ -3122,7 +3332,7 @@
                     <div class="border-t border-gray-200 mb-5"></div>
  
                     <!-- Discount code -->
-                    <div class="flex gap-2 mb-5" data-field="discountCode">
+                    <div class="flex gap-2 mb-1" data-field="discountCode">
                         <div class="relative border border-gray-300 focus-within:border-black transition-all flex-1">
                             <input type="text" id="discountcode-desktop" placeholder=" " autocomplete="off"
                                 v-model="checkoutForm.discountCode"
@@ -3164,7 +3374,7 @@
                     </div>
 
                     <!-- Divider -->
-                    <div class="border-t border-gray-200 mb-5"></div>
+                    <div class="mb-5"></div>
 
                     <!-- Subtotal -->
                     <div class="flex justify-between mb-2">
@@ -3185,15 +3395,9 @@
                         <span class="text-[13px] text-gray-700">Shipping</span>
                         <span class="text-[13px] text-gray-500">{{ shipping === 0 ? 'Free' : 'Enter shipping address' }}</span>
                     </div>
-
-                    <!-- CO2 Offset -->
-                    <div v-if="co2offset" class="flex justify-between mb-5">
-                        <span class="text-[13px] text-gray-700">Carbon offset</span>
-                        <span class="text-[13px] text-gray-900">$0.15</span>
-                    </div>
  
                     <!-- Total -->
-                    <div class="flex justify-between items-baseline border-t border-gray-200 pt-5">
+                    <div class="flex justify-between items-baseline pt-5 mb-5">
                         <span class="text-[18px] font-normal text-gray-900">Total</span>
                         <span class="text-[18px] font-medium text-gray-900">USD ${{ total.toFixed(2) }}</span>
                     </div>
@@ -3226,7 +3430,19 @@
                 <a href="#">Contact</a>
             </div>
         </div>
- 
+        <!-- ── Demo autofill button (for interviewer) ── -->
+        <div class="flex justify-center py-4">
+            <button
+                type="button"
+                @click="autofillMockData"
+                class="flex items-center gap-2 border border-dashed border-gray-400 text-gray-500 text-[12px] px-4 py-2 hover:border-gray-600 hover:text-gray-700 transition-colors"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z" />
+                </svg>
+                Fill test data
+            </button>
+        </div>
     </div>
 </div>
     
