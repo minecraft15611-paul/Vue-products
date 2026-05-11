@@ -278,6 +278,8 @@
                 price:    item.price,
                 quantity: item.quantity,
                 subtotal: +(item.price * item.quantity).toFixed(2),
+                img:      item.img,
+                color:    item.color ?? null,
             })),
             pricing: {
                 subtotal:       +subtotal.value.toFixed(2),

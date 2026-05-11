@@ -9,29 +9,31 @@ const cartStore = useCartStore();
 const authStore = useAuthStore();
 
 // ── Read order snapshot from localStorage ─────────────────────────────────
-const snapshot = (() => {
+const snapshot = ref<Record<string, any> | null>(null);
+
+// ── On mount: read snapshot, log it, then clear the cart ─────────────────
+onMounted(() => {
     try {
         const raw = localStorage.getItem('last_order_snapshot');
-        return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
-})();
-
-// ── On mount: log snapshot then clear the cart ────────────────────────────
-onMounted(() => {
-    if (snapshot) {
-        console.log('📦 Order placed:', JSON.stringify(snapshot, null, 2));
-        localStorage.removeItem('last_order_snapshot');
+        if (raw) {
+            snapshot.value = JSON.parse(raw);
+            console.log('📦 Order placed:', JSON.stringify(snapshot.value, null, 2));
+            localStorage.removeItem('last_order_snapshot');
+        }
+    } catch (e) {
+        console.warn('Could not read order snapshot', e);
     }
     cartStore.clearCart();
 });
 
 // ---- Order Number (from snapshot, fallback to generated) ----
 const today = new Date();
-const orderNumber = snapshot?.orderNumber ?? (() => {
+const _fallbackOrderNumber = (() => {
     const datePart = today.toISOString().slice(0, 10).replace(/-/g, '');
     const randomSuffix = Math.floor(Math.random() * 90 + 10);
     return `ORD-${datePart}-${randomSuffix}`;
 })();
+const orderNumber = computed(() => snapshot.value?.orderNumber ?? _fallbackOrderNumber);
 
 // ---- Order Date (timeline) ----
 const orderDate = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -47,7 +49,7 @@ const estimatedDelivery = `${formatDate(deliveryStart)} - ${formatDate(deliveryE
 
 // ---- Copy Order Number ----
 const copyOrderNumber = () => {
-    navigator.clipboard.writeText(orderNumber);
+    navigator.clipboard.writeText(orderNumber.value);
     cartStore.showToast('Order number copied!');
 };
 
@@ -100,14 +102,14 @@ function onAfterLeave(el: Element) {
 }
 
 // ---- Pricing from snapshot (fallback to live cart) ----
-const subtotal   = computed<number>(() => snapshot?.pricing.subtotal   ?? cartStore.totalPrice);
-const discountAmount  = snapshot?.pricing.discount?.amount ?? 0;
-const appliedCouponCode = snapshot?.pricing.discount?.code ?? null;
-const finalTotal = computed(() => snapshot?.pricing.total ?? (subtotal.value - discountAmount));
+const subtotal          = computed<number>(() => snapshot.value?.pricing.subtotal ?? cartStore.totalPrice);
+const discountAmount    = computed(() => snapshot.value?.pricing.discount?.amount ?? 0);
+const appliedCouponCode = computed(() => snapshot.value?.pricing.discount?.code ?? null);
+const finalTotal        = computed(() => snapshot.value?.pricing.total ?? (subtotal.value - discountAmount.value));
 
 // ---- Shipping address from snapshot ----
-const shippingAddr = snapshot?.shippingAddress ?? null;
-const customerEmail = snapshot?.customer?.email ?? authStore.user?.email ?? '';
+const shippingAddr  = computed(() => snapshot.value?.shippingAddress ?? null);
+const customerEmail = computed(() => snapshot.value?.customer?.email ?? authStore.user?.email ?? '');
 </script>
 
 
@@ -179,17 +181,17 @@ const customerEmail = snapshot?.customer?.email ?? authStore.user?.email ?? '';
 
                 <!-- Loop over cart items -->
                 <div
-                    v-for="item in cartStore.cart"
+                    v-for="item in snapshot?.cart"
                     :key="item.id"
                     class="flex gap-4"
                 >
                     <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-                        <img :src="item.img" :alt="item.title || item.name" class="w-full h-full object-cover" />
+                        <img :src="item.img" :alt="item.name" class="w-full h-full object-cover" />
                     </div>
                     <div class="flex-grow">
                         <div class="flex justify-between">
-                            <h3 class="font-bold text-gray-900 text-sm">{{ item.title || item.name }}</h3>
-                            <span class="font-bold text-gray-900">${{ (item.price * item.quantity).toFixed(2) }}</span>
+                            <h3 class="font-bold text-gray-900 text-sm">{{ item.name }}</h3>
+                            <span class="font-bold text-gray-900">${{ item.subtotal.toFixed(2) }}</span>
                         </div>
                         <p v-if="item.color" class="text-xs text-gray-400 mt-1">{{ item.color }}</p>
                         <p class="text-xs text-gray-400 font-medium">Qty: {{ item.quantity }}</p>
@@ -200,7 +202,7 @@ const customerEmail = snapshot?.customer?.email ?? authStore.user?.email ?? '';
                 <!-- Totals -->
                 <div class="pt-2 border-t border-gray-100 space-y-3">
                     <div class="flex justify-between text-sm text-gray-500">
-                        <span>Subtotal · {{ snapshot?.cart.length ?? cartStore.cartCount }} items</span>
+                        <span>Subtotal · {{ snapshot?.cart.reduce((s, i) => s + i.quantity, 0) ?? cartStore.cartCount }} items</span>
                         <span class="text-gray-900 font-medium">${{ subtotal.toFixed(2) }}</span>
                     </div>
 
