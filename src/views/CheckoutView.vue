@@ -2341,6 +2341,21 @@
                 <div>Contact</div>
             </div>
         </div>
+
+        <!-- ── Demo autofill button (mobile) ── -->
+        <div class="flex justify-center py-4">
+            <button
+                type="button"
+                @click="autofillMockData"
+                class="flex items-center gap-2 border border-dashed border-gray-400 text-gray-500 text-[12px] px-4 py-2 hover:border-gray-600 hover:text-gray-700 transition-colors"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z" />
+                </svg>
+                Fill test data
+            </button>
+        </div>
+
         </form>
     </div>
 
