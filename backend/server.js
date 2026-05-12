@@ -1,3 +1,4 @@
+require('dotenv').config(); // 載入環境變數
 const express = require('express');
 const cors = require('cors');
 const app = express();
@@ -6,7 +7,12 @@ const PORT = 3000;
 const mongoose = require('mongoose');
 
 // 貼上你剛複製的字串，記得把 <password> 換成你設定的密碼
-const uri = "mongodb+srv://admin:12356@cluster0.ygu4a9x.mongodb.net/?appName=Cluster0";
+const uri = process.env.MONGODB_URI;
+
+if (!uri) {
+  console.error("錯誤：找不到 MONGODB_URI 環境變數！");
+  process.exit(1);
+}
 
 mongoose.connect(uri)
   .then(() => console.log("MongoDB 連線成功！"))
