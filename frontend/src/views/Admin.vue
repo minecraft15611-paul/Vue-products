@@ -66,7 +66,7 @@ const handleSave = async () => {
 };
 
 // 刪除功能
-const deleteProduct = async (id: number) => {
+const deleteProduct = async (id: string | number) => {
     if (!confirm("確定要刪除這項商品嗎？")) return;
     try {
         await axios.delete(`http://localhost:3000/api/products/${id}`);
