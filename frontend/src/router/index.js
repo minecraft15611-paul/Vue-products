@@ -7,6 +7,7 @@ import CheckoutView from '../views/CheckoutView.vue';
 import LoginView from '../views/LoginView.vue';
 import LoginCallbackView from '../views/LoginCallbackView.vue';
 import SuccessView from '../views/SuccessView.vue';
+import Admin from '../views/Admin.vue';
 
 const routes = [
     {
@@ -48,6 +49,11 @@ const routes = [
         path: '/SuccessView',
         name: 'SuccessView',
         component: SuccessView
+    },
+    {
+        path: '/Admin',
+        name: 'Admin',
+        component: Admin
     }
 ];
 

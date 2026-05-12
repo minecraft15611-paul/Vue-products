@@ -1,50 +1,37 @@
 <script setup lang="ts">
     import { watch, ref, computed, onMounted } from 'vue';
     import { useCartStore } from '../stores/cart';
-    import  addToCartButton  from '../components/addToCartButton.vue'
+    import addToCartButton from '../components/addToCartButton.vue'
     import MyHeader from '../components/MyHeader.vue';
     import MyFooter from '../components/MyFooter.vue';
     import TheToast from '../components/TheToast.vue';
-
+    
 
     const cartStore = useCartStore();
 
-// ===== Define Products Per Page =====
+    // --- 分頁邏輯保持不變 ---
     const pageSize = ref<number>(4);
-
-// ===== Define Current Page =====
     const currentPage = ref<number>(1);
-
-// ===== Reset to page 1 whenever the filtered list changes =====
-    const filteredProducts = computed(() => {
-        return cartStore.filteredProducts;
-    });
-
-    watch(() => cartStore.filteredProducts, () => {
-    currentPage.value = 1;
-    }, { deep: true });
-
-// ===== Calculate Total Pages =====
-    const totalPages = computed(() => {
-        return Math.ceil(filteredProducts.value.length / pageSize.value) || 1;
-    });
-
-// ===== Paginated Slice =====
+    const filteredProducts = computed(() => cartStore.filteredProducts);
+    watch(() => cartStore.filteredProducts, () => { currentPage.value = 1; }, { deep: true });
+    const totalPages = computed(() => Math.ceil(filteredProducts.value.length / pageSize.value) || 1);
     const paginatedProducts = computed(() => {
         const start = (currentPage.value - 1) * pageSize.value;
         return filteredProducts.value.slice(start, start + pageSize.value);
     });
 
+
     onMounted(() => {
-    if (cartStore.products.length === 0) {
-        cartStore.fetchProducts();
-    }
+        if (cartStore.products.length === 0) {
+            cartStore.fetchProducts();
+        }
     });
 
 </script>
 
 <template>
     <MyHeader />
+    
     <TheToast />
     <div class="product-list-container mb-4">
 

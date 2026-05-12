@@ -102,7 +102,12 @@ const toggle = (index: number) => {
         <p class="text-[10px] text-gray-500 uppercase tracking-widest">
           © 2026 LemonTree. All rights reserved.
         </p>
+
+        <router-link to="/Admin" class="lg:hidden rounded-2xl p-1 text-white">
+            Admin Panel
+        </router-link>
       </div>
+      
 
     </div>
   </footer>

@@ -56,11 +56,9 @@
             <span class="text-xs text-gray-400 uppercase tracking-widest">Free Shipping This Week — Orders Over $1</span>
           </div>
           <div class="hidden lg:flex justify-end w-full lg:w-1/3">
-            <select name="language" id="language-select"
-              class="text-xs text-gray-500 border-none bg-transparent focus:outline-none cursor-pointer">
-              <option value="eng">ENGLISH</option>
-              <option value="zh-Tw">繁體中文</option>
-            </select>
+            <router-link to="/Admin" class="hover:text-blue-500 transition-all duration-400 rounded-2xl p-1 bg-gray-300 text-white">
+                Admin Panel
+            </router-link>
           </div>
         </div>
       </nav>
@@ -217,10 +215,13 @@
 
     <!-- =============== Desktop Category Nav =============== -->
 
+    
+
     <div class="sticky z-49 bg-white border-b border-gray-50 transition-transform duration-500 ease-in-out hidden lg:flex justify-center gap-2 py-4"
         :class="isVisible ? 'translate-y-0' : '-translate-y-full'"
         style="top: 97px;"
     >
+    
       <button
         @click="goHome()"
         :class="[
@@ -258,7 +259,10 @@
         <span v-show="cartStore.selectedCategory !== cat"
           class="absolute left-0 bottom-0 w-0 h-px bg-black transition-all duration-500 group-hover:w-full"></span>
       </button>
+      
+      
     </div>
+    
 
 </template>
 
