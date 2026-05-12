@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - dev-tailwind  # 這裡改成了你目前使用的分支
+      - dev-tailwind
 
 permissions:
   contents: write
@@ -21,9 +21,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
+          # 修正 1：告訴系統去 frontend 資料夾找 package-lock.json 來做快取
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install and Build
+        # 修正 2：指定在 frontend 目錄下執行 npm 指令
+        working-directory: ./frontend
         run: |
           npm install --legacy-peer-deps
           npm run build
@@ -39,5 +43,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          # 修正 3：編譯後的檔案會在 frontend 資料夾內的 dist
+          publish_dir: ./frontend/dist
           publish_branch: gh-pages
