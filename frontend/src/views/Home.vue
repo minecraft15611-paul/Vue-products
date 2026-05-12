@@ -31,6 +31,7 @@ onMounted(() => cartStore.fetchProducts());
         </div> -->
         <HomePage />      <!-- v-else -->
     </main>
+    
 
     <hr class="border-t border-gray-200">
     <MyFooter />
