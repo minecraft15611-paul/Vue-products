@@ -2,7 +2,7 @@ require('dotenv').config(); // 載入環境變數
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const mongoose = require('mongoose');
 
@@ -105,6 +105,6 @@ app.post('/api/products', async (req, res) => {
 
 // 4. 啟動伺服器
     app.listen(PORT, () => {
-    console.log(`後端伺服器運行中：http://localhost:${PORT}`);
+    console.log(`後端伺服器已啟動，正在監聽 Port: ${PORT}`);
     });
 
