@@ -31,7 +31,9 @@ export const useCartStore = defineStore('cart', () => {
         
         // https://69d3044a336103955f8e82e7.mockapi.io/api/v1/products 這個是網路API
         try {
-            const response = await fetch('https://lemontree-api.onrender.com/api/products');
+            const response = await fetch('https://lemontree-api.onrender.com/api/products', {
+                credentials: 'include'
+            });
             if (!response.ok) {
             throw new Error(`Server error：${response.status}`);
             }

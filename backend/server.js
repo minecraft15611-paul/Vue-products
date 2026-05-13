@@ -8,15 +8,17 @@ const mongoose = require('mongoose');
 
 // 允許你的 GitHub Pages 網址連線
 app.use(cors({
-   origin: [
+    origin: [
         'https://minecraft15611-paul.github.io',
-        'https://minecraft15611-paul.github.io/' // 補上這個帶斜線的版本
+        'https://minecraft15611-paul.github.io/',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173' 
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
 
-// 貼上你剛複製的字串，記得把 <password> 換成你設定的密碼
 const uri = process.env.MONGODB_URI;
 
 
