@@ -6,6 +6,11 @@ const PORT = process.env.PORT || 3000;
 
 const mongoose = require('mongoose');
 
+// 允許你的 GitHub Pages 網址連線
+app.use(cors({
+    origin: 'https://minecraft15611-paul.github.io' 
+}));
+
 // 貼上你剛複製的字串，記得把 <password> 換成你設定的密碼
 const uri = process.env.MONGODB_URI;
 
@@ -41,7 +46,7 @@ colors: [
 const Product = mongoose.model('Product', productSchema);
 
 // 1. 中間件設定
-app.use(cors());        // 允許 Vue 跨網域存取
+
 app.use(express.json()); // 解析前端傳來的 JSON 資料
 
 
@@ -73,17 +78,6 @@ app.post('/api/products', async (req, res) => {
         const deletedProduct = await Product.findOneAndDelete({ id: req.params.id });
         if (!deletedProduct) return res.status(404).json({ message: "找不到商品" });
         res.json({ message: "刪除成功", product: deletedProduct });
-    } catch (err) {
-        res.status(500).json({ message: "刪除失敗", error: err });
-    }
-    });
-
-    // [DELETE] 刪除指定商品
-    app.delete('/api/products/:id', async (req, res) => {
-    try {
-        // 這裡使用我們自定義的 id 欄位來刪除
-        await Product.findOneAndDelete({ id: req.params.id });
-        res.json({ message: "商品已刪除" });
     } catch (err) {
         res.status(500).json({ message: "刪除失敗", error: err });
     }

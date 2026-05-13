@@ -50,11 +50,11 @@ const handleSave = async () => {
     try {
         if (isEditMode.value) {
             // [PUT] 執行修改邏輯，對應 server.js 的 app.put
-            await axios.put(`http://localhost:3000/api/products/${newItem.value.id}`, newItem.value);
+            await axios.put(`https://lemontree-api.onrender.com/api/products/${newItem.value.id}`, newItem.value);
             alert("商品資訊已成功更新！");
         } else {
             // [POST] 執行新增邏輯
-            await axios.post('http://localhost:3000/api/products', newItem.value);
+            await axios.post('https://lemontree-api.onrender.com/api/products', newItem.value);
             alert("新商品上架成功！");
         }
         resetForm(); // 操作完後清空表單
@@ -69,7 +69,7 @@ const handleSave = async () => {
 const deleteProduct = async (id: string | number) => {
     if (!confirm("確定要刪除這項商品嗎？")) return;
     try {
-        await axios.delete(`http://localhost:3000/api/products/${id}`);
+        await axios.delete(`https://lemontree-api.onrender.com/api/products/${id}`);
         alert("商品已從資料庫移除");
         cartStore.fetchProducts();
     } catch (error) {
