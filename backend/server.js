@@ -8,12 +8,16 @@ const mongoose = require('mongoose');
 
 // 允許你的 GitHub Pages 網址連線
 app.use(cors({
-    origin: 'https://minecraft15611-paul.github.io' 
+   origin: [
+        'https://minecraft15611-paul.github.io',
+        'https://minecraft15611-paul.github.io/' // 補上這個帶斜線的版本
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
 }));
 
 // 貼上你剛複製的字串，記得把 <password> 換成你設定的密碼
 const uri = process.env.MONGODB_URI;
-
 
 
 if (!uri) {
@@ -77,7 +81,7 @@ app.post('/api/products', async (req, res) => {
     // [DELETE] 刪除指定商品
     app.delete('/api/products/:id', async (req, res) => {
     try {
-        const deletedProduct = await Product.findOneAndDelete({ id: Number(req.params.id) });
+        const deletedProduct = await Product.findOneAndDelete({ id: req.params.id });
         if (!deletedProduct) return res.status(404).json({ message: "找不到商品" });
         res.json({ message: "刪除成功", product: deletedProduct });
     } catch (err) {
