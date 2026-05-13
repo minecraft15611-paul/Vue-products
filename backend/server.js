@@ -14,6 +14,8 @@ app.use(cors({
 // 貼上你剛複製的字串，記得把 <password> 換成你設定的密碼
 const uri = process.env.MONGODB_URI;
 
+
+
 if (!uri) {
     console.error("錯誤：找不到 MONGODB_URI 環境變數！");
     process.exit(1);
@@ -75,7 +77,7 @@ app.post('/api/products', async (req, res) => {
     // [DELETE] 刪除指定商品
     app.delete('/api/products/:id', async (req, res) => {
     try {
-        const deletedProduct = await Product.findOneAndDelete({ id: req.params.id });
+        const deletedProduct = await Product.findOneAndDelete({ id: Number(req.params.id) });
         if (!deletedProduct) return res.status(404).json({ message: "找不到商品" });
         res.json({ message: "刪除成功", product: deletedProduct });
     } catch (err) {
