@@ -55,7 +55,7 @@ colors: [
 const Product = mongoose.model('Product', productSchema);
 
 // 1. 中間件設定
-
+ 
 app.use(express.json()); // 解析前端傳來的 JSON 資料
 
 
