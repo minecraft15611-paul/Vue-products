@@ -88,145 +88,152 @@ const addColor = () => {
 const removeColor = (index: number) => {
     newItem.value.colors.splice(index, 1);
 };
+
+//
+const currentTab = ref('products'); // 預設停留在商品管理，方便你繼續測試功能
+
+// 儀表板所需的簡單統計資料 (未來可對接後端 API)
+const stats = ref({
+    todayRevenue: 1250,
+    orderCount: 8,
+    lowStockCount: 0
+});
+
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-100 p-3 md:p-6 font-sans">
+    <div class="min-h-screen bg-gray-100 p-2 md:p-6 font-sans">
         <div class="max-w-7xl mx-auto">
-            <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-6 text-center">LemonTree 管理中心</h2>
+            <h2 class="text-xl md:text-3xl font-extrabold text-gray-800 mb-6 text-center tracking-tight">LemonTree 管理中心</h2>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <div class="lg:col-span-1">
-                    <div class="bg-white shadow-xl rounded-2xl p-5 border border-gray-200 sticky lg:top-6">
-                        <h3 class="text-lg font-bold mb-5 flex items-center gap-2 text-gray-700">
-                            {{ isEditMode ? '📝 編輯商品內容' : '✨ 快速上架商品' }}
-                        </h3>
-                        
-                        <div class="space-y-4">
-                            <div class="group">
-                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">商品基本資訊</span>
-                                <input v-model="newItem.name" type="text" class="mt-1 block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 transition outline-none" placeholder="商品名稱">
-                            </div>
+            <div class="flex justify-start md:justify-center mb-8 overflow-x-auto no-scrollbar">
+                <div class="flex flex-nowrap gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-gray-200 min-w-max mx-auto">
+                    <button @click="currentTab = 'dashboard'" 
+                        :class="currentTab === 'dashboard' ? 'bg-gray-900 text-white shadow-md' : 'hover:bg-gray-100 text-gray-500'"
+                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap">
+                        🏠 數據主頁
+                    </button>
+                    <button @click="currentTab = 'products'" 
+                        :class="currentTab === 'products' ? 'bg-gray-900 text-white shadow-md' : 'hover:bg-gray-100 text-gray-500'"
+                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap">
+                        📦 商品管理
+                    </button>
+                    <button @click="currentTab = 'orders'" 
+                        :class="currentTab === 'orders' ? 'bg-gray-900 text-white shadow-md' : 'hover:bg-gray-100 text-gray-500'"
+                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap">
+                        📜 訂單處理
+                    </button>
+                </div>
+            </div>
 
-                            <div class="grid grid-cols-2 gap-3">
-                                <input v-model.number="newItem.price" type="number" class="block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 focus:bg-white transition outline-none" placeholder="價格 (USD)">
-                                <select v-model="newItem.category" class="block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 text-sm outline-none">
-                                    <option>Men's Apparel</option>
-                                    <option>Women's Apparel</option>
-                                    <option>Accessories</option>
-                                    <option>Jewelry</option>
-                                </select>
-                            </div>
+            <div v-if="currentTab === 'dashboard'" class="animate-fadeIn">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">今日營收</div>
+                        <div class="text-2xl font-black text-gray-800 mt-1">${{ stats.todayRevenue }}</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">新增訂單</div>
+                        <div class="text-2xl font-black text-blue-600 mt-1">{{ stats.orderCount }} 筆</div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 text-red-500">
+                        <div class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">庫存警示</div>
+                        <div class="text-2xl font-black mt-1">{{ cartStore.products.filter(p => p.stock <= 5).length }} 項</div>
+                    </div>
+                </div>
+            </div>
 
-                            <div class="grid grid-cols-2 gap-3 mt-4">
+            <div v-if="currentTab === 'products'" class="animate-fadeIn">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1">
+                        <div class="bg-white shadow-xl rounded-2xl p-5 border border-gray-200">
+                            <h3 class="text-lg font-bold mb-5 text-gray-700">
+                                {{ isEditMode ? '📝 編輯商品' : '✨ 快速上架' }}
+                            </h3>
+                            <div class="space-y-4">
                                 <div class="group">
-                                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">現有庫存量</span>
-                                    <input v-model.number="newItem.stock" type="number" class="mt-1 block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-orange-500 transition outline-none" placeholder="數量">
+                                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">商品名稱</span>
+                                    <input v-model="newItem.name" type="text" class="mt-1 block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition" placeholder="商品名稱">
                                 </div>
-                                <div class="group">
-                                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">供應尺寸</span>
-                                    <div class="flex gap-2 mt-2 flex-wrap">
-                                        <label v-for="s in ['S', 'M', 'L', 'XL']" :key="s" class="flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-lg text-[10px] cursor-pointer hover:bg-blue-50 transition">
-                                            <input type="checkbox" :value="s" v-model="newItem.sizes" class="w-3 h-3"> {{ s }}
-                                        </label>
-                                    </div>
+                                <div class="flex flex-col gap-3 pt-2">
+                                    <button @click="handleSave" :class="isEditMode ? 'bg-green-600' : 'bg-blue-600'" class="w-full text-white font-bold py-3.5 rounded-2xl shadow-lg active:scale-95 transition-all text-sm">
+                                        {{ isEditMode ? '💾 儲存並更新資料' : '🚀 立即發布商品' }}
+                                    </button>
+                                    <button v-if="isEditMode" @click="resetForm" class="w-full bg-gray-200 text-gray-600 py-2.5 rounded-2xl font-semibold text-sm">取消編輯</button>
                                 </div>
-                            </div>
-
-                            <div class="bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-300">
-                                <span class="text-xs font-bold text-gray-500 uppercase">規格配置</span>
-                                <div class="flex gap-2 mt-2">
-                                    <input v-model="tempColor.name" type="text" placeholder="顏色名稱" class="border rounded-lg flex-1 p-2 text-sm">
-                                    <input v-model="tempColor.hex" type="color" class="h-10 w-10 border rounded-lg cursor-pointer bg-white p-1">
-                                    <button @click="addColor" type="button" class="bg-gray-900 text-white px-3 rounded-lg text-sm font-bold">加</button>
-                                </div>
-                                <div class="flex gap-2 mt-3 flex-wrap">
-                                    <span v-for="(c, index) in newItem.colors" :key="index" class="flex items-center bg-white border border-gray-200 px-2 py-1 rounded-lg text-xs shadow-sm">
-                                        <span :style="{ backgroundColor: c.hex }" class="w-3 h-3 rounded-full mr-1.5 border border-gray-300"></span>
-                                        {{ c.name }}
-                                        <button @click="removeColor(index)" class="ml-1.5 text-gray-400 hover:text-red-500 font-bold">×</button>
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col gap-3 pt-2">
-                                <button @click="handleSave" :class="isEditMode ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'" class="w-full text-white font-bold py-3.5 rounded-2xl shadow-lg active:scale-95 transition-all">
-                                    {{ isEditMode ? '💾 儲存並更新資料' : '🚀 立即發布商品' }}
-                                </button>
-                                <button v-if="isEditMode" @click="resetForm" class="w-full bg-gray-200 text-gray-600 py-2.5 rounded-2xl font-semibold hover:bg-gray-300 transition">
-                                    取消編輯
-                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="lg:col-span-2">
-                    <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
-                        <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
-                            <h3 class="font-bold text-gray-700 text-lg flex items-center gap-2">
-                                📋 商品庫存列表
-                                <span class="bg-blue-100 text-blue-600 text-xs px-2.5 py-1 rounded-full font-bold">{{ cartStore.products.length }}</span>
-                            </h3>
-                        </div>
-
-                        <div class="overflow-x-auto w-full">
-                            <table class="w-full text-left min-w-[700px]">
-                                <thead class="bg-gray-50 text-gray-400 text-[11px] uppercase tracking-widest">
-                                    <tr>
-                                        <th class="px-6 py-4 font-bold">商品詳情</th>
-                                        <th class="px-6 py-4 font-bold text-center">單價</th>
-                                        <th class="px-6 py-4 font-bold text-center">庫存與規格</th> <th class="px-6 py-4 font-bold text-center">功能操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    <tr v-for="p in cartStore.products" :key="p.id" class="hover:bg-blue-50/50 transition-colors">
-                                        <td class="px-6 py-4">
-                                            <div class="flex items-center gap-4">
-                                                <img :src="p.img" class="w-14 h-14 object-cover rounded-xl border border-gray-200 shadow-sm">
-                                                <div class="max-w-[180px]">
-                                                    <div class="font-extrabold text-gray-800 text-sm truncate">{{ p.name }}</div>
-                                                    <div class="text-[10px] text-gray-400 font-medium">{{ p.category }}</div>
+                    <div class="lg:col-span-2">
+                        <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
+                            <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
+                                <h3 class="font-bold text-gray-700 text-sm">📋 商品庫存列表</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left min-w-[650px]">
+                                    <thead class="bg-gray-50 text-gray-400 text-[10px] uppercase tracking-widest border-b">
+                                        <tr>
+                                            <th class="px-4 py-4 font-bold">商品詳情</th>
+                                            <th class="px-4 py-4 font-bold text-center">價格</th>
+                                            <th class="px-4 py-4 font-bold text-center">庫存規格</th>
+                                            <th class="px-4 py-4 font-bold text-center">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        <tr v-for="p in cartStore.products" :key="p.id" class="hover:bg-blue-50/50 transition-colors">
+                                            <td class="px-4 py-4">
+                                                <div class="flex items-center gap-3">
+                                                    <img :src="p.img" class="w-10 h-10 object-cover rounded-lg border border-gray-200">
+                                                    <div class="max-w-[120px] md:max-w-[180px]">
+                                                        <div class="font-extrabold text-gray-800 text-xs truncate">{{ p.name }}</div>
+                                                        <div class="text-[9px] text-gray-400 font-medium">{{ p.category }}</div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 text-center font-mono font-bold text-blue-600 text-sm">${{ p.price }}</td>
-                                        
-                                        <td class="px-6 py-4">
-                                            <div class="flex flex-col items-center gap-1.5">
-                                                <span :class="p.stock <= 5 ? 'text-red-500 font-black' : 'text-gray-700 font-bold'" class="text-xs">
+                                            </td>
+                                            <td class="px-4 py-4 text-center font-mono font-bold text-blue-600 text-xs">${{ p.price }}</td>
+                                            <td class="px-4 py-4 text-center">
+                                                <span :class="p.stock <= 5 ? 'text-red-500 font-black' : 'text-gray-700 font-bold'" class="text-[11px]">
                                                     {{ p.stock <= 5 ? '⚠️' : '📦' }} {{ p.stock || 0 }}
                                                 </span>
-                                                <div class="flex gap-1 flex-wrap justify-center">
-                                                    <span v-for="s in p.sizes" :key="s" class="text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded border border-gray-200">{{ s }}</span>
+                                            </td>
+                                            <td class="px-4 py-4 text-center">
+                                                <div class="flex justify-center items-center gap-3">
+                                                    <button @click="editProduct(p)" class="text-blue-500 hover:text-blue-700 font-extrabold text-[11px] bg-blue-50 px-3 py-1.5 rounded-lg transition-all">修改</button>
+                                                    <button @click="deleteProduct(p.id)" class="text-gray-300 hover:text-red-500 font-bold text-[11px] transition-all">刪除</button>
                                                 </div>
-                                                <div class="flex gap-1">
-                                                    <span v-for="(c, idx) in p.colors" :key="idx" :style="{ backgroundColor: c.hex }" class="w-2 h-2 rounded-full border border-gray-300" :title="c.name"></span>
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        <td class="px-6 py-4">
-                                            <div class="flex justify-center items-center gap-4">
-                                                <button @click="editProduct(p)" class="text-blue-500 hover:text-blue-700 font-extrabold text-xs bg-blue-50 px-4 py-2 rounded-xl transition-all">修改</button>
-                                                <button @click="deleteProduct(p.id)" class="text-gray-300 hover:text-red-500 font-bold text-xs transition-all">刪除</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            <div class="mt-10 text-center pb-12">
-                <router-link to="/" class="text-gray-400 text-sm font-medium hover:text-blue-500 transition-all inline-flex items-center gap-1">
-                    <span class="text-lg">←</span> 返回商城前台
-                </router-link>
+            <div v-if="currentTab === 'orders'" class="animate-fadeIn">
+                <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden text-center py-20">
+                    <div class="text-5xl mb-4">📜</div>
+                    <h3 class="text-xl font-bold text-gray-700">訂單管理系統</h3>
+                    <p class="text-gray-400 mt-2 text-sm px-6">目前尚無進行中的訂單。準備好建立後端訂單 API 了嗎？</p>
+                </div>
             </div>
+
         </div>
     </div>
 </template>
+
+<style scoped>
+/* 隱藏捲軸但保留功能 */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
