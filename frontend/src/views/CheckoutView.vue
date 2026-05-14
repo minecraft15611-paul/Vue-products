@@ -279,7 +279,8 @@
                 quantity: item.quantity,
                 subtotal: +(item.price * item.quantity).toFixed(2),
                 img:      item.img,
-                color:    item.color ?? null,
+                color:         item.selectedColor ?? null,
+                size:          item.selectedSize ?? null,
             })),
             pricing: {
                 subtotal:       +subtotal.value.toFixed(2),
@@ -546,7 +547,7 @@
                                 <div class="flex-1 min-w-0">
                                     <div class="flex w-45">
                                         <p class="font-light leading-relaxed text-[13px] text-gray-900">
-                                            {{ item.title }} | Navy
+                                            {{ item.title }}<br><span v-if="item.selectedColor" class="text-gray-600 font-normal"> | {{ item.selectedColor }}</span><span v-if="item.selectedSize" class="text-gray-600 font-normal"> | {{ item.selectedSize }}</span>
                                         </p>
                                     </div>
 
@@ -2179,7 +2180,7 @@
                                         <div class="flex-1 min-w-0">
                                             <div class="flex w-45">
                                                 <p class="font-light leading-relaxed text-[13px] text-gray-900">
-                                                    {{ item.title }} | Navy
+                                                    {{ item.title }}<br><span v-if="item.selectedColor" class="text-gray-600 font-normal"> | {{ item.selectedColor }}</span><span v-if="item.selectedSize" class="text-gray-600 font-normal"> | {{ item.selectedSize }}</span>
                                                 </p>
                                             </div>
 
@@ -3334,9 +3335,9 @@
                             <!-- Info -->
                             <div class="flex-1 min-w-0">
                                 <p class="font-light leading-relaxed text-[13px] text-gray-900">
-                                    {{ item.title }} | Navy
+                                    {{ item.title }}<br><span v-if="item.selectedColor" class="text-gray-400 font-normal"> | {{ item.selectedColor }}</span><span v-if="item.selectedSize" class="text-gray-400 font-normal"> | {{ item.selectedSize }}</span>
                                 </p>
-                                <p class="text-[12px] text-gray-500 mt-0.5">{{ item.size || '' }}</p>
+                                
                             </div>
  
                             <p class="font-sans text-[13px] font-medium text-gray-900 tracking-tight tabular-nums flex-shrink-0">

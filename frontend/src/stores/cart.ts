@@ -19,6 +19,8 @@ export interface Product {
 
 interface CartItem extends Product {
     quantity: number;
+    selectedColor?: string;
+    selectedSize?: string;
 }
 
 export const useCartStore = defineStore('cart', () => {
@@ -144,14 +146,16 @@ export const useCartStore = defineStore('cart', () => {
 
 // ---- Add to Cart ----
 
-    const addToCart = (product: Product) => {
+    const addToCart = (product: Product, selectedColor?: string, selectedSize?: string) => {
         if (product.stock > 0) {
             product.stock--;
             const cartItem = cart.value.find((c) => c.id === product.id);
             if (cartItem) {
                 cartItem.quantity++;
+                if (selectedColor) cartItem.selectedColor = selectedColor;
+                if (selectedSize) cartItem.selectedSize = selectedSize;
             } else {
-                cart.value.push({ ...product, quantity: 1 });
+                cart.value.push({ ...product, quantity: 1, selectedColor, selectedSize });
             }
 
             const displayName = product.title || product.name || 'Item';

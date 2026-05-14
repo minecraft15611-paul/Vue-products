@@ -76,7 +76,11 @@ const total = computed<number>(() => subtotal.value + shipping.value)
           <!-- Info -->
           <div class="flex-1 min-w-0">
             <p class="text-xs uppercase tracking-widest text-gray-300 mb-0.5">{{ item.category }}</p>
-            <h3 class="text-sm font-medium text-gray-900 truncate mb-2">{{ item.title }}</h3>
+            <h3 class="text-sm font-medium text-gray-900 truncate ">
+              {{ item.title }}
+            </h3>
+            <span v-if="item.selectedColor" class="text-gray-600 font-normal"> | {{ item.selectedColor }}</span>
+            <span v-if="item.selectedSize" class="text-gray-600 font-normal"> | {{ item.selectedSize }}</span>
 
             <div class="flex items-center justify-between">
               <!-- Quantity Controls -->
@@ -212,7 +216,10 @@ const total = computed<number>(() => subtotal.value + shipping.value)
               <div class="flex items-start justify-between">
                 <div>
                   <p class="text-xs uppercase tracking-widest text-gray-400 mb-0.5">{{ item.category }}</p>
-                  <p class="font-medium text-gray-900 truncate">{{ item.title }}</p>
+                  <p class="font-medium text-gray-900 truncate">{{ item.title }}
+                    <span v-if="item.selectedColor" class="text-gray-400 font-normal"> | {{ item.selectedColor }}</span>
+                    <span v-if="item.selectedSize" class="text-gray-400 font-normal"> | {{ item.selectedSize }}</span>
+                  </p>
                 </div>
  
                 <!-- Remove button -->

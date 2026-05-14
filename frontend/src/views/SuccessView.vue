@@ -193,7 +193,11 @@ const customerEmail = computed(() => snapshot.value?.customer?.email ?? authStor
                             <h3 class="font-bold text-gray-900 text-sm">{{ item.name }}</h3>
                             <span class="font-bold text-gray-900">${{ item.subtotal.toFixed(2) }}</span>
                         </div>
-                        <p v-if="item.color" class="text-xs text-gray-400 mt-1">{{ item.color }}</p>
+                        <p v-if="item.color || item.size" class="text-xs text-gray-400 mt-1">
+                            <span v-if="item.color">{{ item.color }}</span>
+                            <span v-if="item.color && item.size"> | </span>
+                            <span v-if="item.size">{{ item.size }}</span>
+                        </p>
                         <p class="text-xs text-gray-400 font-medium">Qty: {{ item.quantity }}</p>
                     </div>
                 </div>

@@ -80,7 +80,7 @@ import MyHeader from '../components/MyHeader.vue';
             return;
         }
         errorMessage.value = '';
-        cartStore.addToCart(product.value!);
+        cartStore.addToCart(product.value!, selectedColor.value, selectedSize.value ?? undefined);
     };
 
     const randomProducts = computed(() => {
