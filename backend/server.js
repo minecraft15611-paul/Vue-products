@@ -39,6 +39,7 @@ const productSchema = new mongoose.Schema({
     title: String,
     img: String,
     price: Number,
+    stock: Number,
   // 增加陣列型態支援
 colors: [
     {
@@ -50,7 +51,7 @@ colors: [
     description: String,
     material: String
 });
-
+ 
 const Product = mongoose.model('Product', productSchema);
 
 // 1. 中間件設定
@@ -110,14 +111,3 @@ app.post('/api/products', async (req, res) => {
     console.log(`後端伺服器已啟動，正在監聽 Port: ${PORT}`);
     });
 
-    mongoose.connection.once('open', async () => {
-  try {
-    const result = await Product.updateMany(
-      { stock: { $exists: false } }, // 找出所有還沒有 stock 屬性的商品
-      { $set: { stock: 10 } }        // 預設給它們 10 個庫存
-    );
-    console.log(`成功更新了 ${result.modifiedCount} 筆商品的庫存！`);
-  } catch (err) {
-    console.error("更新庫存失敗:", err);
-  }
-});
