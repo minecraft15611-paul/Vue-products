@@ -17,9 +17,10 @@ const initialItem = () => ({
     name: "",
     title: "New Arrival",
     price: 0,
+    stock: 10, // ✨ 新增預設庫存
     img: "https://picsum.photos/seed/default/400/300",
     colors: [] as { name: string; hex: string }[],
-    sizes: [] as string[],
+    sizes: ["S", "M", "L", "XL"] as string[], // ✨ 預設勾選全尺寸
     description: "",
     material: "100% Cotton"
 });
@@ -90,7 +91,6 @@ const removeColor = (index: number) => {
 </script>
 
 <template>
-
     <div class="min-h-screen bg-gray-100 p-3 md:p-6 font-sans">
         <div class="max-w-7xl mx-auto">
             <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-6 text-center">LemonTree 管理中心</h2>
@@ -119,10 +119,25 @@ const removeColor = (index: number) => {
                                 </select>
                             </div>
 
+                            <div class="grid grid-cols-2 gap-3 mt-4">
+                                <div class="group">
+                                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">現有庫存量</span>
+                                    <input v-model.number="newItem.stock" type="number" class="mt-1 block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-orange-500 transition outline-none" placeholder="數量">
+                                </div>
+                                <div class="group">
+                                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">供應尺寸</span>
+                                    <div class="flex gap-2 mt-2 flex-wrap">
+                                        <label v-for="s in ['S', 'M', 'L', 'XL']" :key="s" class="flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-lg text-[10px] cursor-pointer hover:bg-blue-50 transition">
+                                            <input type="checkbox" :value="s" v-model="newItem.sizes" class="w-3 h-3"> {{ s }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-300">
                                 <span class="text-xs font-bold text-gray-500 uppercase">規格配置</span>
                                 <div class="flex gap-2 mt-2">
-                                    <input v-model="tempColor.name" type="text" placeholder="顏色" class="border rounded-lg flex-1 p-2 text-sm">
+                                    <input v-model="tempColor.name" type="text" placeholder="顏色名稱" class="border rounded-lg flex-1 p-2 text-sm">
                                     <input v-model="tempColor.hex" type="color" class="h-10 w-10 border rounded-lg cursor-pointer bg-white p-1">
                                     <button @click="addColor" type="button" class="bg-gray-900 text-white px-3 rounded-lg text-sm font-bold">加</button>
                                 </div>
@@ -157,13 +172,12 @@ const removeColor = (index: number) => {
                         </div>
 
                         <div class="overflow-x-auto w-full">
-                            <table class="w-full text-left min-w-[600px]">
+                            <table class="w-full text-left min-w-[700px]">
                                 <thead class="bg-gray-50 text-gray-400 text-[11px] uppercase tracking-widest">
                                     <tr>
                                         <th class="px-6 py-4 font-bold">商品詳情</th>
-                                        <th class="px-6 py-4 font-bold hidden md:table-cell text-center">分類</th>
                                         <th class="px-6 py-4 font-bold text-center">單價</th>
-                                        <th class="px-6 py-4 font-bold text-center">功能操作</th>
+                                        <th class="px-6 py-4 font-bold text-center">庫存與規格</th> <th class="px-6 py-4 font-bold text-center">功能操作</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100">
@@ -173,12 +187,26 @@ const removeColor = (index: number) => {
                                                 <img :src="p.img" class="w-14 h-14 object-cover rounded-xl border border-gray-200 shadow-sm">
                                                 <div class="max-w-[180px]">
                                                     <div class="font-extrabold text-gray-800 text-sm truncate">{{ p.name }}</div>
-                                                    <div class="text-[10px] text-gray-400 font-medium md:hidden">{{ p.category }}</div>
+                                                    <div class="text-[10px] text-gray-400 font-medium">{{ p.category }}</div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4 text-center text-gray-500 text-xs font-medium hidden md:table-cell">{{ p.category }}</td>
                                         <td class="px-6 py-4 text-center font-mono font-bold text-blue-600 text-sm">${{ p.price }}</td>
+                                        
+                                        <td class="px-6 py-4">
+                                            <div class="flex flex-col items-center gap-1.5">
+                                                <span :class="p.stock <= 5 ? 'text-red-500 font-black' : 'text-gray-700 font-bold'" class="text-xs">
+                                                    {{ p.stock <= 5 ? '⚠️' : '📦' }} {{ p.stock || 0 }}
+                                                </span>
+                                                <div class="flex gap-1 flex-wrap justify-center">
+                                                    <span v-for="s in p.sizes" :key="s" class="text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded border border-gray-200">{{ s }}</span>
+                                                </div>
+                                                <div class="flex gap-1">
+                                                    <span v-for="(c, idx) in p.colors" :key="idx" :style="{ backgroundColor: c.hex }" class="w-2 h-2 rounded-full border border-gray-300" :title="c.name"></span>
+                                                </div>
+                                            </div>
+                                        </td>
+
                                         <td class="px-6 py-4">
                                             <div class="flex justify-center items-center gap-4">
                                                 <button @click="editProduct(p)" class="text-blue-500 hover:text-blue-700 font-extrabold text-xs bg-blue-50 px-4 py-2 rounded-xl transition-all">修改</button>
@@ -188,10 +216,6 @@ const removeColor = (index: number) => {
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>
-                        
-                        <div class="md:hidden text-center py-3 text-gray-400 text-[10px] bg-gray-50 italic border-t border-gray-100">
-                            💡 提示：若畫面不完整可左右滑動表格
                         </div>
                     </div>
                 </div>
