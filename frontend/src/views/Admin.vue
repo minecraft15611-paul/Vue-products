@@ -91,6 +91,27 @@ const removeColor = (index: number) => {
 
 //
 const currentTab = ref('products'); // 預設停留在商品管理，方便你繼續測試功能
+const orders = ref([]); // 存放訂單資料
+
+// 抓取訂單
+const fetchOrders = async () => {
+    try {
+        const res = await axios.get('https://lemontree-api.onrender.com/api/orders');
+        orders.value = res.data;
+    } catch (err) {
+        console.error("抓取訂單失敗", err);
+    }
+};
+
+// 更新訂單狀態
+const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+        await axios.put(`https://lemontree-api.onrender.com/api/orders/${orderId}`, { status: newStatus });
+        fetchOrders(); // 重新整理列表
+    } catch (err) {
+        alert("更新失敗");
+    }
+};
 
 // 儀表板所需的簡單統計資料 (未來可對接後端 API)
 const stats = ref({
@@ -117,7 +138,7 @@ const stats = ref({
                     class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
                     📦 商品管理
                 </button>
-                <button @click="currentTab = 'orders'" 
+                <button @click="currentTab = 'orders'; fetchOrders()" 
                     :class="currentTab === 'orders' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
                     class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
                     📜 訂單處理
@@ -272,10 +293,43 @@ const stats = ref({
 </div>
 
             <div v-if="currentTab === 'orders'" class="animate-fadeIn">
-                <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden text-center py-20">
-                    <div class="text-5xl mb-4">📝</div>
-                    <h3 class="text-xl font-bold text-gray-700">訂單管理系統</h3>
-                    <p class="text-gray-400 mt-2">目前尚無進行中的訂單。準備好建立後端訂單 API 了嗎？</p>
+                <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left min-w-[700px]">
+                            <thead class="bg-gray-50 text-gray-400 text-[11px] uppercase tracking-widest border-b">
+                                <tr>
+                                    <th class="px-6 py-4 font-bold">訂單編號/時間</th>
+                                    <th class="px-6 py-4 font-bold">客戶資訊</th>
+                                    <th class="px-6 py-4 font-bold text-center">總額</th>
+                                    <th class="px-6 py-4 font-bold text-center">狀態/操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="order in orders" :key="order._id" class="hover:bg-gray-50">
+                                    <td class="px-6 py-4">
+                                        <div class="text-xs font-bold text-gray-800">{{ order.orderId }}</div>
+                                        <div class="text-[10px] text-gray-400">{{ new Date(order.createdAt).toLocaleString() }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-xs font-bold">{{ order.customerName }}</div>
+                                        <div class="text-[10px] text-gray-500">{{ order.phone }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center text-blue-600 font-mono font-bold">${{ order.totalAmount }}</td>
+                                    <td class="px-6 py-4 text-center">
+                                        <select 
+                                            @change="updateOrderStatus(order._id, $event.target.value)"
+                                            :class="order.status === '待付款' ? 'text-orange-500' : 'text-green-600'"
+                                            class="bg-gray-50 border border-gray-200 rounded-lg text-xs p-1 outline-none">
+                                            <option>待付款</option>
+                                            <option>已付款</option>
+                                            <option>已出貨</option>
+                                            <option>已取消</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

@@ -54,10 +54,69 @@ colors: [
  
 const Product = mongoose.model('Product', productSchema);
 
-// 1. 中間件設定
- 
-app.use(express.json()); // 解析前端傳來的 JSON 資料
+// 定義訂單模型 (Order Schema)
+const orderSchema = new mongoose.Schema({
+    orderId: { type: String, required: true }, 
+    customerName: String,
+    email: String,
+    address: String,
+    phone: String,
+    items: [
+        {
+            id: Number,
+            name: String,
+            price: Number,
+            quantity: Number,
+            selectedSize: String,
+            selectedColor: { name: String, hex: String }
+        }
+    ],
+    totalAmount: Number,
+    status: { type: String, default: '待付款' }, 
+    createdAt: { type: Date, default: Date.now }
+});
 
+const Order = mongoose.model('Order', orderSchema);
+
+// ── Middleware (must come before ALL routes) ────────────────────────────────────────
+app.use(express.json()); // parse incoming JSON bodies
+
+// --- 訂單路由設定 ---
+
+// 1. [POST] 接收前台訂單
+app.post('/api/orders', async (req, res) => {
+    try {
+        const newOrder = new Order(req.body);
+        const savedOrder = await newOrder.save();
+        res.status(201).json(savedOrder);
+    } catch (err) {
+        res.status(400).json({ message: "下單失敗", error: err });
+    }
+});
+
+// 2. [GET] 獲取所有訂單 (後台使用)
+app.get('/api/orders', async (req, res) => {
+    try {
+        const orders = await Order.find().sort({ createdAt: -1 }); 
+        res.json(orders);
+    } catch (err) {
+        res.status(500).json({ message: "抓取訂單失敗", error: err });
+    }
+});
+
+// 3. [PUT] 更新訂單狀態 (後台更換：已付款/已出貨)
+app.put('/api/orders/:id', async (req, res) => {
+    try {
+        const updatedOrder = await Order.findByIdAndUpdate(
+            req.params.id,
+            { status: req.body.status },
+            { new: true }
+        );
+        res.json(updatedOrder);
+    } catch (err) {
+        res.status(400).json({ message: "更新狀態失敗", error: err });
+    }
+});
 
 // 3. 路由設定 (Routes)
 // [GET] 獲取所有商品
@@ -110,5 +169,3 @@ app.post('/api/products', async (req, res) => {
     app.listen(PORT, () => {
     console.log(`後端伺服器已啟動，正在監聽 Port: ${PORT}`);
     });
-
-

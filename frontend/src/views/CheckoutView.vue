@@ -9,6 +9,7 @@
     import { useDiscount } from '../composables/useDiscount';
     import LoginView from './LoginView.vue';
     import { useRouter } from 'vue-router';
+    import axios from 'axios';
 
     const formErrors = ref<Record<string, string>>({});
 
@@ -293,6 +294,24 @@
 
         // ── Save snapshot to localStorage so SuccessView can log + clear ────────
         localStorage.setItem('last_order_snapshot', JSON.stringify(orderSnapshot));
+
+        // ── POST order to backend so Admin can see it ──────────────────────────
+        try {
+            await axios.post('https://lemontree-api.onrender.com/api/orders', {
+                orderId:      orderNumber,
+                customerName: `${checkoutForm.shipping.firstName} ${checkoutForm.shipping.lastName}`,
+                email:        checkoutForm.email,
+                address:      checkoutForm.shipping.address,
+                phone:        checkoutForm.shipping.phone,
+                items:        orderSnapshot.cart,
+                totalAmount:  orderSnapshot.pricing.total,
+                status:       '待付款',
+            });
+        } catch (err) {
+            // Non-blocking: order snapshot is already in localStorage.
+            // Log the error but don't stop the user from reaching SuccessView.
+            console.error('訂單儲存失敗:', err);
+        }
 
         // ── Navigate to SuccessView (cart intentionally NOT cleared yet) ────────
         router.push({ name: 'SuccessView', state: { orderNumber } });
