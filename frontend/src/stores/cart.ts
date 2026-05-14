@@ -38,7 +38,7 @@ export const useCartStore = defineStore('cart', () => {
             throw new Error(`Server error：${response.status}`);
             }
             const data = await response.json();
-            products.value = data.map((item: Product) => ({ ...item, stock: 5 }));
+            products.value = data;
         } catch (error) {
             apiError.value = "Product load failed. Retry later."; 
             console.error('data fetching failed', error);
