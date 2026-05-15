@@ -224,10 +224,11 @@ app.post('/api/products', requireAdmin, async (req, res) => {
 app.put('/api/products/:id', requireAdmin, async (req, res) => {
     try {
         const updatedProduct = await Product.findOneAndUpdate(
-            { id: req.params.id },
+            { id: Number(req.params.id) },
             req.body,
             { new: true }
         );
+        if (!updatedProduct) return res.status(404).json({ message: "找不到商品" });
         res.json(updatedProduct);
     } catch (err) {
         res.status(400).json({ message: "更新失敗", error: err });
@@ -237,7 +238,7 @@ app.put('/api/products/:id', requireAdmin, async (req, res) => {
 // [DELETE] 刪除指定商品 (後台 — protected)
 app.delete('/api/products/:id', requireAdmin, async (req, res) => {
     try {
-        const deletedProduct = await Product.findOneAndDelete({ id: req.params.id });
+        const deletedProduct = await Product.findOneAndDelete({ id: Number(req.params.id) });
         if (!deletedProduct) return res.status(404).json({ message: "找不到商品" });
         res.json({ message: "刪除成功", product: deletedProduct });
     } catch (err) {
