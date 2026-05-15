@@ -83,11 +83,21 @@ app.use(express.json()); // parse incoming JSON bodies
 
 // --- 訂單路由設定 ---
 
-// 1. [POST] 接收前台訂單
+// 1. [POST] 接收前台訂單，並扣除庫存
 app.post('/api/orders', async (req, res) => {
     try {
+        // Step 1: Save the order
         const newOrder = new Order(req.body);
         const savedOrder = await newOrder.save();
+
+        // Step 2: Deduct stock for each item
+        for (const item of req.body.items) {
+            await Product.findOneAndUpdate(
+                { id: item.id },
+                { $inc: { stock: -item.quantity } }
+            );
+        }
+
         res.status(201).json(savedOrder);
     } catch (err) {
         res.status(400).json({ message: "下單失敗", error: err });
@@ -178,26 +188,7 @@ app.delete('/api/orders/:id', async (req, res) => {
     }
 });
 
-// 概念代碼
-app.post('/api/orders', async (req, res) => {
-    try {
-        // 1. 先存訂單
-        const newOrder = new Order(req.body);
-        await newOrder.save();
 
-        // 2. 🌟 重點：扣庫存
-        for (const item of req.body.items) {
-            await Product.findOneAndUpdate(
-                { id: item.id }, // 找到這件商品
-                { $inc: { stock: -item.quantity } } // 將 stock 減掉購買數量
-            );
-        }
-        
-        res.status(201).json({ message: "下單成功並已扣除庫存" });
-    } catch (err) {
-        res.status(400).json({ message: "下單失敗" });
-    }
-});
 
 // 4. 啟動伺服器
     app.listen(PORT, () => {
