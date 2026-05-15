@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useCartStore } from '../stores/cart';
 import axios from 'axios';
 
@@ -11,11 +11,16 @@ const isAuthenticated = ref(false); // 🌟 驗證狀態
 const adminKey = ref(""); // 🌟 使用者輸入的金鑰
 const REAL_KEY = "123"; // 🌟 你預設的管理員密碼 (可自行修改)
 
-const login = () => {
-    if (adminKey.value === REAL_KEY) {
+const login = async () => {
+  try {
+    const res = await axios.post('https://lemontree-api.onrender.com/api/admin/login', {
+        password: adminKey.value
+    });
+        const token = res.data.token;
+        sessionStorage.setItem('admin_token', token); // store JWT, not just 'true'
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         isAuthenticated.value = true;
-        sessionStorage.setItem('admin_auth', 'true'); // 存入 session，重新整理才不用重輸
-    } else {
+    } catch {
         alert("金鑰錯誤，請重新輸入");
         adminKey.value = "";
     }
@@ -24,15 +29,17 @@ const login = () => {
 //
 const logout = () => {
     if (confirm("確定要登出管理系統嗎？")) {
-        isAuthenticated.value = false; // 將驗證狀態設為偽
-        sessionStorage.removeItem('admin_auth'); // 清除 Session 紀錄
-        alert("已成功登出");
-    }
+    sessionStorage.removeItem('admin_token');
+    delete axios.defaults.headers.common['Authorization'];
+    isAuthenticated.value = false;
+  }
 };
 
 // 檢查是否曾經登入過
 onMounted(() => {
-    if (sessionStorage.getItem('admin_auth') === 'true') {
+    const token = sessionStorage.getItem('admin_token');
+    if (token) {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         isAuthenticated.value = true;
     }
     cartStore.fetchProducts();
@@ -60,7 +67,11 @@ const tempColor = ref({ name: '', hex: '#000000' });
 // 進入編輯模式：將現有商品資料填入表單
 const editProduct = (product: any) => {
     isEditMode.value = true;
-    newItem.value = { ...product }; // 使用展開運算子進行淺拷貝，避免直接更動 Store 資料
+    newItem.value = {
+        ...product,
+        colors: [...product.colors.map(c => ({ ...c }))],
+        sizes: [...product.sizes]
+     }; 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
  
@@ -121,7 +132,6 @@ const removeColor = (index: number) => {
 //
 const currentTab = ref('products'); // 預設停留在商品管理，方便你繼續測試功能
 
-const orders = ref<Order[]>([]);
 interface Order {
   _id: string
   orderId: string
@@ -141,6 +151,7 @@ interface Order {
     selectedColor: { name: string; hex: string }
   }[]
 }
+const orders = ref<Order[]>([]);
 
 // 抓取訂單
 const fetchOrders = async () => {
@@ -181,10 +192,26 @@ const deleteOrder = async (orderId: string) => {
 };
 
 // 儀表板所需的簡單統計資料 (未來可對接後端 API)
-const stats = ref({
-    todayRevenue: 1250,
-    orderCount: 8,
-    lowStockCount: 0
+const dynamicStats = computed(() => {
+    // 1. 計算今日營收 (篩選出今天的訂單並加總 totalAmount)
+    const today = new Date().toLocaleDateString();
+    const todayRevenue = orders.value
+        .filter(order => new Date(order.createdAt).toLocaleDateString() === today)
+        .reduce((sum, order) => sum + order.totalAmount, 0);
+
+    // 2. 今日新增訂單數
+    const orderCount = orders.value.filter(
+        order => new Date(order.createdAt).toLocaleDateString() === today
+    ).length;
+
+    // 3. 庫存警示 (直接延用你原本在 template 裡的邏輯，但統一管理)
+    const lowStockCount = cartStore.products.filter(p => p.stock <= 5).length;
+
+    return {
+        todayRevenue,
+        orderCount,
+        lowStockCount
+    };
 });
 
 </script>
@@ -212,43 +239,40 @@ const stats = ref({
                 </button>
             </div>
             <div class="mt-auto pt-6 border-t border-gray-100">
-    <router-link 
-        to="/" 
-        class="flex items-center gap-2 px-4 py-3 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all group"
-    >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-        <span class="font-medium">返回網站首頁</span>
-    </router-link>
-    
-    <button @click="logout" class="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-600 hover:bg-red-50 transition-all rounded-xl">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-        </svg>
-        <span class="text-sm font-medium">退出管理系統</span>
-    </button>
-</div>
+                <router-link 
+                    to="/" 
+                    class="flex items-center gap-2 px-4 py-3 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all group"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    <span class="font-medium">返回網站首頁</span>
+                </router-link>
+                
+                <button @click="logout" class="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-600 hover:bg-red-50 transition-all rounded-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span class="text-sm font-medium">退出管理系統</span>
+                </button>
+            </div>
 
             <div v-if="currentTab === 'dashboard'" class="animate-fadeIn">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">今日營收</div>
-                        <div class="text-3xl font-black text-gray-800 mt-1">${{ stats.todayRevenue }}</div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">新增訂單</div>
-                        <div class="text-3xl font-black text-blue-600 mt-1">{{ stats.orderCount }} 筆</div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">庫存警示</div>
-                        <div class="text-3xl font-black text-red-500 mt-1">{{ cartStore.products.filter(p => p.stock <= 5).length }} 項</div>
-                    </div>
-                </div>
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-400 italic">
-                    數據視覺化圖表開發中...
-                </div>
-            </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">今日營收</div>
+            <div class="text-3xl font-black text-gray-800 mt-1">${{ dynamicStats.todayRevenue }}</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">新增訂單</div>
+            <div class="text-3xl font-black text-blue-600 mt-1">{{ dynamicStats.orderCount }} 筆</div>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">庫存警示</div>
+            <div class="text-3xl font-black text-red-500 mt-1">{{ dynamicStats.lowStockCount }} 項</div>
+        </div>
+    </div>
+    </div>
 
             <div v-if="currentTab === 'products'" class="animate-fadeIn">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
