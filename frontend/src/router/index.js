@@ -75,7 +75,7 @@ const router = createRouter({
         if (savedPosition) {
             return savedPosition; // restore position on back/forward
         }
-        return { top: 0 }; // scroll to top on every new navigation
+        return { top: 0, behavior: 'smooth' }; // scroll to top on every new navigation
     }
 });
 

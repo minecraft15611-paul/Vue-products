@@ -32,10 +32,10 @@ import MyHeader from '../components/MyHeader.vue';
         }
     });
 
-    const productId = Number(route.params.id);
+    const productId = computed(() => Number(route.params.id));
 
     const product = computed(() => {
-        return cartStore.products.find(item => item.id === productId);
+        return cartStore.products.find(item => item.id === productId.value);
     });
 
     // ---- Use watch so selectedColor updates after async fetch ----
@@ -45,6 +45,15 @@ import MyHeader from '../components/MyHeader.vue';
             selectedColor.value = p.colors?.[0]?.name ?? '';
         }
     }, { immediate: true });
+
+    // ---- Reset selections when navigating to a different product ----
+    watch(
+        () => route.params.id,
+        () => {
+            selectedSize.value = null;
+            selectedColor.value = '';
+        }
+    );
 
     const selectedSize = ref<string | null>(null);
 
@@ -263,6 +272,7 @@ import MyHeader from '../components/MyHeader.vue';
                 v-for="item in randomProducts" 
                 :key="item.id" 
                 class="group cursor-pointer"
+                @click="router.push(`/ProductDetail/${item.id}`)"
             >
                 <div class="aspect-[3/4] overflow-hidden bg-[#f9f9f9] mb-4">
                     <img 
