@@ -6,8 +6,37 @@ import axios from 'axios';
 const cartStore = useCartStore();
 const isEditMode = ref(false); // 判斷目前是新增還是修改
 
+//
+const isAuthenticated = ref(false); // 🌟 驗證狀態
+const adminKey = ref(""); // 🌟 使用者輸入的金鑰
+const REAL_KEY = "123"; // 🌟 你預設的管理員密碼 (可自行修改)
+
+const login = () => {
+    if (adminKey.value === REAL_KEY) {
+        isAuthenticated.value = true;
+        sessionStorage.setItem('admin_auth', 'true'); // 存入 session，重新整理才不用重輸
+    } else {
+        alert("金鑰錯誤，請重新輸入");
+        adminKey.value = "";
+    }
+};
+
+//
+const logout = () => {
+    if (confirm("確定要登出管理系統嗎？")) {
+        isAuthenticated.value = false; // 將驗證狀態設為偽
+        sessionStorage.removeItem('admin_auth'); // 清除 Session 紀錄
+        alert("已成功登出");
+    }
+};
+
+// 檢查是否曾經登入過
 onMounted(() => {
+    if (sessionStorage.getItem('admin_auth') === 'true') {
+        isAuthenticated.value = true;
+    }
     cartStore.fetchProducts();
+    fetchOrders();
 });
 
 // 初始表單資料模板
@@ -161,7 +190,7 @@ const stats = ref({
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-100 p-3 md:p-6 font-sans">
+    <div v-if="isAuthenticated" class="min-h-screen bg-gray-100 p-3 md:p-6 font-sans">
         <div class="max-w-7xl mx-auto">
             <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-6 text-center">LemonTree 管理後台</h2>
 
@@ -192,6 +221,13 @@ const stats = ref({
         </svg>
         <span class="font-medium">返回網站首頁</span>
     </router-link>
+    
+    <button @click="logout" class="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-600 hover:bg-red-50 transition-all rounded-xl">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        <span class="text-sm font-medium">退出管理系統</span>
+    </button>
 </div>
 
             <div v-if="currentTab === 'dashboard'" class="animate-fadeIn">
@@ -363,7 +399,7 @@ const stats = ref({
                         <td class="px-6 py-4">
                             <div class="flex flex-col gap-2">
                                 <div v-for="item in order.items" :key="item.id" class="flex items-center gap-2">
-                                    <img :src="item.img" class="w-8 h-8 object-cover rounded border border-gray-100" />
+                                    <img :src="cartStore.products.find(p => p.id === item.id)?.img" class="w-8 h-8 object-cover rounded border border-gray-100" />
                                     <span class="text-[10px] text-gray-600 truncate max-w-[100px]">
                                         {{ item.name }} x{{ item.quantity }}
                                     </span>
@@ -402,6 +438,30 @@ const stats = ref({
     </div>
 </div>
 
+        </div>
+    </div>
+
+    <div v-else class="min-h-screen bg-green-50 flex items-center justify-center p-4">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md text-center">
+            <h2 class="text-3xl font-black text-green-600 mb-2">LemonTree</h2>
+            <p class="text-gray-400 text-sm mb-8 font-bold">管理者權限驗證</p>
+            
+            <input 
+                v-model="adminKey" 
+                type="password" 
+                placeholder="請輸入管理員金鑰"
+                @keyup.enter="login"
+                class="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl mb-6 outline-none focus:border-green-400 transition-all text-center tracking-widest font-mono"
+            />
+            
+            <button 
+                @click="login"
+                class="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-bold shadow-lg shadow-green-200 transition-all active:scale-95"
+            >
+                進入管理系統
+            </button>
+            
+            <router-link to="/" class="block mt-6 text-gray-400 text-xs hover:underline italic">返回網站首頁</router-link>
         </div>
     </div>
 </template>
