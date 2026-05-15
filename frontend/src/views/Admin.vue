@@ -48,7 +48,6 @@ onMounted(() => {
 
 // 初始表單資料模板
 const initialItem = () => ({
-    id: Date.now(),
     category: "Men's Apparel",
     name: "",
     title: "New Arrival",

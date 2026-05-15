@@ -212,7 +212,11 @@ app.get('/api/products', async (req, res) => {
 // [POST] 新增商品 (後台 — protected)
 app.post('/api/products', requireAdmin, async (req, res) => {
     try {
-        const newProduct = new Product(req.body);
+        // Find the product with the highest id, then add 1
+        const lastProduct = await Product.findOne().sort({ id: -1 });
+        const nextId = lastProduct ? lastProduct.id + 1 : 1;
+
+        const newProduct = new Product({ ...req.body, id: nextId });
         const savedProduct = await newProduct.save();
         res.status(201).json(savedProduct);
     } catch (err) {
