@@ -91,8 +91,27 @@ const removeColor = (index: number) => {
 
 //
 const currentTab = ref('products'); // 預設停留在商品管理，方便你繼續測試功能
-const orders = ref([]); // 存放訂單資料
 
+const orders = ref<Order[]>([]);
+interface Order {
+  _id: string
+  orderId: string
+  customerName: string
+  email: string
+  phone: string
+  address: string
+  totalAmount: number
+  status: string
+  createdAt: string
+  items: {
+    id: number
+    name: string
+    price: number
+    quantity: number
+    selectedSize: string
+    selectedColor: { name: string; hex: string }
+  }[]
+}
 // 抓取訂單
 const fetchOrders = async () => {
     try {
@@ -110,6 +129,24 @@ const updateOrderStatus = async (orderId: string, newStatus: string) => {
         fetchOrders(); // 重新整理列表
     } catch (err) {
         alert("更新失敗");
+    }
+};
+
+
+const deleteOrder = async (orderId: string) => {
+    if (!orderId) {
+        alert("找不到訂單 ID，無法刪除");
+        return;
+    }
+    if (!confirm("確定要永久刪除這筆訂單嗎？此動作無法復原。")) return;
+    
+    try {
+        await axios.delete(`https://lemontree-api.onrender.com/api/orders/${orderId}`);
+        alert("訂單已刪除");
+        fetchOrders(); 
+    } catch (err) {
+        console.error("刪除失敗:", err);
+        alert("系統錯誤，無法刪除");
     }
 };
 
@@ -144,6 +181,17 @@ const stats = ref({
                     📜 訂單處理
                 </button>
             </div>
+            <div class="mt-auto pt-6 border-t border-gray-100">
+    <router-link 
+        to="/" 
+        class="flex items-center gap-2 px-4 py-3 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all group"
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+        <span class="font-medium">返回網站首頁</span>
+    </router-link>
+</div>
 
             <div v-if="currentTab === 'dashboard'" class="animate-fadeIn">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -325,6 +373,15 @@ const stats = ref({
                                             <option>已出貨</option>
                                             <option>已取消</option>
                                         </select>
+                                        <button 
+                @click="deleteOrder(order._id)" 
+                class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                title="刪除訂單"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
                                     </td>
                                 </tr>
                             </tbody>

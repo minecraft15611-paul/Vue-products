@@ -165,6 +165,19 @@ app.post('/api/products', async (req, res) => {
     }
     });
 
+    // [DELETE] 刪除指定訂單
+app.delete('/api/orders/:id', async (req, res) => {
+    try {
+        const deletedOrder = await Order.findByIdAndDelete(req.params.id);
+        if (!deletedOrder) {
+            return res.status(404).json({ message: "找不到該訂單" });
+        }
+        res.json({ message: "訂單已成功刪除" });
+    } catch (err) {
+        res.status(500).json({ message: "刪除失敗", error: err });
+    }
+});
+
 // 4. 啟動伺服器
     app.listen(PORT, () => {
     console.log(`後端伺服器已啟動，正在監聽 Port: ${PORT}`);
