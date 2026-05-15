@@ -75,18 +75,29 @@ const orderSchema = new mongoose.Schema({
 
 const Order = mongoose.model('Order', orderSchema);
 
-// ── Admin Auth ──────────────────────────────────────────────────────────────────────
-
-// [POST] Admin login — validates password and returns JWT
-app.post('/api/admin/login', async (req, res) => {
-    const { password } = req.body;
-    const valid = await bcrypt.compare(password, process.env.ADMIN_PASSWORD_HASH);
-    if (!valid) return res.status(401).json({ error: 'Unauthorized' });
-    const token = jwt.sign({ role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '8h' });
-    res.json({ token });
+// ── Admin Schema ────────────────────────────────────────────────────────────────────
+const adminSchema = new mongoose.Schema({
+    passwordHash: { type: String, required: true }
 });
 
-// Middleware — protect admin-only routes
+const Admin = mongoose.model('Admin', adminSchema);
+
+// Helper: get admin record, or create one from .env hash on first run
+const getAdmin = async () => {
+    let admin = await Admin.findOne();
+    if (!admin) {
+        // First time: seed from ADMIN_PASSWORD_HASH in .env
+        const hash = process.env.ADMIN_PASSWORD_HASH;
+        if (!hash) throw new Error('ADMIN_PASSWORD_HASH not set in .env');
+        admin = await Admin.create({ passwordHash: hash });
+        console.log('Admin record created in MongoDB');
+    }
+    return admin;
+};
+
+// ── Admin Auth ──────────────────────────────────────────────────────────────────────
+
+// Middleware — protect admin-only routes (must be defined before any route that uses it)
 const requireAdmin = (req, res, next) => {
     const auth = req.headers.authorization;
     if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'No token' });
@@ -97,6 +108,38 @@ const requireAdmin = (req, res, next) => {
         res.status(401).json({ error: 'Invalid or expired token' });
     }
 };
+
+// [POST] Admin login — validates password against MongoDB and returns JWT
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { password } = req.body;
+        const admin = await getAdmin();
+        const valid = await bcrypt.compare(password, admin.passwordHash);
+        if (!valid) return res.status(401).json({ error: 'Unauthorized' });
+        const token = jwt.sign({ role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '8h' });
+        res.json({ token });
+    } catch (err) {
+        res.status(500).json({ error: '伺服器錯誤', detail: err.message });
+    }
+});
+
+// [PUT] Change admin password — updates hash in MongoDB permanently
+app.put('/api/admin/change-password', requireAdmin, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const admin = await getAdmin();
+
+        const valid = await bcrypt.compare(currentPassword, admin.passwordHash);
+        if (!valid) return res.status(401).json({ error: '目前密碼錯誤' });
+
+        admin.passwordHash = await bcrypt.hash(newPassword, 10);
+        await admin.save();
+
+        res.json({ message: '密碼已成功更新' });
+    } catch (err) {
+        res.status(500).json({ error: '伺服器錯誤', detail: err.message });
+    }
+});
 
 // ── 訂單路由 ────────────────────────────────────────────────────────────────────────
 

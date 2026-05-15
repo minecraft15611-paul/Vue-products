@@ -214,6 +214,33 @@ const dynamicStats = computed(() => {
     };
 });
 
+const passwordForm = ref({ current: '', new: '', confirm: '' });
+
+const changePassword = async () => {
+    if (!passwordForm.value.current || !passwordForm.value.new) {
+        alert("請填寫所有欄位");
+        return;
+    }
+    if (passwordForm.value.new !== passwordForm.value.confirm) {
+        alert("新密碼與確認密碼不一致");
+        return;
+    }
+    if (passwordForm.value.new.length < 4) {
+        alert("新密碼至少需要4個字元");
+        return;
+    }
+    try {
+        await axios.put('https://lemontree-api.onrender.com/api/admin/change-password', {
+            currentPassword: passwordForm.value.current,
+            newPassword: passwordForm.value.new
+        });
+        alert("密碼已成功更新！下次登入請使用新密碼。");
+        passwordForm.value = { current: '', new: '', confirm: '' };
+    } catch (err) {
+        alert("目前密碼錯誤，請重新輸入");
+    }
+};
+
 </script>
 
 <template>
@@ -255,24 +282,60 @@ const dynamicStats = computed(() => {
                     </svg>
                     <span class="text-sm font-medium">退出管理系統</span>
                 </button>
+                <button @click="currentTab = 'settings'" 
+    :class="currentTab === 'settings' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+    class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+    ⚙️ 設定
+</button>
             </div>
+            
 
             <div v-if="currentTab === 'dashboard'" class="animate-fadeIn">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">今日營收</div>
-            <div class="text-3xl font-black text-gray-800 mt-1">${{ dynamicStats.todayRevenue }}</div>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">新增訂單</div>
-            <div class="text-3xl font-black text-blue-600 mt-1">{{ dynamicStats.orderCount }} 筆</div>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">庫存警示</div>
-            <div class="text-3xl font-black text-red-500 mt-1">{{ dynamicStats.lowStockCount }} 項</div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">今日營收</div>
+                        <div class="text-3xl font-black text-gray-800 mt-1">${{ dynamicStats.todayRevenue }}</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">新增訂單</div>
+                        <div class="text-3xl font-black text-blue-600 mt-1">{{ dynamicStats.orderCount }} 筆</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">庫存警示</div>
+                        <div class="text-3xl font-black text-red-500 mt-1">{{ dynamicStats.lowStockCount }} 項</div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentTab === 'settings'" class="animate-fadeIn max-w-md mx-auto">
+    <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-200">
+        <h3 class="text-lg font-bold text-gray-700 mb-6">🔐 修改管理員密碼</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">目前密碼</label>
+                <input v-model="passwordForm.current" type="password"
+                    class="mt-1 block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="輸入目前密碼">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">新密碼</label>
+                <input v-model="passwordForm.new" type="password"
+                    class="mt-1 block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="輸入新密碼">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">確認新密碼</label>
+                <input v-model="passwordForm.confirm" type="password"
+                    class="mt-1 block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="再次輸入新密碼">
+            </div>
+            <button @click="changePassword"
+                class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm shadow-md active:scale-95 transition-all mt-2">
+                💾 儲存新密碼
+            </button>
         </div>
     </div>
-    </div>
+</div>
 
             <div v-if="currentTab === 'products'" class="animate-fadeIn">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
