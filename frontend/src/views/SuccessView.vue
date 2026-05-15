@@ -18,8 +18,8 @@ onMounted(() => {
         if (raw) {
             snapshot.value = JSON.parse(raw);
             console.log('📦 Order placed:', JSON.stringify(snapshot.value, null, 2));
-            localStorage.removeItem('last_order_snapshot');
         }
+        localStorage.setItem('fromCheckout', 'true'); // ✅ always restore flag
     } catch (e) {
         console.warn('Could not read order snapshot', e);
     }
@@ -56,6 +56,7 @@ const copyOrderNumber = () => {
 // ---- Continue Shopping ----
 const continueShopping = () => {
     // Clear the stored discount snapshot so it doesn't bleed into future orders
+    localStorage.removeItem('last_order_snapshot');
     localStorage.removeItem('last_order_discount');
     cartStore.goHome();
     router.push('/');
