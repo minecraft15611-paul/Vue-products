@@ -112,6 +112,7 @@ interface Order {
     selectedColor: { name: string; hex: string }
   }[]
 }
+
 // 抓取訂單
 const fetchOrders = async () => {
     try {
@@ -341,54 +342,65 @@ const stats = ref({
 </div>
 
             <div v-if="currentTab === 'orders'" class="animate-fadeIn">
-                <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left min-w-[700px]">
-                            <thead class="bg-gray-50 text-gray-400 text-[11px] uppercase tracking-widest border-b">
-                                <tr>
-                                    <th class="px-6 py-4 font-bold">訂單編號/時間</th>
-                                    <th class="px-6 py-4 font-bold">客戶資訊</th>
-                                    <th class="px-6 py-4 font-bold text-center">總額</th>
-                                    <th class="px-6 py-4 font-bold text-center">狀態/操作</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                <tr v-for="order in orders" :key="order._id" class="hover:bg-gray-50">
-                                    <td class="px-6 py-4">
-                                        <div class="text-xs font-bold text-gray-800">{{ order.orderId }}</div>
-                                        <div class="text-[10px] text-gray-400">{{ new Date(order.createdAt).toLocaleString() }}</div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-xs font-bold">{{ order.customerName }}</div>
-                                        <div class="text-[10px] text-gray-500">{{ order.phone }}</div>
-                                    </td>
-                                    <td class="px-6 py-4 text-center text-blue-600 font-mono font-bold">${{ order.totalAmount }}</td>
-                                    <td class="px-6 py-4 text-center">
-                                        <select 
-                                            @change="updateOrderStatus(order._id, $event.target.value)"
-                                            :class="order.status === '待付款' ? 'text-orange-500' : 'text-green-600'"
-                                            class="bg-gray-50 border border-gray-200 rounded-lg text-xs p-1 outline-none">
-                                            <option>待付款</option>
-                                            <option>已付款</option>
-                                            <option>已出貨</option>
-                                            <option>已取消</option>
-                                        </select>
-                                        <button 
-                @click="deleteOrder(order._id)" 
-                class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                title="刪除訂單"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-            </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left min-w-[800px]">
+                <thead class="bg-gray-50 text-gray-400 text-[11px] uppercase tracking-widest border-b">
+                    <tr>
+                        <th class="px-6 py-4 font-bold">訂單編號/時間</th>
+                        <th class="px-6 py-4 font-bold">購買商品</th>
+                        <th class="px-6 py-4 font-bold">客戶資訊</th>
+                        <th class="px-6 py-4 font-bold text-center">總額</th>
+                        <th class="px-6 py-4 font-bold text-center">狀態/操作</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <tr v-for="order in orders" :key="order._id" class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="text-xs font-bold text-gray-800">{{ order.orderId }}</div>
+                            <div class="text-[10px] text-gray-400">{{ new Date(order.createdAt).toLocaleString() }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-col gap-2">
+                                <div v-for="item in order.items" :key="item.id" class="flex items-center gap-2">
+                                    <img :src="item.img" class="w-8 h-8 object-cover rounded border border-gray-100" />
+                                    <span class="text-[10px] text-gray-600 truncate max-w-[100px]">
+                                        {{ item.name }} x{{ item.quantity }}
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-xs font-bold">{{ order.customerName }}</div>
+                            <div class="text-[10px] text-gray-500">{{ order.phone }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-center text-blue-600 font-mono font-bold text-sm">
+                            ${{ order.totalAmount }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-center gap-3">
+                                <select 
+                                    @change="updateOrderStatus(order._id, $event.target.value)"
+                                    :class="order.status === '待付款' ? 'text-orange-500' : 'text-green-600'"
+                                    class="bg-gray-50 border border-gray-200 rounded-lg text-xs p-1 outline-none focus:ring-2 focus:ring-green-100">
+                                    <option :selected="order.status === '待付款'">待付款</option>
+                                    <option :selected="order.status === '已付款'">已付款</option>
+                                    <option :selected="order.status === '已出貨'">已出貨</option>
+                                    <option :selected="order.status === '已取消'">已取消</option>
+                                </select>
+                                <button @click="deleteOrder(order._id)" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
         </div>
     </div>

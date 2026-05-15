@@ -178,6 +178,27 @@ app.delete('/api/orders/:id', async (req, res) => {
     }
 });
 
+// 概念代碼
+app.post('/api/orders', async (req, res) => {
+    try {
+        // 1. 先存訂單
+        const newOrder = new Order(req.body);
+        await newOrder.save();
+
+        // 2. 🌟 重點：扣庫存
+        for (const item of req.body.items) {
+            await Product.findOneAndUpdate(
+                { id: item.id }, // 找到這件商品
+                { $inc: { stock: -item.quantity } } // 將 stock 減掉購買數量
+            );
+        }
+        
+        res.status(201).json({ message: "下單成功並已扣除庫存" });
+    } catch (err) {
+        res.status(400).json({ message: "下單失敗" });
+    }
+});
+
 // 4. 啟動伺服器
     app.listen(PORT, () => {
     console.log(`後端伺服器已啟動，正在監聽 Port: ${PORT}`);
