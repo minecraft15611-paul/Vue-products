@@ -314,6 +314,8 @@
         }
 
         // ── Navigate to SuccessView (cart intentionally NOT cleared yet) ────────
+        // ── Navigate to SuccessView ────────
+        localStorage.setItem('fromCheckout', 'true');
         router.push({ name: 'SuccessView', state: { orderNumber } });
     }
 

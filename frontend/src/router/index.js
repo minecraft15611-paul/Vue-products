@@ -9,6 +9,7 @@ import LoginCallbackView from '../views/LoginCallbackView.vue';
 import SuccessView from '../views/SuccessView.vue';
 import Admin from '../views/Admin.vue';
 import NotFoundView from '../views/NotFoundView.vue';
+import { useCartStore } from '../stores/cart'; 
 
 
 const routes = [
@@ -51,7 +52,8 @@ const routes = [
     {
         path: '/SuccessView',
         name: 'SuccessView',
-        component: SuccessView
+        component: SuccessView,
+        meta: { fromCheckout: true }
     },
     {
         path: '/Admin',
@@ -80,18 +82,28 @@ const router = createRouter({
 //
 router.beforeEach((to, from, next) => {
     // 檢查是否前往結帳頁面
-    if (to.meta.requiresCart) {
+    if (to.meta.fromCheckout) {
+        const flag = localStorage.getItem('fromCheckout');
+        if (flag === 'true') {
+            localStorage.removeItem('fromCheckout'); // one-time use
+            next();
+        } else {
+            alert("無效的存取：請由正常結帳流程進入。");
+            next({ name: 'Home' });
+        }
+}
+
+     else if (to.meta.requiresCart) {
         // 1. 檢查來源：如果是手動輸入網址 (from.name 為空)，則踢回首頁
         if (!from.name) {
             alert("請透過購物車進入結帳頁面");
             return next({ name: 'Home' });
         }
 
-        // 2. 檢查狀態：檢查 localStorage 裡的購物車是否有商品
-        const cartData = JSON.parse(localStorage.getItem('cart') || '[]');
-        if (cartData.length === 0) {
+        const cartStore = useCartStore();  // ✅ consistent with CheckoutView
+        if (cartStore.cart.length === 0) {
             alert("購物車內尚無商品，請先選購");
-            return next({ name: 'ProductsList' }); // 導向商品列表
+            return next({ name: 'ProductsList' });
         }
 
         next(); // 檢查通過，放行
