@@ -64,6 +64,7 @@ const orderSchema = new mongoose.Schema({
             name: String,
             price: Number,
             quantity: Number,
+            img: String,
             selectedSize: String,
             selectedColor: String,
         }
@@ -73,6 +74,7 @@ const orderSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
+mongoose.deleteModel(/Order/);
 const Order = mongoose.model('Order', orderSchema);
 
 // ── Admin Schema ────────────────────────────────────────────────────────────────────
