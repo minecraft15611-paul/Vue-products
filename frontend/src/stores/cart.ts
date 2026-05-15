@@ -149,11 +149,13 @@ export const useCartStore = defineStore('cart', () => {
     const addToCart = (product: Product, selectedColor?: string, selectedSize?: string) => {
         if (product.stock > 0) {
             product.stock--;
-            const cartItem = cart.value.find((c) => c.id === product.id);
+            const cartItem = cart.value.find((c) =>
+                c.id === product.id &&
+                c.selectedColor === selectedColor &&
+                c.selectedSize === selectedSize
+            );
             if (cartItem) {
                 cartItem.quantity++;
-                if (selectedColor) cartItem.selectedColor = selectedColor;
-                if (selectedSize) cartItem.selectedSize = selectedSize;
             } else {
                 cart.value.push({ ...product, quantity: 1, selectedColor, selectedSize });
             }
@@ -167,7 +169,11 @@ export const useCartStore = defineStore('cart', () => {
 // ---- Remove a Single Item From Cart (by object) ----
 
     const removeItem = (item: CartItem) => {
-        const index = cart.value.findIndex((c) => c.id === item.id);
+        const index = cart.value.findIndex((c) =>
+            c.id === item.id &&
+            c.selectedColor === item.selectedColor &&
+            c.selectedSize === item.selectedSize
+        );
         if (index !== -1) {
             const product = products.value.find((p) => p.id === item.id);
             if (product) {
@@ -180,7 +186,11 @@ export const useCartStore = defineStore('cart', () => {
 // ---- Decrease Qty, Remove Item if Qty Reaches 0 ----
 
     const decreaseQty = (item: CartItem) => {
-        const cartItem = cart.value.find((c) => c.id === item.id);
+        const cartItem = cart.value.find((c) =>
+            c.id === item.id &&
+            c.selectedColor === item.selectedColor &&
+            c.selectedSize === item.selectedSize
+        );
         if (!cartItem) return;
         if (cartItem.quantity > 1) {
             cartItem.quantity--;
@@ -194,7 +204,11 @@ export const useCartStore = defineStore('cart', () => {
 // ---- Increase Qty ----
 
     const increaseQty = (item: CartItem) => {
-        const cartItem = cart.value.find((c) => c.id === item.id);
+        const cartItem = cart.value.find((c) =>
+            c.id === item.id &&
+            c.selectedColor === item.selectedColor &&
+            c.selectedSize === item.selectedSize
+        );
         if (!cartItem) return;
         const product = products.value.find((p) => p.id === item.id);
         if (product && product.stock > 0) {
