@@ -9,11 +9,10 @@ const isEditMode = ref(false); // 判斷目前是新增還是修改
 //
 const isAuthenticated = ref(false); // 🌟 驗證狀態
 const adminKey = ref(""); // 🌟 使用者輸入的金鑰
-const REAL_KEY = "123"; // 🌟 你預設的管理員密碼 (可自行修改)
 
 const login = async () => {
-  try {
-    const res = await axios.post('https://lemontree-api.onrender.com/api/admin/login', {
+    try {
+        const res = await axios.post('https://lemontree-api.onrender.com/api/admin/login', {
         password: adminKey.value
     });
         const token = res.data.token;

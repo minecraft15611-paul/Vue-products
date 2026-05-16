@@ -3,7 +3,7 @@ import { sendSignInLinkToEmail } from 'firebase/auth';
 
 export const sendLoginLink = async (email: string) => {
     const actionCodeSettings = {
-        url: '${import.meta.env.VITE_APP_URL}/login-callback',
+        url: `${import.meta.env.VITE_APP_URL}/login-callback`,
         handleCodeInApp: true,
     };
 
