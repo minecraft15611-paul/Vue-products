@@ -3,7 +3,6 @@
   import { ref } from 'vue';
 
   const cartStore = useCartStore();
-  const imageLoaded = ref<boolean>(false);
   const promoImageLoaded = ref<boolean>(false);
 
   const handleShopNow = (): void => {
@@ -18,16 +17,7 @@
 
 <template>
   <div class="banner-wrapper w-full overflow-hidden">
-
-    <div 
-      v-if="!imageLoaded" 
-      class="w-full h-[500px] bg-gray-200 animate-pulse flex items-center justify-center"
-    >
-      <span class="text-gray-400 tracking-widest text-sm">LOADING...</span>
-    </div>
-
     <img 
-      v-show="imageLoaded"
       class="banner-img w-full h-[500px] object-cover" 
       src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=800&auto=format&fit=crop" 
       srcset="
@@ -38,7 +28,6 @@
       "
       sizes="100vw"
       alt="Hero Banner"
-      @load="imageLoaded = true"
       fetchpriority="high"
     >
   </div>
