@@ -306,10 +306,17 @@ import MyHeader from '../components/MyHeader.vue';
 <!-- h-[60-vh] max-h-[600px]  -->
         <img
             v-show="imageLoaded"
-            class="banner-img w-full lg:h-[50vh] h-[70vh] lg:max-h-[500px]  object-cover"
-            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop"
+            class="banner-img w-full lg:h-[50vh] h-[70vh] lg:max-h-[500px] object-cover"
+            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&w=1200&auto=format&fit=crop"
+            srcset="
+                https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&w=600&auto=format&fit=crop 600w,
+                https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&w=1200&auto=format&fit=crop 1200w,
+                https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&w=2070&auto=format&fit=crop 2070w
+            "
+            sizes="(max-width: 600px) 600px, (max-width: 1200px) 1200px, 2070px"
             alt="Hero Banner"
             @load="imageLoaded = true"
+            fetchpriority="high"
         >
 
         <div v-show="imageLoaded" class="absolute inset-0 bg-black/40"></div>

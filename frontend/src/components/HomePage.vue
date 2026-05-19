@@ -3,7 +3,6 @@
   import { ref } from 'vue';
 
   const cartStore = useCartStore();
-  const imageLoaded = ref<boolean>(false);
   const promoImageLoaded = ref<boolean>(false);
 
   const handleShopNow = (): void => {
@@ -18,20 +17,17 @@
 
 <template>
   <div class="banner-wrapper w-full overflow-hidden">
-
-    <div 
-      v-if="!imageLoaded" 
-      class="w-full h-[500px] bg-gray-200 animate-pulse flex items-center justify-center"
-    >
-      <span class="text-gray-400 tracking-widest text-sm">LOADING...</span>
-    </div>
-
     <img 
-      v-show="imageLoaded"
       class="banner-img w-full h-[500px] object-cover" 
-      src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop" 
+      src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=800&auto=format&fit=crop" 
+      srcset="
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=400&auto=format&fit=crop 400w,
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=800&auto=format&fit=crop 800w,
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=1200&auto=format&fit=crop 1200w,
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=2070&auto=format&fit=crop 2070w
+      "
+      sizes="100vw"
       alt="Hero Banner"
-      @load="imageLoaded = true"
       fetchpriority="high"
     >
   </div>
@@ -80,12 +76,19 @@
         </div>
 
         <img 
-          v-show="promoImageLoaded" 
-          src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop" 
-          class="w-full h-[450px] object-cover transition-transform duration-700 group-hover:scale-105 opacity-80" 
-          alt="Promotion"
-          @load="promoImageLoaded = true"
-        >
+  v-show="promoImageLoaded" 
+  src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&amp;w=1200&amp;auto=format&amp;fit=crop" 
+  srcset="
+    https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&amp;w=675&amp;auto=format&amp;fit=crop 675w,
+    https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&amp;w=1200&amp;auto=format&amp;fit=crop 1200w,
+    https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&amp;w=2070&amp;auto=format&amp;fit=crop 2070w
+  "
+  sizes="100vw"
+  class="w-full h-[450px] object-cover transition-transform duration-700 group-hover:scale-105 opacity-80" 
+  alt="Promotion"
+  @load="promoImageLoaded = true"
+  loading="lazy"
+>
         
         <div v-show="promoImageLoaded" class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-black/20">
           <span class="text-white text-xs uppercase tracking-[0.5em] mb-4">Summer Collection</span>
