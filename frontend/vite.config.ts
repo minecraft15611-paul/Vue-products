@@ -9,4 +9,16 @@ export default defineConfig({
     tailwindcss(),
   ],
   base: '/Vue-products/',
+  build: {
+    cssCodeSplit: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/vue') || id.includes('node_modules/vue-router')) {
+            return 'vendor'
+          }
+        },
+      },
+    },
+  },
 })
