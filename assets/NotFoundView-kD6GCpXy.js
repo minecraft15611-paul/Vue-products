@@ -1,1 +1,0 @@
-import{L as e,N as t,S as n,V as r,h as i,v as a,x as o}from"./vendor-form-Bqi_XznM.js";import{t as s}from"./_plugin-vue_export-helper-V-yks4gF.js";var c={};function l(s,c){let l=e(`RouterLink`);return t(),a(`div`,null,[c[1]||=i(`h1`,null,`404 - 找不到頁面`,-1),n(l,{to:`/`},{default:r(()=>[...c[0]||=[o(`回首頁`,-1)]]),_:1})])}var u=s(c,[[`render`,l]]);export{u as default};
