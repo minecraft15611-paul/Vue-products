@@ -36,11 +36,11 @@ const toggle = (index: number) => {
             </button>
             <ul
               class="overflow-hidden transition-all duration-300 ease-in-out space-y-4 md:space-y-3"
-              :class="open === 0 ? 'max-h-40 pb-4' : 'max-h-0 md:max-h-none'"
+              :class="open === 0 ? 'max-h-60 pb-4' : 'max-h-0 md:max-h-none'"
             >
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Contact Us</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Our Story</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Store Locator</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-0">Contact Us</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-0">Our Story</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-0">Store Locator</a></li>
             </ul>
           </div>
 
@@ -58,11 +58,11 @@ const toggle = (index: number) => {
             </button>
             <ul
               class="overflow-hidden transition-all duration-300 ease-in-out space-y-4 md:space-y-3"
-              :class="open === 1 ? 'max-h-40 pb-4' : 'max-h-0 md:max-h-none'"
+              :class="open === 1 ? 'max-h-60 pb-4' : 'max-h-0 md:max-h-none'"
             >
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Track Order</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Size Guide</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Payment Methods</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-0">Track Order</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-0">Size Guide</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-0">Payment Methods</a></li>
             </ul>
           </div>
 
@@ -80,11 +80,11 @@ const toggle = (index: number) => {
             </button>
             <ul
               class="overflow-hidden transition-all duration-300 ease-in-out space-y-4 md:space-y-3"
-              :class="open === 2 ? 'max-h-40 pb-4' : 'max-h-0 md:max-h-none'"
+              :class="open === 2 ? 'max-h-60 pb-4' : 'max-h-0 md:max-h-none'"
             >
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Sustainability</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Careers</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Privacy Policy</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-0">Sustainability</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-0">Careers</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-0">Privacy Policy</a></li>
             </ul>
           </div>
 
@@ -113,4 +113,3 @@ const toggle = (index: number) => {
   </footer>
   
 </template>
-
