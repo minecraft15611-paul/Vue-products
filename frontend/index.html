@@ -20,7 +20,7 @@
       >
     </noscript>
 
-    <!-- LCP Hero 圖片 preload：imagesrcset 需與 HomePage.vue 的 srcset 完全一致 -->
+    <!-- LCP Hero 圖片 preload：最大到 1200w，與 HomePage.vue 一致 -->
     <link
       rel="preload"
       as="image"
@@ -28,10 +28,9 @@
       imagesrcset="
         https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=400&auto=format&fit=crop 400w,
         https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=800&auto=format&fit=crop 800w,
-        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=1200&auto=format&fit=crop 1200w,
-        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=2070&auto=format&fit=crop 2070w
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=1200&auto=format&fit=crop 1200w
       "
-      imagesizes="100vw"
+      imagesizes="(max-width: 768px) 100vw, (max-width: 1440px) 100vw, 1440px"
       fetchpriority="high"
     />
 

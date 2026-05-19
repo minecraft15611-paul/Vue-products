@@ -23,10 +23,9 @@
       srcset="
         https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=400&auto=format&fit=crop 400w,
         https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=800&auto=format&fit=crop 800w,
-        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=1200&auto=format&fit=crop 1200w,
-        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=2070&auto=format&fit=crop 2070w
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=1200&auto=format&fit=crop 1200w
       "
-      sizes="100vw"
+      sizes="(max-width: 768px) 100vw, (max-width: 1440px) 100vw, 1440px"
       alt="Hero Banner"
       fetchpriority="high"
     >
@@ -76,19 +75,18 @@
         </div>
 
         <img 
-  v-show="promoImageLoaded" 
-  src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&amp;w=1200&amp;auto=format&amp;fit=crop" 
-  srcset="
-    https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&amp;w=675&amp;auto=format&amp;fit=crop 675w,
-    https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&amp;w=1200&amp;auto=format&amp;fit=crop 1200w,
-    https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&amp;w=2070&amp;auto=format&amp;fit=crop 2070w
-  "
-  sizes="100vw"
-  class="w-full h-[450px] object-cover transition-transform duration-700 group-hover:scale-105 opacity-80" 
-  alt="Promotion"
-  @load="promoImageLoaded = true"
-  loading="lazy"
->
+          v-show="promoImageLoaded" 
+          src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&w=1200&auto=format&fit=crop" 
+          srcset="
+            https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&w=675&auto=format&fit=crop 675w,
+            https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=75&w=1200&auto=format&fit=crop 1200w
+          "
+          sizes="100vw"
+          class="w-full h-[450px] object-cover transition-transform duration-700 group-hover:scale-105 opacity-80" 
+          alt="Promotion"
+          @load="promoImageLoaded = true"
+          loading="lazy"
+        >
         
         <div v-show="promoImageLoaded" class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-black/20">
           <span class="text-white text-xs uppercase tracking-[0.5em] mb-4">Summer Collection</span>
