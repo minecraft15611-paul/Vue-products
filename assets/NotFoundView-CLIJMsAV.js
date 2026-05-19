@@ -1,1 +1,0 @@
-import{G as e,H as t,Q as n,W as r,et as i,nt as a,z as o}from"./vendor-CjeOC-lr.js";import{t as s}from"./_plugin-vue_export-helper-S3RvzygF.js";var c={};function l(s,c){let l=i(`RouterLink`);return n(),t(`div`,null,[c[1]||=o(`h1`,null,`404 - 找不到頁面`,-1),e(l,{to:`/`},{default:a(()=>[...c[0]||=[r(`回首頁`,-1)]]),_:1})])}var u=s(c,[[`render`,l]]);export{u as default};
