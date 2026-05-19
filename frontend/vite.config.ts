@@ -12,7 +12,8 @@ function crittersPlugin() {
     apply: 'build' as const,
     async closeBundle() {
       const critters = new Critters({
-        path: './dist',
+        path: path.resolve('./dist'),
+        publicPath: '/Vue-products/',
         preload: 'swap',
         pruneSource: false,
       })
