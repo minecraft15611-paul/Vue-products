@@ -295,7 +295,7 @@ import MyHeader from '../components/MyHeader.vue';
     </section>
 
             <!-- ============== footer banner exhibit ================= -->
-    <div class="footerbanner-wrapper w-full  overflow-hidden relative" style="min-height: 70vh">
+    <div class="footerbanner-wrapper w-full  overflow-hidden relative" >
 
         <div
             v-if="!imageLoaded"

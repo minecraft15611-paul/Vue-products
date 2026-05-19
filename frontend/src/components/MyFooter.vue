@@ -25,7 +25,7 @@ const toggle = (index: number) => {
           <!-- Section: Store Info -->
           <div class="border-b border-gray-800 md:border-none">
             <button
-              class="w-full flex justify-between items-center text-left py-4 md:py-0 md:cursor-default"
+              class="w-full flex justify-between items-center text-left py-4 md:py-2 md:cursor-default md:min-h-[48px]"
               @click="toggle(0)"
             >
               <h3 class="text-base font-bold tracking-widest md:mb-6 md:pb-2 md:border-b md:border-gray-800 w-full">
@@ -36,18 +36,18 @@ const toggle = (index: number) => {
             </button>
             <ul
               class="overflow-hidden transition-all duration-300 ease-in-out space-y-4 md:space-y-3"
-              :class="open === 0 ? 'max-h-40 pb-4' : 'max-h-0 md:max-h-none'"
+              :class="open === 0 ? 'max-h-60 pb-4' : 'max-h-0 md:max-h-none'"
             >
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Contact Us</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Our Story</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Store Locator</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-2">Contact Us</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-2">Our Story</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-2">Store Locator</a></li>
             </ul>
           </div>
 
           <!-- Section: Help -->
           <div class="border-b border-gray-800 md:border-none">
             <button
-              class="w-full flex justify-between items-center text-left py-4 md:py-0 md:cursor-default"
+              class="w-full flex justify-between items-center text-left py-4 md:py-2 md:cursor-default md:min-h-[48px]"
               @click="toggle(1)"
             >
               <h3 class="text-base font-bold tracking-widest md:mb-6 md:pb-2 md:border-b md:border-gray-800 w-full">
@@ -58,18 +58,18 @@ const toggle = (index: number) => {
             </button>
             <ul
               class="overflow-hidden transition-all duration-300 ease-in-out space-y-4 md:space-y-3"
-              :class="open === 1 ? 'max-h-40 pb-4' : 'max-h-0 md:max-h-none'"
+              :class="open === 1 ? 'max-h-60 pb-4' : 'max-h-0 md:max-h-none'"
             >
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Track Order</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Size Guide</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Payment Methods</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-2">Track Order</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-2">Size Guide</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-2">Payment Methods</a></li>
             </ul>
           </div>
 
           <!-- Section: Company -->
           <div class="border-b border-gray-800 md:border-none">
             <button
-              class="w-full flex justify-between items-center text-left py-4 md:py-0 md:cursor-default"
+              class="w-full flex justify-between items-center text-left py-4 md:py-2 md:cursor-default md:min-h-[48px]"
               @click="toggle(2)"
             >
               <h3 class="text-base font-bold tracking-widest md:mb-6 md:pb-2 md:border-b md:border-gray-800 w-full">
@@ -80,11 +80,11 @@ const toggle = (index: number) => {
             </button>
             <ul
               class="overflow-hidden transition-all duration-300 ease-in-out space-y-4 md:space-y-3"
-              :class="open === 2 ? 'max-h-40 pb-4' : 'max-h-0 md:max-h-none'"
+              :class="open === 2 ? 'max-h-60 pb-4' : 'max-h-0 md:max-h-none'"
             >
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Sustainability</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Careers</a></li>
-              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-1 md:py-0">Privacy Policy</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-2">Sustainability</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-2">Careers</a></li>
+              <li><a href="#" class="text-gray-400 text-sm hover:text-white transition-colors block py-3 md:py-2">Privacy Policy</a></li>
             </ul>
           </div>
 
@@ -113,4 +113,3 @@ const toggle = (index: number) => {
   </footer>
   
 </template>
-

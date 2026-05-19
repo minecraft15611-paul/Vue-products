@@ -49,8 +49,8 @@
       <nav class="hidden lg:flex w-full border-b border-gray-200 py-2 px-4">
         <div class="container mx-auto flex items-center justify-between">
           <div class="hidden lg:flex items-center space-x-3 w-1/3">
-            <a href="#"><i class="fa-brands fa-facebook transition duration-300 hover:scale-125 hover:text-blue-600"></i></a>
-            <a href="#"><i class="fa-brands fa-instagram transition duration-300 hover:scale-125 hover:text-pink-500"></i></a>
+            <a href="#" aria-label="Visit our Facebook page"><i class="fa-brands fa-facebook transition duration-300 hover:scale-125 hover:text-blue-600"></i></a>
+            <a href="#" aria-label="Visit our Instagram page"><i class="fa-brands fa-instagram transition duration-300 hover:scale-125 hover:text-pink-500"></i></a>
           </div>
           <div class="hidden lg:flex justify-center w-1/3">
             <span class="text-xs text-gray-400 uppercase tracking-widest">Free Shipping This Week — Orders Over $1</span>
@@ -110,7 +110,7 @@
           <!-- Desktop icons -->
           <div class="hidden lg:flex items-center space-x-4">
 
-            <router-link v-if="!authStore.user" to="/LoginView">
+            <router-link v-if="!authStore.user" to="/LoginView" aria-label="Go to login page">
               <i class="fa-regular fa-user text-xl cursor-pointer transition duration-300 hover:scale-125"></i>
             </router-link>
 
@@ -128,12 +128,12 @@
             </button>
 
             <i class="fa-regular fa-heart text-xl cursor-pointer transition duration-300 hover:scale-125"></i>
-            <router-link to="/ShoppingCart">
+            <router-link to="/ShoppingCart" aria-label="Go to shopping cart">
               <cartIcon :cartCount="cartStore.cartCount" class="cursor-pointer transition duration-300 hover:scale-125"/>
             </router-link>
           </div>
 
-          <router-link to="/ShoppingCart" class="block lg:hidden">
+          <router-link to="/ShoppingCart" class="block lg:hidden" aria-label="Go to shopping cart">
             <cartIcon :cartCount="cartStore.cartCount" />
           </router-link>
         </div>
@@ -182,12 +182,12 @@
 
           <div class="flex justify-between items-center space-x-4 pt-2 border-t border-gray-300">
             <div class="flex items-center space-x-4">
-              <a href="#"><i class="fa-brands fa-facebook text-lg transition hover:text-blue-600"></i></a>
-              <a href="#"><i class="fa-brands fa-instagram text-lg transition hover:text-pink-500"></i></a>
+              <a href="#" aria-label="Visit our Facebook page"><i class="fa-brands fa-facebook text-lg transition hover:text-blue-600"></i></a>
+              <a href="#" aria-label="Visit our Instagram page"><i class="fa-brands fa-instagram text-lg transition hover:text-pink-500"></i></a>
             </div>
             <div class="flex items-center space-x-4">
 
-              <router-link v-if="!authStore.user" to="/LoginView" @click="mobileMenuOpen = false">
+              <router-link v-if="!authStore.user" to="/LoginView" @click="mobileMenuOpen = false" aria-label="Go to login page">
                 <i class="fa-regular fa-user text-lg cursor-pointer"></i>
               </router-link>
 
