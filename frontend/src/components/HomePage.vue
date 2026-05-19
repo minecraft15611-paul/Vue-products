@@ -29,9 +29,10 @@
     <img 
       v-show="imageLoaded"
       class="banner-img w-full h-[500px] object-cover" 
-      src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=1200&auto=format&fit=crop" 
+      src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=800&auto=format&fit=crop" 
       srcset="
-        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=600&auto=format&fit=crop 600w,
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=400&auto=format&fit=crop 400w,
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=800&auto=format&fit=crop 800w,
         https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=1200&auto=format&fit=crop 1200w,
         https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=2070&auto=format&fit=crop 2070w
       "
