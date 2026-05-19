@@ -14,6 +14,7 @@ onMounted(() => cartStore.fetchProducts());
 
 </script>
 
+
 <template>
   <div class="flex flex-col min-h-screen">
     <Myheader />
