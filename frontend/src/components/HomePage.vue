@@ -43,7 +43,7 @@
           <div class="mb-4 text-gray-900">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-5l-4-4h-3v10h1"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
           </div>
-          <h3 class="text-sm font-bold tracking-[0.3em] text-black">FREE SHIPPING</h3>
+          <p class="text-sm font-bold tracking-[0.3em] text-black">FREE SHIPPING</p>
           <p class="text-xs text-gray-400 mt-2">FREE SHIPPING ON ALL ORDER</p>
         </div>
 
@@ -51,7 +51,7 @@
           <div class="mb-4 text-gray-900">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
           </div>
-          <h3 class="text-sm font-bold tracking-[0.3em] text-black">ONLINE SUPPORT</h3>
+          <p class="text-sm font-bold tracking-[0.3em] text-black">ONLINE SUPPORT</p>
           <p class="text-xs text-gray-400 mt-2">ONLINE SUPPORT 24 HOURS A DAY</p>
         </div>
 
@@ -59,7 +59,7 @@
           <div class="mb-4 text-gray-900">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
           </div>
-          <h3 class="text-sm font-bold tracking-[0.3em] text-black">MONEY RETURN</h3>
+          <p class="text-sm font-bold tracking-[0.3em] text-black">MONEY RETURN</p>
           <p class="text-xs text-gray-400 mt-2">BACK GUARANTEE UNDER 7 DAYS</p>
         </div>
 
