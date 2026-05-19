@@ -5,17 +5,38 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>my-ecommerce-site</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
-    <link 
-      rel="preload" 
+
+    <!-- Font Awesome：非阻塞載入，補上 noscript fallback -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      media="print"
+      onload="this.media='all'"
+    >
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      >
+    </noscript>
+
+    <!-- LCP Hero 圖片 preload：imagesrcset 需與 HomePage.vue 的 srcset 完全一致 -->
+    <link
+      rel="preload"
       as="image"
       href="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=800&auto=format&fit=crop"
-      imagesrcset="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=400&auto=format&fit=crop 400w, https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=800&auto=format&fit=crop 800w, https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=1200&auto=format&fit=crop 1200w"
+      imagesrcset="
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=400&auto=format&fit=crop 400w,
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=800&auto=format&fit=crop 800w,
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=1200&auto=format&fit=crop 1200w,
+        https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=75&w=2070&auto=format&fit=crop 2070w
+      "
       imagesizes="100vw"
-      fetchpriority="high" 
-    />    
-    <link rel="preconnect" href="https://www.googleapis.com" crossorigin="anonymous" />
+      fetchpriority="high"
+    />
 
+    <!-- DNS 預先解析 -->
+    <link rel="preconnect" href="https://www.googleapis.com" crossorigin="anonymous" />
     <link rel="dns-prefetch" href="https://lemontree-api.onrender.com" />
     <link rel="dns-prefetch" href="https://my-vue-web-b01ef.firebaseapp.com" />
     <link rel="dns-prefetch" href="https://apis.google.com" />
