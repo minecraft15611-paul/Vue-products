@@ -99,6 +99,13 @@ onMounted(async () => {
     transform: translateY(-6px);
 }
 
+/* ── Mobile: slightly darker ────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .splash-cover {
+        background: rgba(6, 6, 6, 0.88);
+    }
+}
+
 /* ── Content ────────────────────────────────────────────────────────── */
 .splash-content {
     display: flex;
