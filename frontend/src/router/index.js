@@ -39,7 +39,7 @@ const routes = [
         component: () => import('../views/LoginCallbackView.vue')
     },
     {
-        path: '/SuccessView',
+        path: '/success',
         name: 'SuccessView',
         component: () => import('../views/SuccessView.vue'),
         meta: { fromCheckout: true }
@@ -72,8 +72,9 @@ router.beforeEach((to, from, next) => {
     // 檢查是否前往結帳頁面
     if (to.meta.fromCheckout) {
         const flag = localStorage.getItem('fromCheckout');
-        if (flag === 'true') {
-            localStorage.removeItem('fromCheckout'); // one-time use
+        const hasSessionId = !!to.query.session_id; // Stripe express checkout redirect
+        if (flag === 'true' || hasSessionId) {
+            localStorage.removeItem('fromCheckout');
             next();
         } else {
             alert("無效的存取：請由正常結帳流程進入。");
