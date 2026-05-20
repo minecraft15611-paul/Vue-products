@@ -36,9 +36,14 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
     }
 
     if (event.type === 'checkout.session.completed') {
-        const session = event.data.object;
+        const sessionRaw = event.data.object;
 
         try {
+            // ── Re-fetch full session from Stripe to guarantee shipping_details are populated ──
+            const session = await stripe.checkout.sessions.retrieve(sessionRaw.id, {
+                expand: ['shipping_details', 'customer_details'],
+            });
+
             // ── Parse lean cart from metadata ─────────────────────────────────
             const leanItems = JSON.parse(session.metadata.items); // [{ id, quantity }]
             const ids = leanItems.map(i => i.id);
@@ -65,7 +70,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 
             // ── Build shipping address from Stripe session ─────────────────────
             const addr    = session.shipping_details?.address ?? {};
-            const name    = session.shipping_details?.name ?? '';
+            const name    = session.shipping_details?.name || session.customer_details?.name || '';
             const [firstName, ...rest] = name.split(' ');
             const lastName = rest.join(' ');
 
@@ -81,7 +86,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                 customerName:    name,
                 email:           session.customer_details?.email ?? '',
                 address:         `${addr.line1 ?? ''}${addr.line2 ? ', ' + addr.line2 : ''}`,
-                phone:           session.customer_details?.phone ?? '',
+                phone:           session.customer_details?.phone || '',
                 items:           orderItems,
                 totalAmount:     +totalAmount.toFixed(2),
                 status:          '已付款',
@@ -387,6 +392,10 @@ app.post('/api/create-checkout-session', async (req, res) => {
             // 強制 Stripe 結帳頁收集外送地址
             shipping_address_collection: {
                 allowed_countries: ['TW', 'US', 'GB', 'JP', 'CA', 'AU'],
+            },
+            // 收集電話號碼
+            phone_number_collection: {
+                enabled: true,
             },
             // 只存 id + quantity，避免超過 500 字元限制；Webhook 再從 DB 撈完整資料
             metadata: {
