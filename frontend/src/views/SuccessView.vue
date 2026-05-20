@@ -1,39 +1,83 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useCartStore } from '../stores/cart';
 import { useAuthStore } from '../stores/auth';
+import axios from 'axios';
 
-const router = useRouter();
+const router    = useRouter();
+const route     = useRoute();
 const cartStore = useCartStore();
 const authStore = useAuthStore();
 
-// ── Read order snapshot from localStorage ─────────────────────────────────
-const snapshot = ref<Record<string, any> | null>(null);
+// ── Detect which flow we're in ─────────────────────────────────────────────
+// Situation A: normal Pay Now → no session_id in URL, data in localStorage
+// Situation B: Stripe express checkout → session_id in URL, fetch order from backend
+const sessionId   = route.query.session_id as string | undefined;
+const isStripeFlow = !!sessionId;
 
-// ── On mount: read snapshot, log it, then clear the cart ─────────────────
-onMounted(() => {
-    try {
-        const raw = localStorage.getItem('last_order_snapshot');
-        if (raw) {
-            snapshot.value = JSON.parse(raw);
-            console.log('📦 Order placed:', JSON.stringify(snapshot.value, null, 2));
+// ── Read order snapshot from localStorage ─────────────────────────────────
+const snapshot      = ref<Record<string, any> | null>(null);
+const stripeOrder   = ref<Record<string, any> | null>(null);
+const stripeLoading = ref<boolean>(isStripeFlow); // start true if we need to fetch
+const stripeError   = ref<string>('');
+
+// ── On mount: handle both flows ───────────────────────────────────────────
+onMounted(async () => {
+    if (isStripeFlow) {
+        // Situation B — poll backend for the order Webhook just created
+        // Webhook may fire slightly after redirect, so retry up to 5 times
+        let attempts = 0;
+        const maxAttempts = 5;
+        const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+        while (attempts < maxAttempts) {
+            try {
+                const res = await axios.get(
+                    `https://lemontree-api.onrender.com/api/orders/stripe/${sessionId}`
+                );
+                stripeOrder.value   = res.data;
+                stripeLoading.value = false;
+                break;
+            } catch (err: any) {
+                attempts++;
+                if (attempts < maxAttempts) {
+                    await delay(1500); // wait 1.5s before retrying
+                } else {
+                    stripeError.value   = '訂單資料載入失敗，請聯繫客服並提供您的付款確認信。';
+                    stripeLoading.value = false;
+                }
+            }
         }
-        localStorage.setItem('fromCheckout', 'true'); // ✅ always restore flag
-    } catch (e) {
-        console.warn('Could not read order snapshot', e);
+    } else {
+        // Situation A — read from localStorage as before
+        try {
+            const raw = localStorage.getItem('last_order_snapshot');
+            if (raw) {
+                snapshot.value = JSON.parse(raw);
+                console.log('📦 Order placed:', JSON.stringify(snapshot.value, null, 2));
+            }
+            localStorage.setItem('fromCheckout', 'true');
+        } catch (e) {
+            console.warn('Could not read order snapshot', e);
+        }
     }
+
     cartStore.clearCart();
 });
 
-// ---- Order Number (from snapshot, fallback to generated) ----
+// ---- Order Number ----
 const today = new Date();
 const _fallbackOrderNumber = (() => {
     const datePart = today.toISOString().slice(0, 10).replace(/-/g, '');
     const randomSuffix = Math.floor(Math.random() * 90 + 10);
     return `ORD-${datePart}-${randomSuffix}`;
 })();
-const orderNumber = computed(() => snapshot.value?.orderNumber ?? _fallbackOrderNumber);
+const orderNumber = computed(() =>
+    isStripeFlow
+        ? (stripeOrder.value?.orderId ?? _fallbackOrderNumber)
+        : (snapshot.value?.orderNumber ?? _fallbackOrderNumber)
+);
 
 // ---- Order Date (timeline) ----
 const orderDate = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -55,7 +99,6 @@ const copyOrderNumber = () => {
 
 // ---- Continue Shopping ----
 const continueShopping = () => {
-    // Clear the stored discount snapshot so it doesn't bleed into future orders
     localStorage.removeItem('last_order_snapshot');
     localStorage.removeItem('last_order_discount');
     cartStore.goHome();
@@ -102,15 +145,37 @@ function onAfterLeave(el: Element) {
     h.style.transition = '';
 }
 
-// ---- Pricing from snapshot (fallback to live cart) ----
-const subtotal          = computed<number>(() => snapshot.value?.pricing.subtotal ?? cartStore.totalPrice);
-const discountAmount    = computed(() => snapshot.value?.pricing.discount?.amount ?? 0);
-const appliedCouponCode = computed(() => snapshot.value?.pricing.discount?.code ?? null);
-const finalTotal        = computed(() => snapshot.value?.pricing.total ?? (subtotal.value - discountAmount.value));
+// ---- Pricing ----
+// Stripe flow: read from fetched order; Normal flow: read from localStorage snapshot
+const cartItems = computed<any[]>(() =>
+    isStripeFlow
+        ? (stripeOrder.value?.items ?? [])
+        : (snapshot.value?.cart ?? [])
+);
+const subtotal       = computed<number>(() =>
+    isStripeFlow
+        ? (stripeOrder.value?.totalAmount ?? 0)
+        : (snapshot.value?.pricing.subtotal ?? cartStore.totalPrice)
+);
+const discountAmount    = computed(() => isStripeFlow ? 0 : (snapshot.value?.pricing.discount?.amount ?? 0));
+const appliedCouponCode = computed(() => isStripeFlow ? null : (snapshot.value?.pricing.discount?.code ?? null));
+const finalTotal        = computed(() =>
+    isStripeFlow
+        ? (stripeOrder.value?.totalAmount ?? 0)
+        : (snapshot.value?.pricing.total ?? (subtotal.value - discountAmount.value))
+);
 
-// ---- Shipping address from snapshot ----
-const shippingAddr  = computed(() => snapshot.value?.shippingAddress ?? null);
-const customerEmail = computed(() => snapshot.value?.customer?.email ?? authStore.user?.email ?? '');
+// ---- Shipping address ----
+const shippingAddr = computed(() =>
+    isStripeFlow
+        ? (stripeOrder.value?.shippingDetails ?? null)
+        : (snapshot.value?.shippingAddress ?? null)
+);
+const customerEmail = computed(() =>
+    isStripeFlow
+        ? (stripeOrder.value?.email ?? '')
+        : (snapshot.value?.customer?.email ?? authStore.user?.email ?? '')
+);
 </script>
 
 
@@ -180,9 +245,20 @@ const customerEmail = computed(() => snapshot.value?.customer?.email ?? authStor
             >
             <div v-if="isOpen" class="p-6 space-y-6">
 
+                <!-- Stripe flow: loading / error state -->
+                <div v-if="isStripeFlow && stripeLoading" class="flex items-center gap-3 text-gray-400 text-sm py-4">
+                    <svg class="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    載入訂單資料中…
+                </div>
+                <p v-else-if="isStripeFlow && stripeError" class="text-red-500 text-sm">{{ stripeError }}</p>
+
                 <!-- Loop over cart items -->
                 <div
-                    v-for="item in snapshot?.cart"
+                    v-else
+                    v-for="item in cartItems"
                     :key="item.id"
                     class="flex gap-4"
                 >
@@ -194,10 +270,10 @@ const customerEmail = computed(() => snapshot.value?.customer?.email ?? authStor
                             <h3 class="font-bold text-gray-900 text-sm">{{ item.name }}</h3>
                             <span class="font-bold text-gray-900">${{ item.subtotal.toFixed(2) }}</span>
                         </div>
-                        <p v-if="item.color || item.size" class="text-xs text-gray-400 mt-1">
-                            <span v-if="item.color">{{ item.color }}</span>
-                            <span v-if="item.color && item.size"> | </span>
-                            <span v-if="item.size">{{ item.size }}</span>
+                        <p v-if="item.selectedColor || item.selectedSize" class="text-xs text-gray-400 mt-1">
+                            <span v-if="item.selectedColor">{{ item.selectedColor }}</span>
+                            <span v-if="item.selectedColor && item.selectedSize"> | </span>
+                            <span v-if="item.selectedSize">{{ item.selectedSize }}</span>
                         </p>
                         <p class="text-xs text-gray-400 font-medium">Qty: {{ item.quantity }}</p>
                     </div>
@@ -207,7 +283,7 @@ const customerEmail = computed(() => snapshot.value?.customer?.email ?? authStor
                 <!-- Totals -->
                 <div class="pt-2 border-t border-gray-100 space-y-3">
                     <div class="flex justify-between text-sm text-gray-500">
-                        <span>Subtotal · {{ snapshot?.cart.reduce((s, i) => s + i.quantity, 0) ?? cartStore.cartCount }} items</span>
+                        <span>Subtotal · {{ cartItems.reduce((s, i) => s + i.quantity, 0) ?? cartStore.cartCount }} items</span>
                         <span class="text-gray-900 font-medium">${{ subtotal.toFixed(2) }}</span>
                     </div>
 
