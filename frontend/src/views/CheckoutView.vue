@@ -726,15 +726,15 @@
                 <button type="button"
                     @click="handleExpressCheckout"
                     :disabled="expressLoading"
-                    class="bg-[#5a31f4] w-full mt-4 py-2 rounded flex justify-center items-center gap-2 disabled:opacity-70"
+                    class="bg-black w-full mt-4 py-3 rounded-md flex justify-center items-center gap-2 disabled:opacity-70 hover:bg-zinc-800 transition-colors duration-200"
                 >
                     <svg v-if="expressLoading" class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                     </svg>
-                    <span class="font-['Poppins'] font-bold text-white text-2xl tracking-tighter lowercase">
-                        {{ expressLoading ? '' : 'shop' }}
-                    </span>
+                    <template v-if="!expressLoading">
+                        <span class="text-white text-sm font-semibold tracking-widest uppercase">Pay with Stripe</span>
+                    </template>
                 </button>
                 <p v-if="expressError" class="text-red-500 text-[12px] mt-2 text-center">{{ expressError }}</p>
             </div>
@@ -2455,13 +2455,15 @@
                         <button type="button"
                             @click="handleExpressCheckout"
                             :disabled="expressLoading"
-                            class="flex items-center justify-center gap-2 w-72 mx-auto bg-[#5a31f4] text-white font-bold text-[15px] py-3 tracking-wide hover:bg-[#4925d0] transition-colors duration-200 disabled:opacity-70"
+                            class="flex items-center justify-center gap-2 w-72 mx-auto bg-black py-3 rounded-md hover:bg-zinc-800 transition-colors duration-200 disabled:opacity-70"
                         >
                             <svg v-if="expressLoading" class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                             </svg>
-                            <span>{{ expressLoading ? '' : 'shop' }}</span>
+                            <template v-if="!expressLoading">
+                                <span class="text-white text-sm font-semibold tracking-widest uppercase">Pay with Stripe</span>
+                            </template>
                         </button>
                         <p v-if="expressError" class="text-red-500 text-[12px] mt-2 text-center">{{ expressError }}</p>
                         <div class="flex items-center gap-3 mt-5">
