@@ -123,6 +123,12 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 
 app.use(express.json()); // parse incoming JSON bodies
 
+// ── Health Check ────────────────────────────────────────────────────────────────────
+// Lightweight ping — no DB call, just confirms the server is awake
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
 // ── MongoDB 連線 ────────────────────────────────────────────────────────────────────
 const uri = process.env.MONGODB_URI;
 
