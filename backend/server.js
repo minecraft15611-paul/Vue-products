@@ -40,9 +40,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 
         try {
             // ── Re-fetch full session from Stripe to guarantee shipping_details are populated ──
-            const session = await stripe.checkout.sessions.retrieve(sessionRaw.id, {
-                expand: ['shipping_details', 'customer_details'],
-            });
+            const session = await stripe.checkout.sessions.retrieve(sessionRaw.id);
 
             // ── Parse lean cart from metadata ─────────────────────────────────
             const leanItems = JSON.parse(session.metadata.items); // [{ id, quantity }]

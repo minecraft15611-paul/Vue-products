@@ -26,9 +26,9 @@ const stripeError   = ref<string>('');
 onMounted(async () => {
     if (isStripeFlow) {
         // Situation B — poll backend for the order Webhook just created
-        // Webhook may fire slightly after redirect, so retry up to 5 times
+        // Render free tier can take up to 50s to wake up, so retry generously
         let attempts = 0;
-        const maxAttempts = 5;
+        const maxAttempts = 20;
         const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
         while (attempts < maxAttempts) {
@@ -42,7 +42,7 @@ onMounted(async () => {
             } catch (err: any) {
                 attempts++;
                 if (attempts < maxAttempts) {
-                    await delay(1500); // wait 1.5s before retrying
+                    await delay(3000); // wait 3s before retrying (total ~60s budget)
                 } else {
                     stripeError.value   = '訂單資料載入失敗，請聯繫客服並提供您的付款確認信。';
                     stripeLoading.value = false;
