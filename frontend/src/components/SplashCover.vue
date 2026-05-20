@@ -7,7 +7,7 @@ const progress   = ref(0);
 const barVisible = ref(true);
 
 const FAST_DURATION  = 3000;
-const SLOW_DURATION  = 17000;
+const SLOW_DURATION  = 19500;
 const HEALTH_TIMEOUT = 1000;
 const EXIT_DURATION  = 600;
 const BAR_FADE       = 400;
