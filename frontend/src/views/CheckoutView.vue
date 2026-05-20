@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+    import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch, defineAsyncComponent } from 'vue';
     import { useCartStore } from '../stores/cart';
     import { useAuthStore } from '../stores/auth';
     import type { ZodIssue } from 'zod';
@@ -7,12 +7,13 @@
     import 'vue-tel-input/vue-tel-input.css';
     import { checkoutSchema } from '../schemas/checkoutSchema';
     import { useDiscount } from '../composables/useDiscount';
-    import LoginView from './LoginView.vue';
     import { useRouter } from 'vue-router';
     import axios from 'axios';
-
+    
+    const LoginView = defineAsyncComponent(() => import('./LoginView.vue'));
+    
     const formErrors = ref<Record<string, string>>({});
-
+    
     // ── Store ──────────────────────────────────────────────────────────────────
     const router = useRouter();
     const cartStore = useCartStore();
@@ -316,6 +317,39 @@
         // ── Navigate to SuccessView ────────
         localStorage.setItem('fromCheckout', 'true');
         router.push({ name: 'SuccessView', state: { orderNumber } });
+    }
+
+    // ── Express Checkout (purple Shop button) ─────────────────────────────────
+    const expressLoading = ref<boolean>(false);
+    const expressError   = ref<string>('');
+
+    async function handleExpressCheckout() {
+        if (expressLoading.value) return;
+        expressLoading.value = true;
+        expressError.value   = '';
+
+        try {
+            // Send only lean { id, quantity } pairs — webhook fetches full details from DB
+            const items = cartStore.cart.map(item => ({
+                id:       item.id,
+                quantity: item.quantity,
+            }));
+
+            const response = await axios.post(
+                'https://lemontree-api.onrender.com/api/create-checkout-session',
+                { items }
+            );
+
+            // Redirect browser to Stripe hosted checkout page
+            window.location.href = response.data.url;
+
+        } catch (err: any) {
+            expressError.value   = '結帳初始化失敗，請稍後再試。';
+            expressLoading.value = false;
+            console.error('Express checkout 失敗：', err);
+        }
+        // Note: don't set expressLoading = false on success —
+        // the page is navigating away, no need to reset.
     }
 
     function validateField(path: string) {
@@ -689,11 +723,20 @@
             </div>
 
             <div>
-                <button type="button" class="bg-[#5a31f4] w-full mt-4 py-2 rounded flex justify-center items-center">
-                    <span class="font-['Poppins'] font-bold text-white text-2xl tracking-tighter lowercase">
-                        shop
-                    </span>
+                <button type="button"
+                    @click="handleExpressCheckout"
+                    :disabled="expressLoading"
+                    class="bg-black w-full mt-4 py-3 rounded-md flex justify-center items-center gap-2 disabled:opacity-70 hover:bg-zinc-800 transition-colors duration-200"
+                >
+                    <svg v-if="expressLoading" class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    <template v-if="!expressLoading">
+                        <span class="text-white text-sm font-semibold tracking-widest uppercase">Pay with Stripe</span>
+                    </template>
                 </button>
+                <p v-if="expressError" class="text-red-500 text-[12px] mt-2 text-center">{{ expressError }}</p>
             </div>
 
             <div class="flex items-center mt-6">
@@ -2410,10 +2453,19 @@
                     <div class="mb-8">
                         <p class="text-center text-[12px] text-gray-400 tracking-wide mb-3">Express checkout</p>
                         <button type="button"
-                            class="block w-72 mx-auto bg-[#5a31f4] text-white font-bold text-[15px] py-3 tracking-wide hover:bg-[#4925d0] transition-colors duration-200"
+                            @click="handleExpressCheckout"
+                            :disabled="expressLoading"
+                            class="flex items-center justify-center gap-2 w-72 mx-auto bg-black py-3 rounded-md hover:bg-zinc-800 transition-colors duration-200 disabled:opacity-70"
                         >
-                            shop
+                            <svg v-if="expressLoading" class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                            </svg>
+                            <template v-if="!expressLoading">
+                                <span class="text-white text-sm font-semibold tracking-widest uppercase">Pay with Stripe</span>
+                            </template>
                         </button>
+                        <p v-if="expressError" class="text-red-500 text-[12px] mt-2 text-center">{{ expressError }}</p>
                         <div class="flex items-center gap-3 mt-5">
                             <div class="flex-1 h-px bg-gray-200"></div>
                             <span class="text-[12px] text-gray-400">OR</span>

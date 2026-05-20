@@ -3,6 +3,7 @@ import { onMounted } from 'vue';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase/config';
 import { useAuthStore } from './stores/auth';
+import SplashCover from './components/SplashCover.vue';
 
 const authStore = useAuthStore();
 
@@ -18,5 +19,6 @@ onMounted(() => {
 </script>
 
 <template>
+    <SplashCover />
     <RouterView />
 </template>

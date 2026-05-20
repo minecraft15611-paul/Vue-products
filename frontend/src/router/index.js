@@ -1,75 +1,64 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import Home from '../views/Home.vue';
-import ShoppingCart from '../views/ShoppingCart.vue';
-import ProductDetail from '../views/ProductDetail.vue';
-import ProductsList from '../views/ProductsList.vue';
-import CheckoutView from '../views/CheckoutView.vue';
-import LoginView from '../views/LoginView.vue';
-import LoginCallbackView from '../views/LoginCallbackView.vue';
-import SuccessView from '../views/SuccessView.vue';
-import Admin from '../views/Admin.vue';
-import NotFoundView from '../views/NotFoundView.vue';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import { useCartStore } from '../stores/cart'; 
-
 
 const routes = [
     {
         path: '/',
         name: 'Home',
-        component: Home
+        component: () => import('../views/Home.vue')
     },
     {
         path: '/ShoppingCart',
         name: 'ShoppingCart',
-        component: ShoppingCart
+        component: () => import('../views/ShoppingCart.vue')
     },
     {
         path: '/ProductsList',
         name: 'ProductsList',
-        component: ProductsList
+        component: () => import('../views/ProductsList.vue')
     },
     {
         path: '/ProductDetail/:id',
         name: 'ProductDetail',
-        component: ProductDetail
+        component: () => import('../views/ProductDetail.vue')
     },
     {
         path: '/CheckoutView',
         name: 'CheckoutView',
-        component: CheckoutView,
+        component: () => import('../views/CheckoutView.vue'),
         meta: { requiresCart: true }
     },
     {
         path: '/LoginView',
         name: 'LoginView',
-        component: LoginView
+        component: () => import('../views/LoginView.vue')
     },
     {
         path: '/login-callback',
         name: 'LoginCallback',
-        component: LoginCallbackView
+        component: () => import('../views/LoginCallbackView.vue')
     },
     {
-        path: '/SuccessView',
+        path: '/success',
         name: 'SuccessView',
-        component: SuccessView,
+        component: () => import('../views/SuccessView.vue'),
         meta: { fromCheckout: true }
     },
     {
         path: '/Admin',
         name: 'Admin',
-        component: Admin,
+        component: () => import('../views/Admin.vue'),
         meta: { requiresAdmin: true }
     },
     {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
-        component: NotFoundView
+        component: () => import('../views/NotFoundView.vue')
     }
 ];
 
 const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
+    history: createWebHashHistory(import.meta.env.BASE_URL),
     routes,
     scrollBehavior(to, from, savedPosition) {
         if (savedPosition) {
@@ -79,37 +68,32 @@ const router = createRouter({
     }
 });
 
-//
 router.beforeEach((to, from, next) => {
     // 檢查是否前往結帳頁面
     if (to.meta.fromCheckout) {
         const flag = localStorage.getItem('fromCheckout');
-        if (flag === 'true') {
-            localStorage.removeItem('fromCheckout'); // one-time use
+        const hasSessionId = !!to.query.session_id; // Stripe express checkout redirect
+        if (flag === 'true' || hasSessionId) {
+            localStorage.removeItem('fromCheckout');
             next();
         } else {
             alert("無效的存取：請由正常結帳流程進入。");
             next({ name: 'Home' });
         }
-}
-
-     else if (to.meta.requiresCart) {
-        // 1. 檢查來源：如果是手動輸入網址 (from.name 為空)，則踢回首頁
+    } else if (to.meta.requiresCart) {
         if (!from.name) {
             alert("請透過購物車進入結帳頁面");
             return next({ name: 'Home' });
         }
 
-        const cartStore = useCartStore();  // ✅ consistent with CheckoutView
+        const cartStore = useCartStore();
         if (cartStore.cart.length === 0) {
             alert("購物車內尚無商品，請先選購");
             return next({ name: 'ProductsList' });
         }
 
-        next(); // 檢查通過，放行
-    } 
-    // 針對 Admin 的原有守衛
-    else if (to.meta.requiresAdmin) {
+        next();
+    } else if (to.meta.requiresAdmin) {
         next();
     } else {
         next(); 

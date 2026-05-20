@@ -20,14 +20,14 @@ const login = async () => {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         isAuthenticated.value = true;
     } catch {
-        alert("金鑰錯誤，請重新輸入");
+        alert("Invalid key, please re-enter.");
         adminKey.value = "";
     }
 };
 
 //
 const logout = () => {
-    if (confirm("確定要登出管理系統嗎？")) {
+    if (confirm("Are you sure you want to log out of the management system?")) {
     sessionStorage.removeItem('admin_token');
     delete axios.defaults.headers.common['Authorization'];
     isAuthenticated.value = false;
@@ -82,7 +82,7 @@ const resetForm = () => {
 // 核心功能：儲存資料 (判斷新增或修改)
 const handleSave = async () => {
     if (!newItem.value.name || newItem.value.price <= 0) {
-        alert("請輸入完整的商品名稱與價格");
+        alert("Please enter the full product name and price.");
         return;
     }
 
@@ -90,29 +90,29 @@ const handleSave = async () => {
         if (isEditMode.value) {
             // [PUT] 執行修改邏輯，對應 server.js 的 app.put
             await axios.put(`https://lemontree-api.onrender.com/api/products/${newItem.value.id}`, newItem.value);
-            alert("商品資訊已成功更新！");
+            alert("Product information has been successfully updated!");
         } else {
             // [POST] 執行新增邏輯
             await axios.post('https://lemontree-api.onrender.com/api/products', newItem.value);
-            alert("新商品上架成功！");
+            alert("New product successfully listed!");
         }
         resetForm(); // 操作完後清空表單
         cartStore.fetchProducts(); // 重新抓取資料庫最新資料
     } catch (error) {
         console.error("儲存失敗:", error);
-        alert("連線後端失敗，請確認 server.js 是否正在運行");
+        alert("Failed to connect to the backend; please check if server.js is running.");
     }
 };
 
 // 刪除功能
 const deleteProduct = async (id: string | number) => {
-    if (!confirm("確定要刪除這項商品嗎？")) return;
+    if (!confirm("Are you sure you want to delete this item?")) return;
     try {
         await axios.delete(`https://lemontree-api.onrender.com/api/products/${id}`);
-        alert("商品已從資料庫移除");
+        alert("The product has been removed from the database.");
         cartStore.fetchProducts();
     } catch (error) {
-        alert("刪除失敗");
+        alert("Deletion failed.");
     }
 };
 
@@ -157,7 +157,7 @@ const fetchOrders = async () => {
         const res = await axios.get('https://lemontree-api.onrender.com/api/orders');
         orders.value = res.data;
     } catch (err) {
-        console.error("抓取訂單失敗", err);
+        console.error("Failed to fetch orders.", err);
     }
 };
 
@@ -167,25 +167,25 @@ const updateOrderStatus = async (orderId: string, newStatus: string) => {
         await axios.put(`https://lemontree-api.onrender.com/api/orders/${orderId}`, { status: newStatus });
         fetchOrders(); // 重新整理列表
     } catch (err) {
-        alert("更新失敗");
+        alert("Update failed.");
     }
 };
 
 
 const deleteOrder = async (orderId: string) => {
     if (!orderId) {
-        alert("找不到訂單 ID，無法刪除");
+        alert("Order ID not found, unable to delete.");
         return;
     }
-    if (!confirm("確定要永久刪除這筆訂單嗎？此動作無法復原。")) return;
+    if (!confirm("Are you sure you want to permanently delete this order? This action cannot be undone.")) return;
     
     try {
         await axios.delete(`https://lemontree-api.onrender.com/api/orders/${orderId}`);
-        alert("訂單已刪除");
+        alert("Order deleted.");
         fetchOrders(); 
     } catch (err) {
-        console.error("刪除失敗:", err);
-        alert("系統錯誤，無法刪除");
+        console.error("Deletion failed:", err);
+        alert("System error, unable to delete.");
     }
 };
 
@@ -216,15 +216,15 @@ const passwordForm = ref({ current: '', new: '', confirm: '' });
 
 const changePassword = async () => {
     if (!passwordForm.value.current || !passwordForm.value.new) {
-        alert("請填寫所有欄位");
+        alert("Please fill in all fields.");
         return;
     }
     if (passwordForm.value.new !== passwordForm.value.confirm) {
-        alert("新密碼與確認密碼不一致");
+        alert("The new password and confirm password do not match.");
         return;
     }
     if (passwordForm.value.new.length < 4) {
-        alert("新密碼至少需要4個字元");
+        alert("New password must be at least 4 characters long.");
         return;
     }
     try {
@@ -232,10 +232,10 @@ const changePassword = async () => {
             currentPassword: passwordForm.value.current,
             newPassword: passwordForm.value.new
         });
-        alert("密碼已成功更新！下次登入請使用新密碼。");
+        alert("Password updated successfully! Please use your new password for your next login.");
         passwordForm.value = { current: '', new: '', confirm: '' };
     } catch (err) {
-        alert("目前密碼錯誤，請重新輸入");
+        alert("Current password is incorrect, please re-enter.");
     }
 };
 
