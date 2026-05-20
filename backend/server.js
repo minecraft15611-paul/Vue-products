@@ -67,9 +67,8 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
             const totalAmount = orderItems.reduce((sum, i) => sum + i.subtotal, 0);
 
             // ── Build shipping address from Stripe session ─────────────────────
-            console.log("🔍 shipping_details:", JSON.stringify(session.shipping_details));
-            console.log("🔍 customer_details:", JSON.stringify(session.customer_details));
-            const addr    = session.shipping_details?.address ?? {};
+            // Address lives in customer_details.address; shipping_details is undefined for this flow
+            const addr    = session.shipping_details?.address ?? session.customer_details?.address ?? {};
             const name    = session.shipping_details?.name || session.customer_details?.name || '';
             const [firstName, ...rest] = name.split(' ');
             const lastName = rest.join(' ');
@@ -85,7 +84,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                 stripeSessionId: session.id,          // stored so SuccessView can query by it
                 customerName:    name,
                 email:           session.customer_details?.email ?? '',
-                address:         `${addr.line1 ?? ''}${addr.line2 ? ', ' + addr.line2 : ''}`,
+                address:         `${addr.line1 ?? ''}${addr.line2 ? ', ' + addr.line2 : ''}`.trim() || '',
                 phone:           session.customer_details?.phone || '',
                 items:           orderItems,
                 totalAmount:     +totalAmount.toFixed(2),
