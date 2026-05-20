@@ -67,6 +67,8 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
             const totalAmount = orderItems.reduce((sum, i) => sum + i.subtotal, 0);
 
             // ── Build shipping address from Stripe session ─────────────────────
+            console.log("🔍 shipping_details:", JSON.stringify(session.shipping_details));
+            console.log("🔍 customer_details:", JSON.stringify(session.customer_details));
             const addr    = session.shipping_details?.address ?? {};
             const name    = session.shipping_details?.name || session.customer_details?.name || '';
             const [firstName, ...rest] = name.split(' ');
