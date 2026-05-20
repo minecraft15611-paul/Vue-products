@@ -393,8 +393,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
                 items: JSON.stringify(items.map(i => ({ id: i.id, quantity: i.quantity }))),
             },
             // 帶上 session_id，讓 SuccessView 能查詢剛建立的訂單
-            success_url: `${process.env.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url:  `${process.env.FRONTEND_URL}/CheckoutView`,
+            success_url: `${process.env.FRONTEND_URL}/#/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url:  `${process.env.FRONTEND_URL}/#/CheckoutView`,
         });
 
         res.json({ url: session.url });
