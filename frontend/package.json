@@ -12,7 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
     "@vee-validate/zod": "^4.15.1",
-    "axios": "^1.16.0", 
+    "axios": "^1.16.0",
     "firebase": "^12.12.1",
     "intl-tel-input": "^27.0.9",
     "libphonenumber-js": "^1.12.42",
@@ -33,6 +33,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-vue": "^6.0.5",
+    "autoprefixer": "^10.5.0",
     "gh-pages": "^6.3.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0"
