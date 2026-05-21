@@ -8,7 +8,6 @@ export default defineConfig({
     tailwindcss(),
   ],
   base: '/Vue-products/',
-  },
   build: {
     cssCodeSplit: true,
     rollupOptions: {
