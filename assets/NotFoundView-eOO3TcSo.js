@@ -1,1 +1,0 @@
-import{C as e,E as t,G as n,R as r,T as i,V as a,b as o}from"./vendor-4wQLy2vz.js";import{n as s}from"./index-zWuW_w9S.js";var c={};function l(s,c){let l=a(`RouterLink`);return r(),e(`div`,null,[c[1]||=o(`h1`,null,`404 - 找不到頁面`,-1),t(l,{to:`/`},{default:n(()=>[...c[0]||=[i(`回首頁`,-1)]]),_:1})])}var u=s(c,[[`render`,l]]);export{u as default};
