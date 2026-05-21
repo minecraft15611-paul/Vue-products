@@ -66,9 +66,9 @@ onMounted(async () => {
             <span class="splash-wordmark">LemonTree</span>
             <span class="splash-subtitle">Preparing your experience</span>
         </div>
-
+  
         <!-- Ultra-thin progress bar -->
-        <div class="splash-bar-track" :class="{ hidden: !barVisible }">
+        <div class="splash-bar-track" :class="{ hidden: !barVisible }">  
             <div class="splash-bar-fill" :style="{ width: progress + '%' }" />
         </div>
 
