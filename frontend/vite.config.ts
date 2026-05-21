@@ -8,10 +8,6 @@ export default defineConfig({
     tailwindcss(),
   ],
   base: '/Vue-products/',
-  css: {
-    postcss: {
-      plugins: [autoprefixer()],
-    },
   },
   build: {
     cssCodeSplit: true,
