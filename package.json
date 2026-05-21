@@ -5,6 +5,7 @@
     "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
+    "autoprefixer": "^10.5.0",
     "critters": "^0.0.25"
   }
 }
