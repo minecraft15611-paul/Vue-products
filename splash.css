@@ -1,0 +1,88 @@
+
+/* ── Cover ─────────────────────────────────────────────────────────── */
+.splash-cover {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Dark frosted glass */
+    background: rgba(6, 6, 6, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    /* Exit transition */
+    transition: opacity 600ms ease, transform 600ms ease;
+}
+
+.splash-cover.leaving {
+    opacity: 0;
+    transform: translateY(-6px);
+}
+
+/* ── Mobile: slightly darker ────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .splash-cover {
+        background: rgba(6, 6, 6, 0.88);
+    }
+}
+
+/* ── Content ────────────────────────────────────────────────────────── */
+.splash-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+/* ── Wordmark ───────────────────────────────────────────────────────── */
+.splash-wordmark {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 300;
+    letter-spacing: 0.22em;
+    color: rgba(255, 255, 255, 0.92);
+    text-transform: uppercase;
+
+    /* Breathing animation */
+    animation: breathe 3s ease-in-out infinite;
+}
+
+@keyframes breathe {
+    0%,  100% { opacity: 0.92; }
+    50%        { opacity: 0.38; }
+}
+
+/* ── Subtitle ───────────────────────────────────────────────────────── */
+.splash-subtitle {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 300;
+    letter-spacing: 0.28em;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+}
+
+/* ── Progress bar ───────────────────────────────────────────────────── */
+.splash-bar-track {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1.5px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    transition: opacity 400ms ease;
+}
+
+.splash-bar-track.hidden {
+    opacity: 0;
+}
+
+.splash-bar-fill {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.55);
+    transition: width 300ms linear;
+}
