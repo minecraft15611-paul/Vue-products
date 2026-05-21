@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
-import autoprefixer from 'autoprefixer'
 
 export default defineConfig({
   plugins: [
@@ -9,11 +8,6 @@ export default defineConfig({
     tailwindcss(),
   ],
   base: '/Vue-products/',
-  css: {
-    postcss: {
-      plugins: [autoprefixer()],
-    },
-  },
   build: {
     cssCodeSplit: true,
     rollupOptions: {
@@ -24,6 +18,6 @@ export default defineConfig({
           }
         },
       },
-    },
+    },   
   },
 })
