@@ -81,7 +81,7 @@ router.beforeEach((to, from, next) => {
             next({ name: 'Home' });
         }
     } else if (to.meta.requiresCart) {
-        if (!from.name) {
+        if (!from.name && !to.query.session_id && to.query.from !== 'stripe') {
             alert("請透過購物車進入結帳頁面");
             return next({ name: 'Home' });
         }

@@ -46,13 +46,35 @@ import MyHeader from '../components/MyHeader.vue';
         }
     }, { immediate: true });
 
+    // ---- Random products: ref + shuffle function (defined before watchers) ----
+    const randomProducts = ref<typeof cartStore.products>([]);
+    const shuffleKey = ref(0);
+    const shuffleProducts = () => {
+        randomProducts.value = [...cartStore.products]
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 4);
+        shuffleKey.value++;
+    };
+
     // ---- Reset selections when navigating to a different product ----
     watch(
         () => route.params.id,
         () => {
             selectedSize.value = null;
             selectedColor.value = '';
+            shuffleProducts();
         }
+    );
+
+    // ---- Shuffle once products are available (handles async fetch on first load) ----
+    watch(
+        () => cartStore.products.length,
+        (len) => {
+            if (len > 0 && randomProducts.value.length === 0) {
+                shuffleProducts();
+            }
+        },
+        { immediate: true }
     );
 
     const selectedSize = ref<string | null>(null);
@@ -91,12 +113,6 @@ import MyHeader from '../components/MyHeader.vue';
         errorMessage.value = '';
         cartStore.addToCart(product.value!, selectedColor.value, selectedSize.value ?? undefined);
     };
-
-    const randomProducts = computed(() => {
-    return [...cartStore.products] 
-        .sort(() => 0.5 - Math.random()) 
-        .slice(0, 4); 
-    });
 
     const handleScroll = () => {
     const currentScrollY = window.scrollY;
@@ -267,11 +283,17 @@ import MyHeader from '../components/MyHeader.vue';
     <section class="max-w-[1200px] mx-auto px-6 py-16">
         <h2 class="text-xl font-light tracking-wide mb-8 text-gray-900">SELECTED FOR YOU</h2>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-x-1 gap-y-10">
+        <TransitionGroup
+            :key="shuffleKey"
+            tag="div"
+            class="grid grid-cols-2 md:grid-cols-4 gap-x-1 gap-y-10"
+            name="card-fade"
+        >
             <div 
-                v-for="item in randomProducts" 
+                v-for="(item, index) in randomProducts" 
                 :key="item.id" 
                 class="group cursor-pointer"
+                :style="{ transitionDelay: `${index * 60}ms` }"
                 @click="router.push(`/ProductDetail/${item.id}`)"
             >
                 <div class="aspect-[3/4] overflow-hidden bg-[#f9f9f9] mb-4">
@@ -291,7 +313,7 @@ import MyHeader from '../components/MyHeader.vue';
                     </p>
                 </div>
             </div>
-        </div>
+        </TransitionGroup>
     </section>
 
             <!-- ============== footer banner exhibit ================= -->
@@ -347,3 +369,16 @@ import MyHeader from '../components/MyHeader.vue';
     <MyFooter />
 
 </template>
+<style scoped>
+.card-fade-enter-active {
+    transition: opacity 300ms ease, transform 300ms ease;
+}
+.card-fade-enter-from {
+    opacity: 0;
+    transform: translateY(12px);
+}
+.card-fade-enter-to {
+    opacity: 1;
+    transform: translateY(0);
+}
+</style>
