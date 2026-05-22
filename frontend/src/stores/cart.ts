@@ -95,6 +95,7 @@ export const useCartStore = defineStore('cart', () => {
 // ---- Category Filter (shared across all components) ----
 
     const selectedCategory = ref('Home');
+    const categoryChangeCount = ref(0);
 
     const categories = computed(() => {
         const list = products.value.map(p => p.category);
@@ -105,6 +106,7 @@ export const useCartStore = defineStore('cart', () => {
 
     const setCategory = (cat: string) => {
         selectedCategory.value = cat;
+        categoryChangeCount.value++;
         searchQuery.value = '';
         goingHome.value = false;
     };
@@ -115,6 +117,7 @@ export const useCartStore = defineStore('cart', () => {
     const goHome = () => {
         goingHome.value = true;
         selectedCategory.value = 'Home';
+        categoryChangeCount.value++;
         searchQuery.value = '';
     };
 
@@ -257,6 +260,7 @@ export const useCartStore = defineStore('cart', () => {
         increaseQty,
         clearCart,
         selectedCategory,
+        categoryChangeCount,
         categories,
         setCategory,
         goingHome,
