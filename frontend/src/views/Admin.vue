@@ -70,7 +70,7 @@ const editProduct = (product: any) => {
         colors: [...product.colors.map(c => ({ ...c }))],
         sizes: [...product.sizes]
      }; 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 300, behavior: 'smooth' });
 };
  
 // 重置表單：回到新增模式
@@ -244,26 +244,28 @@ const changePassword = async () => {
 <template>
     <div v-if="isAuthenticated" class="min-h-screen bg-gray-100 p-3 md:p-6 font-sans">
         <div class="max-w-7xl mx-auto">
-            <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-6 text-center">LemonTree 管理後台</h2>
-
-            <div class="flex justify-center gap-2 md:gap-4 mb-8 bg-white p-2 rounded-2xl shadow-sm w-max mx-auto border border-gray-200">
-                <button @click="currentTab = 'dashboard'" 
-                    :class="currentTab === 'dashboard' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
-                    class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-                    🏠 數據主頁
-                </button>
-                <button @click="currentTab = 'products'" 
-                    :class="currentTab === 'products' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
-                    class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-                    📦 商品管理
-                </button>
-                <button @click="currentTab = 'orders'; fetchOrders()" 
-                    :class="currentTab === 'orders' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
-                    class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-                    📜 訂單處理
-                </button>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-6 text-center">LemonTree Management Backend</h2>
+            
+            <div class="w-full overflow-x-auto pb-2">
+                <div class="flex justify-center gap-2 md:gap-4 bg-white p-2 rounded-2xl shadow-sm w-max mx-auto border border-gray-200">
+                    <button @click="currentTab = 'dashboard'" 
+                        :class="currentTab === 'dashboard' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+                        🏠 Data Dashboard
+                    </button>
+                    <button @click="currentTab = 'products'" 
+                        :class="currentTab === 'products' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+                        📦 Product Management
+                    </button>
+                    <button @click="currentTab = 'orders'; fetchOrders()" 
+                        :class="currentTab === 'orders' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+                        📜 Order Processing
+                    </button>
+                </div>
             </div>
-            <div class="mt-auto pt-6 border-t border-gray-100">
+            <div class="mt-auto lg:pt-6 border-t border-gray-100">
                 <router-link 
                     to="/" 
                     class="flex items-center gap-2 px-4 py-3 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all group"
@@ -271,19 +273,19 @@ const changePassword = async () => {
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
-                    <span class="font-medium">返回網站首頁</span>
+                    <span class="font-medium">Back to Website Home</span>
                 </router-link>
                 
                 <button @click="logout" class="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-600 hover:bg-red-50 transition-all rounded-xl">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    <span class="text-sm font-medium">退出管理系統</span>
+                    <span class="text-sm font-medium">Exit Management System</span>
                 </button>
                 <button @click="currentTab = 'settings'" 
     :class="currentTab === 'settings' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
     class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-    ⚙️ 設定
+    ⚙️ Settings
 </button>
             </div>
             
@@ -291,45 +293,45 @@ const changePassword = async () => {
             <div v-if="currentTab === 'dashboard'" class="animate-fadeIn">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">今日營收</div>
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Today's Revenue</div>
                         <div class="text-3xl font-black text-gray-800 mt-1">${{ dynamicStats.todayRevenue }}</div>
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">新增訂單</div>
-                        <div class="text-3xl font-black text-blue-600 mt-1">{{ dynamicStats.orderCount }} 筆</div>
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">New Orders</div>
+                        <div class="text-3xl font-black text-blue-600 mt-1">{{ dynamicStats.orderCount }} Count (Units)</div>
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">庫存警示</div>
-                        <div class="text-3xl font-black text-red-500 mt-1">{{ dynamicStats.lowStockCount }} 項</div>
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Stock Alert</div>
+                        <div class="text-3xl font-black text-red-500 mt-1">{{ dynamicStats.lowStockCount }} Items</div>
                     </div>
                 </div>
             </div>
 
             <div v-if="currentTab === 'settings'" class="animate-fadeIn max-w-md mx-auto">
     <div class="bg-white shadow-lg rounded-2xl p-6 border border-gray-200">
-        <h3 class="text-lg font-bold text-gray-700 mb-6">🔐 修改管理員密碼</h3>
+        <h3 class="text-lg font-bold text-gray-700 mb-6">🔐 Change Administrator Password</h3>
         <div class="space-y-4">
             <div>
-                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">目前密碼</label>
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Current Password</label>
                 <input v-model="passwordForm.current" type="password"
                     class="mt-1 block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="輸入目前密碼">
+                    placeholder="Enter Current Password">
             </div>
             <div>
-                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">新密碼</label>
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">New Password</label>
                 <input v-model="passwordForm.new" type="password"
                     class="mt-1 block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="輸入新密碼">
+                    placeholder="Enter New Password">
             </div>
             <div>
-                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">確認新密碼</label>
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Confirm New Password</label>
                 <input v-model="passwordForm.confirm" type="password"
                     class="mt-1 block w-full border border-gray-300 rounded-xl p-3 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="再次輸入新密碼">
+                    placeholder="Re-enter New Password">
             </div>
             <button @click="changePassword"
                 class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm shadow-md active:scale-95 transition-all mt-2">
-                💾 儲存新密碼
+                💾 Save New Password
             </button>
         </div>
     </div>
@@ -341,17 +343,17 @@ const changePassword = async () => {
         <div class="lg:col-span-1">
             <div class="bg-white shadow-lg rounded-2xl p-4 md:p-5 border border-gray-200">
                 <h3 class="text-base md:text-lg font-bold mb-4 flex items-center gap-2 text-gray-700">
-                    {{ isEditMode ? '📝 編輯商品' : '✨ 快速上架' }}
+                    {{ isEditMode ? '📝 Edit Product' : '✨ Quick Launch' }}
                 </h3>
                 
                 <div class="space-y-4">
                     <div class="group">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">商品基本資訊</span>
-                        <input v-model="newItem.name" type="text" class="mt-1 block w-full border border-gray-300 rounded-xl p-2.5 md:p-3 bg-gray-50 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition" placeholder="商品名稱">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Basic Information</span>
+                        <input v-model="newItem.name" type="text" class="mt-1 block w-full border border-gray-300 rounded-xl p-2.5 md:p-3 bg-gray-50 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition" placeholder="Product Name">
                     </div>
 
                     <div class="grid grid-cols-2 gap-2 md:gap-3">
-                        <input v-model.number="newItem.price" type="number" class="block w-full border border-gray-300 rounded-xl p-2.5 md:p-3 bg-gray-50 text-sm outline-none" placeholder="價格 (USD)">
+                        <input v-model.number="newItem.price" type="number" class="block w-full border border-gray-300 rounded-xl p-2.5 md:p-3 bg-gray-50 text-sm outline-none" placeholder="Price (USD)">
                         <select v-model="newItem.category" class="block w-full border border-gray-300 rounded-xl p-2.5 md:p-3 bg-gray-50 text-xs md:text-sm outline-none">
                             <option>Men's Apparel</option>
                             <option>Women's Apparel</option>
@@ -362,11 +364,11 @@ const changePassword = async () => {
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div class="group">
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">庫存量</span>
-                            <input v-model.number="newItem.stock" type="number" class="mt-1 block w-full border border-gray-300 rounded-xl p-2.5 bg-gray-50 text-sm" placeholder="數量">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Stock Level</span>
+                            <input v-model.number="newItem.stock" type="number" class="mt-1 block w-full border border-gray-300 rounded-xl p-2.5 bg-gray-50 text-sm" placeholder="Quantity">
                         </div>
                         <div class="group">
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">尺寸</span>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Size</span>
                             <div class="flex gap-1.5 mt-1.5 flex-wrap">
                                 <label v-for="s in ['S', 'M', 'L', 'XL']" :key="s" class="flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-lg text-[10px] cursor-pointer active:bg-blue-100">
                                     <input type="checkbox" :value="s" v-model="newItem.sizes" class="w-3 h-3"> {{ s }}
@@ -376,11 +378,11 @@ const changePassword = async () => {
                     </div>
 
                     <div class="bg-gray-50 p-3 md:p-4 rounded-xl border border-dashed border-gray-300">
-                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">規格顏色</span>
+                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Spec Color</span>
                         <div class="flex gap-2 mt-2">
-                            <input v-model="tempColor.name" type="text" placeholder="名稱" class="border rounded-lg flex-1 p-2 text-xs">
+                            <input v-model="tempColor.name" type="text" placeholder="Name" class="border rounded-lg flex-1 p-2 text-xs">
                             <input v-model="tempColor.hex" type="color" class="h-8 w-8 border rounded-lg cursor-pointer bg-white p-1">
-                            <button @click="addColor" type="button" class="bg-gray-900 text-white px-3 rounded-lg text-xs font-bold">加</button>
+                            <button @click="addColor" type="button" class="bg-gray-900 text-white px-3 rounded-lg text-xs font-bold">Add</button>
                         </div>
                         <div class="flex gap-2 mt-3 flex-wrap">
                             <span v-for="(c, index) in newItem.colors" :key="index" class="flex items-center bg-white border border-gray-200 px-2 py-1 rounded-lg text-[10px] shadow-sm">
@@ -393,10 +395,10 @@ const changePassword = async () => {
 
                     <div class="flex flex-col gap-2 pt-2">
                         <button @click="handleSave" :class="isEditMode ? 'bg-green-600' : 'bg-blue-600'" class="w-full text-white font-bold py-3 rounded-xl text-sm shadow-md active:scale-95 transition-all">
-                            {{ isEditMode ? '💾 儲存更新' : '🚀 發布商品' }}
+                            {{ isEditMode ? '💾 Save Update' : '🚀 Publish Product' }}
                         </button>
                         <button v-if="isEditMode" @click="resetForm" class="w-full bg-gray-200 text-gray-600 py-2 rounded-xl text-sm font-semibold">
-                            取消
+                            Cancel
                         </button>
                     </div>
                 </div>
@@ -406,7 +408,7 @@ const changePassword = async () => {
         <div class="lg:col-span-2">
             <div class="bg-white shadow-lg rounded-2xl border border-gray-200 overflow-hidden">
                 <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-700 text-sm md:text-base">📋 商品清單</h3>
+                    <h3 class="font-bold text-gray-700 text-sm md:text-base">📋 Product List</h3>
                     <span class="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">{{ cartStore.products.length }}</span>
                 </div>
 
@@ -414,10 +416,10 @@ const changePassword = async () => {
                     <table class="w-full text-left min-w-[600px] md:min-w-[700px]">
                         <thead class="bg-gray-50 text-gray-400 text-[10px] uppercase tracking-widest border-b">
                             <tr>
-                                <th class="px-4 py-3 font-bold">詳情</th>
-                                <th class="px-4 py-3 font-bold text-center">單價</th>
-                                <th class="px-4 py-3 font-bold text-center">庫存規格</th> 
-                                <th class="px-4 py-3 font-bold text-center">操作</th>
+                                <th class="px-4 py-3 font-bold">Details</th>
+                                <th class="px-4 py-3 font-bold text-center">Unit Price</th>
+                                <th class="px-4 py-3 font-bold text-center">Stock Specs</th> 
+                                <th class="px-4 py-3 font-bold text-center">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -446,8 +448,8 @@ const changePassword = async () => {
 
                                 <td class="px-4 py-3 text-center">
                                     <div class="flex justify-center gap-2">
-                                        <button @click="editProduct(p)" class="text-blue-500 bg-blue-50 px-2 py-1 rounded-md text-[10px] font-bold">改</button>
-                                        <button @click="deleteProduct(p.id)" class="text-red-400 hover:text-red-600 text-[10px]">刪</button>
+                                        <button @click="editProduct(p)" class="text-blue-500 bg-blue-50 px-2 py-1 rounded-md text-[10px] font-bold">Edit</button>
+                                        <button @click="deleteProduct(p.id)" class="text-red-400 hover:text-red-600 text-[10px]">Delete</button>
                                     </div>
                                 </td>
                             </tr>
@@ -455,7 +457,7 @@ const changePassword = async () => {
                     </table>
                 </div>
                 <div class="md:hidden text-center py-2 text-[9px] text-gray-400 bg-gray-50 border-t italic">
-                    ← 左右滑動查看完整資訊 →
+                    ← Left and Right Swipe to View Full Information →
                 </div>
             </div>
         </div>
@@ -468,11 +470,11 @@ const changePassword = async () => {
             <table class="w-full text-left min-w-[800px]">
                 <thead class="bg-gray-50 text-gray-400 text-[11px] uppercase tracking-widest border-b">
                     <tr>
-                        <th class="px-6 py-4 font-bold">訂單編號/時間</th>
-                        <th class="px-6 py-4 font-bold">購買商品</th>
-                        <th class="px-6 py-4 font-bold">客戶資訊</th>
-                        <th class="px-6 py-4 font-bold text-center">總額</th>
-                        <th class="px-6 py-4 font-bold text-center">狀態/操作</th>
+                        <th class="px-6 py-4 font-bold">Order ID/Time</th>
+                        <th class="px-6 py-4 font-bold">Purchased Items</th>
+                        <th class="px-6 py-4 font-bold">Customer Information</th>
+                        <th class="px-6 py-4 font-bold text-center">Total</th>
+                        <th class="px-6 py-4 font-bold text-center">Status/Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -504,10 +506,10 @@ const changePassword = async () => {
                                     @change="updateOrderStatus(order._id, $event.target.value)"
                                     :class="order.status === '待付款' ? 'text-orange-500' : 'text-green-600'"
                                     class="bg-gray-50 border border-gray-200 rounded-lg text-xs p-1 outline-none focus:ring-2 focus:ring-green-100">
-                                    <option :selected="order.status === '待付款'">待付款</option>
-                                    <option :selected="order.status === '已付款'">已付款</option>
-                                    <option :selected="order.status === '已出貨'">已出貨</option>
-                                    <option :selected="order.status === '已取消'">已取消</option>
+                                    <option :selected="order.status === '待付款'">Pending Payment</option>
+                                    <option :selected="order.status === '已付款'">Paid</option>
+                                    <option :selected="order.status === '已出貨'">Shipped</option>
+                                    <option :selected="order.status === '已取消'">Cancelled</option>
                                 </select>
                                 <button @click="deleteOrder(order._id)" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -529,12 +531,12 @@ const changePassword = async () => {
     <div v-else class="min-h-screen bg-green-50 flex items-center justify-center p-4">
         <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md text-center">
             <h2 class="text-3xl font-black text-green-600 mb-2">LemonTree</h2>
-            <p class="text-gray-400 text-sm mb-8 font-bold">管理者權限驗證</p>
+            <p class="text-gray-400 text-sm mb-8 font-bold">Administrator Permission Verification</p>
             
             <input 
                 v-model="adminKey" 
                 type="password" 
-                placeholder="請輸入管理員金鑰"
+                placeholder="Please Enter Administrator Key"
                 @keyup.enter="login"
                 class="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl mb-6 outline-none focus:border-green-400 transition-all text-center tracking-widest font-mono"
             />
@@ -543,10 +545,10 @@ const changePassword = async () => {
                 @click="login"
                 class="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-bold shadow-lg shadow-green-200 transition-all active:scale-95"
             >
-                進入管理系統
+                Enter Management System
             </button>
             
-            <router-link to="/" class="block mt-6 text-gray-400 text-xs hover:underline italic">返回網站首頁</router-link>
+            <router-link to="/" class="block mt-6 text-gray-400 text-xs hover:underline italic">Back to Website Home</router-link>
         </div>
     </div>
 </template>
@@ -558,5 +560,9 @@ const changePassword = async () => {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+    display: none; /* 隱藏捲軸 */
 }
 </style>

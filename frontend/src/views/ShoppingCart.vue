@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useCartStore } from '../stores/cart'
 import { useRouter } from 'vue-router';
 import CheckoutView from './CheckoutView.vue';
@@ -11,6 +11,16 @@ const router = useRouter();
 const goBack = (): void => {
   router.back(); 
 };
+
+const isProcessing = ref(false)
+
+const handleCheckout = () => {
+  if (isProcessing.value) return
+  isProcessing.value = true
+  setTimeout(() => {
+    router.push('/CheckoutView')
+  }, 1500)
+}
 
 const subtotal = computed<number>(() =>
   cartStore.totalPrice
@@ -138,12 +148,20 @@ const total = computed<number>(() => subtotal.value + shipping.value)
 
       <!-- Checkout Button -->
 
-      <router-link to="/CheckoutView" class="flex justify-center w-full py-3 mb-2.5 bg-gray-900 text-white text-xs uppercase tracking-widest font-medium rounded-md hover:bg-gray-700 transition-colors">
-        Proceed to Checkout
-          <svg class="w-3.5 h-3.5 transform ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-      </router-link>
+      <button
+        @click="handleCheckout"
+        :disabled="isProcessing"
+        class="flex justify-center items-center w-full py-3 mb-2.5 bg-gray-900 text-white text-xs uppercase tracking-widest font-medium rounded-md hover:bg-gray-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+      >
+        <svg v-if="isProcessing" class="animate-spin w-4 h-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+        </svg>
+        <span>{{ isProcessing ? 'Processing...' : 'Proceed to Checkout' }}</span>
+        <svg v-if="!isProcessing" class="w-3.5 h-3.5 ml-2" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
 
       <!-- Clear All -->
       <button
@@ -274,12 +292,20 @@ const total = computed<number>(() => subtotal.value + shipping.value)
             <span class="tracking-tighter">${{ total.toFixed(2) }}</span>
           </div>
 
-          <router-link to="/CheckoutView" class="mt-8 w-full bg-gray-900 text-white text-[11px] uppercase tracking-[0.2em] font-semibold rounded-md py-4 hover:bg-gray-800 transition-all flex items-center justify-center gap-2 group">
-            Proceed to Checkout
-            <svg class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-          </router-link>
+          <button
+            @click="handleCheckout"
+            :disabled="isProcessing"
+            class="mt-8 w-full bg-gray-900 text-white text-[11px] uppercase tracking-[0.2em] font-semibold rounded-md py-4 hover:bg-gray-800 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            <svg v-if="isProcessing" class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+            </svg>
+            <span>{{ isProcessing ? 'Processing...' : 'Proceed to Checkout' }}</span>
+            <svg v-if="!isProcessing" class="w-3.5 h-3.5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
 
           <div class="mt-12 flex flex-col items-center border-t border-gray-50 pt-9">
             <p class="text-[10px] tracking-[0.3em] text-gray-400 uppercase mb-5 font-semibold">

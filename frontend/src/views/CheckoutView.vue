@@ -141,6 +141,7 @@
         // Payment
         payment: {
             method:  'credit' as 'credit' | 'Klarna' | 'PayPal',
+            // Demo only — card data is discarded after schema validation, never sent to server or stored
             cardNumber:     '',
             expirationDate: '',
             securityCode:   '',
@@ -222,6 +223,11 @@
             nextTick(() => scrollToFirstError(formErrors.value));
             return;
         }
+        const capturedCard = { ...checkoutForm.payment };
+        checkoutForm.payment.cardNumber     = '';
+        checkoutForm.payment.securityCode   = '';
+        checkoutForm.payment.expirationDate = '';
+        checkoutForm.payment.nameOnCard     = '';
 
         // ── Goal 2: Generate order number ─────────────────────────────────────
         const today = new Date();
@@ -268,11 +274,8 @@
                 phone:     billingAddress.phone,
             },
             payment: {
-                method:         checkoutForm.payment.method,
-                nameOnCard:     checkoutForm.payment.method === 'credit' ? checkoutForm.payment.nameOnCard     : null,
-                cardNumber:     checkoutForm.payment.method === 'credit' ? checkoutForm.payment.cardNumber     : null,
-                expirationDate: checkoutForm.payment.method === 'credit' ? checkoutForm.payment.expirationDate : null,
-                securityCode:   checkoutForm.payment.method === 'credit' ? checkoutForm.payment.securityCode   : null,
+                method: checkoutForm.payment.method,
+                demo: true,
             },
             cart: cartStore.cart.map(item => ({
                 id:       item.id,
@@ -1189,7 +1192,9 @@
                 </div>
 
                 <!-- ========== Payment Method Selector ========== -->
-
+                <p class="text-xs text-amber-600 font-medium mb-2">
+                ⚠️ Demo mode — form validation showcase only, no real charge
+                </p>
                 <div class="flex relative    p-3 pb-1 items-baseline"
                     :class="checkoutForm.payment.method === 'credit'? 'border border-black bg-gray-100' : 'border border-gray-300 bg-white'"
                 >
@@ -2802,6 +2807,9 @@
                         <p class="mt-1 text-[13px] text-gray-500 mb-3">All transactions are secure and encrypted.</p>
  
                         <!-- Credit / Debit card -->
+                        <p class="text-xs text-amber-600 font-medium mb-2">
+                            ⚠️ Demo mode — form validation showcase only, no real charge
+                        </p>
                         <div class="relative p-3 pb-1 items-baseline"
                             :class="checkoutForm.payment.method === 'credit' ? 'border border-black bg-gray-100' : 'border border-gray-300 bg-white'"
                         >

@@ -36,7 +36,7 @@
     <div class="product-list-container mb-4 max-w-screen-xl mx-auto w-full px-4 lg:px-8">
 
         <Transition name="page-fade" mode="out-in">
-            <ul :key="currentPage + '_' + cartStore.selectedCategory + '_' + cartStore.searchQuery" class="grid grid-cols-2 content-start gap-3" style="min-height: 520px;">
+            <ul :key="currentPage + '_' + cartStore.selectedCategory + '_' + cartStore.searchQuery + '_' + cartStore.categoryChangeCount" class="grid grid-cols-2 content-start gap-3" style="min-height: 520px;">
                 <!-- ================   mobile version   ==================== -->
                 
                 <li
@@ -161,5 +161,14 @@
     .page-fade-leave-to {
         opacity: 0;
     }
+
+
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
 }
+
+
 </style>
