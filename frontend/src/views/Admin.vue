@@ -70,7 +70,7 @@ const editProduct = (product: any) => {
         colors: [...product.colors.map(c => ({ ...c }))],
         sizes: [...product.sizes]
      }; 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 300, behavior: 'smooth' });
 };
  
 // 重置表單：回到新增模式
@@ -245,25 +245,27 @@ const changePassword = async () => {
     <div v-if="isAuthenticated" class="min-h-screen bg-gray-100 p-3 md:p-6 font-sans">
         <div class="max-w-7xl mx-auto">
             <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-6 text-center">LemonTree Management Backend</h2>
-
-            <div class="flex justify-center gap-2 md:gap-4 mb-8 bg-white p-2 rounded-2xl shadow-sm w-max mx-auto border border-gray-200">
-                <button @click="currentTab = 'dashboard'" 
-                    :class="currentTab === 'dashboard' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
-                    class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-                    🏠 Data Dashboard
-                </button>
-                <button @click="currentTab = 'products'" 
-                    :class="currentTab === 'products' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
-                    class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-                    📦 Product Management
-                </button>
-                <button @click="currentTab = 'orders'; fetchOrders()" 
-                    :class="currentTab === 'orders' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
-                    class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-                    📜 Order Processing
-                </button>
+            
+            <div class="w-full overflow-x-auto pb-2">
+                <div class="flex justify-center gap-2 md:gap-4 bg-white p-2 rounded-2xl shadow-sm w-max mx-auto border border-gray-200">
+                    <button @click="currentTab = 'dashboard'" 
+                        :class="currentTab === 'dashboard' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+                        🏠 Data Dashboard
+                    </button>
+                    <button @click="currentTab = 'products'" 
+                        :class="currentTab === 'products' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+                        📦 Product Management
+                    </button>
+                    <button @click="currentTab = 'orders'; fetchOrders()" 
+                        :class="currentTab === 'orders' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+                        📜 Order Processing
+                    </button>
+                </div>
             </div>
-            <div class="mt-auto pt-6 border-t border-gray-100">
+            <div class="mt-auto lg:pt-6 border-t border-gray-100">
                 <router-link 
                     to="/" 
                     class="flex items-center gap-2 px-4 py-3 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all group"
@@ -558,5 +560,9 @@ const changePassword = async () => {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+    display: none; /* 隱藏捲軸 */
 }
 </style>
