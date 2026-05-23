@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -103,6 +105,34 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 
             await newOrder.save();
 
+            // ── Send order confirmation email ──────────────────────────────────────
+            try {
+                await resend.emails.send({
+                    from: 'onboarding@resend.dev',
+                    to: session.customer_details?.email,
+                    subject: `Order Confirmed — ${orderId}`,
+                    html: `
+                        <h2>Thanks for your order, ${firstName}!</h2>
+                        <p>Order number: <strong>${orderId}</strong></p>
+                        <table>
+                            ${orderItems.map(item => `
+                                <tr>
+                                    <td>${item.name}</td>
+                                    <td>x${item.quantity}</td>
+                                    <td>$${item.subtotal}</td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                        <p>Total: <strong>$${totalAmount.toFixed(2)}</strong></p>
+                        <p>Shipping to: ${addr.line1}, ${addr.city}, ${addr.country}</p>
+                    `,
+                });
+                console.log(`📧 Confirmation email sent to：${session.customer_details?.email}`);
+            } catch (emailErr) {
+                console.error('Failed to send confirmation email：', emailErr.message);
+            }
+
+
             // ── Deduct stock ───────────────────────────────────────────────────
             for (const item of orderItems) {
                 await Product.findOneAndUpdate(
@@ -111,10 +141,10 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                 );
             }
 
-            console.log(`✅ Express checkout 訂單已建立：${orderId}`);
+            console.log(`✅ Express checkout order created：${orderId}`);
         } catch (err) {
-            console.error('處理 Webhook 時發生錯誤：', err.message);
-            return res.status(500).json({ error: '伺服器錯誤' });
+            console.error('Error processing webhook：', err.message);
+            return res.status(500).json({ error: 'Internal server error' });
         }
     }
 
@@ -133,13 +163,13 @@ app.get('/api/health', (req, res) => {
 const uri = process.env.MONGODB_URI;
 
 if (!uri) {
-    console.error("錯誤：找不到 MONGODB_URI 環境變數！");
+    console.error("MONGODB_URI environment variable not found!");
     process.exit(1);
 }
 
 mongoose.connect(uri)
-    .then(() => console.log("MongoDB 連線成功！"))
-    .catch(err => console.log("連線失敗：", err));
+    .then(() => console.log("MongoDB connected successfully!"))
+    .catch(err => console.log("Connection failed:", err));
 
 // ── Schema 定義 ─────────────────────────────────────────────────────────────────────
 const productSchema = new mongoose.Schema({
