@@ -112,19 +112,78 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                     to: session.customer_details?.email,
                     subject: `Order Confirmed — ${orderId}`,
                     html: `
-                        <h2>Thanks for your order, ${firstName}!</h2>
-                        <p>Order number: <strong>${orderId}</strong></p>
-                        <table>
-                            ${orderItems.map(item => `
-                                <tr>
-                                    <td>${item.name}</td>
-                                    <td>x${item.quantity}</td>
-                                    <td>$${item.subtotal}</td>
-                                </tr>
-                            `).join('')}
-                        </table>
-                        <p>Total: <strong>$${totalAmount.toFixed(2)}</strong></p>
-                        <p>Shipping to: ${addr.line1}, ${addr.city}, ${addr.country}</p>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+    <!-- Header -->
+    <div style="background:#1a1a1a;padding:32px;text-align:center;">
+      <h1 style="color:#ffffff;margin:0;font-size:24px;letter-spacing:2px;">LEMON TREE</h1>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:40px 32px;">
+      <h2 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;">Thanks for your order, ${name}!</h2>
+      <p style="margin:0 0 24px;color:#666;font-size:14px;">Your order has been confirmed and is being processed.</p>
+
+      <!-- Order Number -->
+      <div style="background:#f9f9f9;border-radius:6px;padding:16px 20px;margin-bottom:24px;">
+        <p style="margin:0;font-size:13px;color:#999;text-transform:uppercase;letter-spacing:1px;">Order Number</p>
+        <p style="margin:4px 0 0;font-size:16px;font-weight:bold;color:#1a1a1a;">${orderId}</p>
+      </div>
+
+      <!-- Items Table -->
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <thead>
+          <tr style="border-bottom:2px solid #f0f0f0;">
+            <th style="text-align:left;padding:8px 0;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:1px;">Item</th>
+            <th style="text-align:center;padding:8px 0;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:1px;">Qty</th>
+            <th style="text-align:right;padding:8px 0;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:1px;">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orderItems.map(item => `
+            <tr style="border-bottom:1px solid #f0f0f0;">
+              <td style="padding:14px 0;font-size:14px;color:#1a1a1a;">${item.name}</td>
+              <td style="padding:14px 0;font-size:14px;color:#666;text-align:center;">x${item.quantity}</td>
+              <td style="padding:14px 0;font-size:14px;color:#1a1a1a;text-align:right;">$${item.subtotal}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2" style="padding:16px 0 0;font-size:15px;font-weight:bold;color:#1a1a1a;">Total</td>
+            <td style="padding:16px 0 0;font-size:15px;font-weight:bold;color:#1a1a1a;text-align:right;">$${totalAmount.toFixed(2)}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- Shipping Address -->
+      <div style="border-top:1px solid #f0f0f0;padding-top:24px;">
+        <p style="margin:0 0 8px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:1px;">Shipping To</p>
+        <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.8;">
+          ${name}<br>
+          ${addr.line1 ?? ''}${addr.line2 ? ', ' + addr.line2 : ''}<br>
+          ${addr.city ?? ''}, ${addr.state ?? ''} ${addr.postal_code ?? ''}<br>
+          ${addr.country ?? ''}
+        </p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f9f9f9;padding:24px 32px;text-align:center;border-top:1px solid #f0f0f0;">
+      <p style="margin:0;font-size:12px;color:#999;">Questions? Contact us anytime.</p>
+      <p style="margin:8px 0 0;font-size:12px;color:#bbb;">© 2026 Lemon Tree. All rights reserved.</p>
+    </div>
+
+  </div>
+</body>
+</html>
                     `,
                 });
                 console.log(`📧 Confirmation email sent to：${session.customer_details?.email}`);
