@@ -119,7 +119,7 @@ onMounted(async () => {
         }
     }
     cartStore.fetchProducts();
-    fetchOrders();
+    if (isAuthenticated.value) fetchOrders();
 });
 
 // ── Product form ───────────────────────────────────────────────────────────
