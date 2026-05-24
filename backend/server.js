@@ -8,6 +8,9 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// HTML escape helper — prevents XSS in email templates
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -110,7 +113,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                 await resend.emails.send({
                     from: 'onboarding@resend.dev',
                     to: session.customer_details?.email,
-                    subject: `Order Confirmed — ${orderId}`,
+                    subject: `Order Confirmed — ${esc(orderId)}`,
                     html: `
 <!DOCTYPE html>
 <html>
@@ -128,13 +131,13 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
 
     <!-- Body -->
     <div style="padding:40px 32px;">
-      <h2 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;">Thanks for your order, ${name}!</h2>
+      <h2 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;">Thanks for your order, ${esc(name)}!</h2>
       <p style="margin:0 0 24px;color:#666;font-size:14px;">Your order has been confirmed and is being processed.</p>
 
       <!-- Order Number -->
       <div style="background:#f9f9f9;border-radius:6px;padding:16px 20px;margin-bottom:24px;">
         <p style="margin:0;font-size:13px;color:#999;text-transform:uppercase;letter-spacing:1px;">Order Number</p>
-        <p style="margin:4px 0 0;font-size:16px;font-weight:bold;color:#1a1a1a;">${orderId}</p>
+        <p style="margin:4px 0 0;font-size:16px;font-weight:bold;color:#1a1a1a;">${esc(orderId)}</p>
       </div>
 
       <!-- Items Table -->
@@ -149,16 +152,16 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
         <tbody>
           ${orderItems.map(item => `
             <tr style="border-bottom:1px solid #f0f0f0;">
-              <td style="padding:14px 0;font-size:14px;color:#1a1a1a;">${item.name}</td>
-              <td style="padding:14px 0;font-size:14px;color:#666;text-align:center;">x${item.quantity}</td>
-              <td style="padding:14px 0;font-size:14px;color:#1a1a1a;text-align:right;">$${item.subtotal}</td>
+              <td style="padding:14px 0;font-size:14px;color:#1a1a1a;">${esc(item.name)}</td>
+              <td style="padding:14px 0;font-size:14px;color:#666;text-align:center;">x${esc(item.quantity)}</td>
+              <td style="padding:14px 0;font-size:14px;color:#1a1a1a;text-align:right;">$${esc(item.subtotal)}</td>
             </tr>
           `).join('')}
         </tbody>
         <tfoot>
           <tr>
             <td colspan="2" style="padding:16px 0 0;font-size:15px;font-weight:bold;color:#1a1a1a;">Total</td>
-            <td style="padding:16px 0 0;font-size:15px;font-weight:bold;color:#1a1a1a;text-align:right;">$${totalAmount.toFixed(2)}</td>
+            <td style="padding:16px 0 0;font-size:15px;font-weight:bold;color:#1a1a1a;text-align:right;">$${esc(totalAmount.toFixed(2))}</td>
           </tr>
         </tfoot>
       </table>
@@ -167,10 +170,10 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
       <div style="border-top:1px solid #f0f0f0;padding-top:24px;">
         <p style="margin:0 0 8px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:1px;">Shipping To</p>
         <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.8;">
-          ${name}<br>
-          ${addr.line1 ?? ''}${addr.line2 ? ', ' + addr.line2 : ''}<br>
-          ${addr.city ?? ''}, ${addr.state ?? ''} ${addr.postal_code ?? ''}<br>
-          ${addr.country ?? ''}
+          ${esc(name)}<br>
+          ${esc(addr.line1 ?? '')}${addr.line2 ? ', ' + esc(addr.line2) : ''}<br>
+          ${esc(addr.city ?? '')}, ${esc(addr.state ?? '')} ${esc(addr.postal_code ?? '')}<br>
+          ${esc(addr.country ?? '')}
         </p>
       </div>
     </div>
@@ -282,8 +285,7 @@ const orderSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-mongoose.deleteModel(/Order/);
-const Order = mongoose.model('Order', orderSchema);
+const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);
 
 // ── Admin Schema ────────────────────────────────────────────────────────────────────
 const adminSchema = new mongoose.Schema({
@@ -357,17 +359,29 @@ app.put('/api/admin/change-password', requireAdmin, async (req, res) => {
 // ⚠️  Stock deduction removed — now handled exclusively by Stripe webhook after payment confirmed
 app.post('/api/orders', async (req, res) => {
     try {
-        const newOrder = new Order(req.body);
+        // Whitelist fields — never trust req.body directly
+        const { orderId, customerName, email, address, phone,
+                items, totalAmount, status, shippingDetails } = req.body;
+        if (!orderId || !email || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ message: '缺少必要欄位' });
+        }
+        // Only allow known statuses — prevent client from self-approving orders
+        const allowedStatuses = ['待付款', '已付款', '處理中', '已出貨', '已完成'];
+        const safeStatus = allowedStatuses.includes(status) ? status : '待付款';
+        const newOrder = new Order({
+            orderId, customerName, email, address, phone,
+            items, totalAmount, shippingDetails,
+            status: safeStatus,
+        });
         const savedOrder = await newOrder.save();
 
         // ── Send order confirmation email (manual checkout path) ───────────────
         try {
-            const { orderId, customerName, email, address, items, totalAmount, shippingDetails } = req.body;
 
             await resend.emails.send({
                 from: 'onboarding@resend.dev',
                 to: email,
-                subject: `Order Confirmed — ${orderId}`,
+                subject: `Order Confirmed — ${esc(orderId)}`,
                 html: `
 <!DOCTYPE html>
 <html>
@@ -385,13 +399,13 @@ app.post('/api/orders', async (req, res) => {
 
     <!-- Body -->
     <div style="padding:40px 32px;">
-      <h2 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;">Thanks for your order, ${customerName}!</h2>
+      <h2 style="margin:0 0 8px;font-size:22px;color:#1a1a1a;">Thanks for your order, ${esc(customerName)}!</h2>
       <p style="margin:0 0 24px;color:#666;font-size:14px;">Your order has been confirmed and is being processed.</p>
 
       <!-- Order Number -->
       <div style="background:#f9f9f9;border-radius:6px;padding:16px 20px;margin-bottom:24px;">
         <p style="margin:0;font-size:13px;color:#999;text-transform:uppercase;letter-spacing:1px;">Order Number</p>
-        <p style="margin:4px 0 0;font-size:16px;font-weight:bold;color:#1a1a1a;">${orderId}</p>
+        <p style="margin:4px 0 0;font-size:16px;font-weight:bold;color:#1a1a1a;">${esc(orderId)}</p>
       </div>
 
       <!-- Items Table -->
@@ -406,16 +420,16 @@ app.post('/api/orders', async (req, res) => {
         <tbody>
           ${(items || []).map(item => `
             <tr style="border-bottom:1px solid #f0f0f0;">
-              <td style="padding:14px 0;font-size:14px;color:#1a1a1a;">${item.name}</td>
-              <td style="padding:14px 0;font-size:14px;color:#666;text-align:center;">x${item.quantity}</td>
-              <td style="padding:14px 0;font-size:14px;color:#1a1a1a;text-align:right;">$${item.subtotal}</td>
+              <td style="padding:14px 0;font-size:14px;color:#1a1a1a;">${esc(item.name)}</td>
+              <td style="padding:14px 0;font-size:14px;color:#666;text-align:center;">x${esc(item.quantity)}</td>
+              <td style="padding:14px 0;font-size:14px;color:#1a1a1a;text-align:right;">$${esc(item.subtotal)}</td>
             </tr>
           `).join('')}
         </tbody>
         <tfoot>
           <tr>
             <td colspan="2" style="padding:16px 0 0;font-size:15px;font-weight:bold;color:#1a1a1a;">Total</td>
-            <td style="padding:16px 0 0;font-size:15px;font-weight:bold;color:#1a1a1a;text-align:right;">$${totalAmount}</td>
+            <td style="padding:16px 0 0;font-size:15px;font-weight:bold;color:#1a1a1a;text-align:right;">$${esc(totalAmount)}</td>
           </tr>
         </tfoot>
       </table>
@@ -424,10 +438,10 @@ app.post('/api/orders', async (req, res) => {
       <div style="border-top:1px solid #f0f0f0;padding-top:24px;">
         <p style="margin:0 0 8px;font-size:12px;color:#999;text-transform:uppercase;letter-spacing:1px;">Shipping To</p>
         <p style="margin:0;font-size:14px;color:#1a1a1a;line-height:1.8;">
-          ${customerName}<br>
-          ${shippingDetails?.address || address || ''}${shippingDetails?.apartment ? ', ' + shippingDetails.apartment : ''}<br>
-          ${shippingDetails?.city || ''}, ${shippingDetails?.state || ''} ${shippingDetails?.postcode || ''}<br>
-          ${shippingDetails?.country || ''}
+          ${esc(customerName)}<br>
+          ${esc(shippingDetails?.address || address || '')}${shippingDetails?.apartment ? ', ' + esc(shippingDetails.apartment) : ''}<br>
+          ${esc(shippingDetails?.city || '')}, ${esc(shippingDetails?.state || '')} ${esc(shippingDetails?.postcode || '')}<br>
+          ${esc(shippingDetails?.country || '')}
         </p>
       </div>
     </div>
@@ -560,7 +574,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
             if (!product) throw new Error(`找不到商品 id: ${item.id}`);
             return {
                 price_data: {
-                    currency: 'twd',
+                    currency: 'usd',
                     product_data: { name: product.name || product.title },
                     unit_amount: product.price * 100, // Stripe 單位為「分」
                 },
