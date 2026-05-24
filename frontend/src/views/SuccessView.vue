@@ -21,17 +21,17 @@ const snapshot      = ref<Record<string, any> | null>(null);
 const stripeOrder   = ref<Record<string, any> | null>(null);
 const stripeLoading = ref<boolean>(isStripeFlow); // start true if we need to fetch
 const stripeError   = ref<string>('');
+const attempts      = ref<number>(0);
 
 // ── On mount: handle both flows ───────────────────────────────────────────
 onMounted(async () => {
     if (isStripeFlow) {
         // Situation B — poll backend for the order Webhook just created
         // Render free tier can take up to 50s to wake up, so retry generously
-        let attempts = 0;
         const maxAttempts = 20;
         const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-        while (attempts < maxAttempts) {
+        while (attempts.value < maxAttempts) {
             try {
                 const res = await axios.get(
                     `https://lemontree-api.onrender.com/api/orders/stripe/${sessionId}`
@@ -40,8 +40,8 @@ onMounted(async () => {
                 stripeLoading.value = false;
                 break;
             } catch (err: any) {
-                attempts++;
-                if (attempts < maxAttempts) {
+                attempts.value++;
+                if (attempts.value < maxAttempts) {
                     await delay(3000); // wait 3s before retrying (total ~60s budget)
                 } else {
                     stripeError.value   = '訂單資料載入失敗，請聯繫客服並提供您的付款確認信。';
@@ -246,12 +246,13 @@ const customerEmail = computed(() =>
             <div v-if="isOpen" class="p-6 space-y-6">
 
                 <!-- Stripe flow: loading / error state -->
-                <div v-if="isStripeFlow && stripeLoading" class="flex items-center gap-3 text-gray-400 text-sm py-4">
-                    <svg class="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <div v-if="isStripeFlow && stripeLoading" class="flex flex-col items-center gap-2 text-gray-400 text-sm py-6">
+                    <svg class="animate-spin w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                     </svg>
-                    載入訂單資料中…
+                    <p class="font-medium text-gray-500">Confirming your order...</p>
+                    <p class="text-xs text-gray-400">Attempt {{ attempts }} of 20 — this may take up to 60 seconds</p>
                 </div>
                 <p v-else-if="isStripeFlow && stripeError" class="text-red-500 text-sm">{{ stripeError }}</p>
 
