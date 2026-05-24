@@ -503,13 +503,16 @@ const changePassword = async () => {
                         <td class="px-6 py-4">
                             <div class="flex items-center justify-center gap-3">
                                 <select 
-                                    @change="updateOrderStatus(order._id, $event.target.value)"
-                                    :class="order.status === '待付款' ? 'text-orange-500' : 'text-green-600'"
+                                    v-model="order.status"
+                                    @change="updateOrderStatus(order._id, order.status)"
+                                    :class="order.status === 'Pending Payment' ? 'text-orange-500' : 'text-green-600'"
                                     class="bg-gray-50 border border-gray-200 rounded-lg text-xs p-1 outline-none focus:ring-2 focus:ring-green-100">
-                                    <option :selected="order.status === '待付款'">Pending Payment</option>
-                                    <option :selected="order.status === '已付款'">Paid</option>
-                                    <option :selected="order.status === '已出貨'">Shipped</option>
-                                    <option :selected="order.status === '已取消'">Cancelled</option>
+                                    <option value="Pending Payment">Pending Payment</option>
+                                    <option value="Paid">Paid</option>
+                                    <option value="Processing">Processing</option>
+                                    <option value="Shipped">Shipped</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="Cancelled">Cancelled</option>
                                 </select>
                                 <button @click="deleteOrder(order._id)" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

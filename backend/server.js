@@ -93,7 +93,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                 phone:           session.customer_details?.phone || '',
                 items:           orderItems,
                 totalAmount:     +totalAmount.toFixed(2),
-                status:          '已付款',
+                status:          'Paid',
                 shippingDetails: {
                     firstName,
                     lastName,
@@ -111,7 +111,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
             // ── Send order confirmation email ──────────────────────────────────────
             try {
                 await resend.emails.send({
-                    from: 'LemonTree <onboarding@resend.dev>',
+                    from: 'LemonTree@LemonTreeStore.dev',
                     to: session.customer_details?.email,
                     subject: `Your LemonTree Order Confirmation, Order Confirmed — ${esc(orderId)}`,
                     html: `
@@ -366,8 +366,8 @@ app.post('/api/orders', async (req, res) => {
             return res.status(400).json({ message: '缺少必要欄位' });
         }
         // Only allow known statuses — prevent client from self-approving orders
-        const allowedStatuses = ['待付款', '已付款', '處理中', '已出貨', '已完成'];
-        const safeStatus = allowedStatuses.includes(status) ? status : '待付款';
+        const allowedStatuses = ['Pending Payment', 'Paid', 'Processing', 'Shipped', 'Completed', 'Cancelled'];
+        const safeStatus = allowedStatuses.includes(status) ? status : 'Pending Payment';
         const newOrder = new Order({
             orderId, customerName, email, address, phone,
             items, totalAmount, shippingDetails,
