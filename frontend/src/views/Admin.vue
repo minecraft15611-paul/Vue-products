@@ -3,6 +3,45 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useCartStore } from '../stores/cart';
 import axios from 'axios';
 
+// ── Types ────────────────────────────────────────────────────────────────────
+interface Product {
+    id: number | string
+    category: string
+    name: string
+    title: string
+    price: number
+    stock: number
+    img: string
+    colors: { name: string; hex: string }[]
+    sizes: string[]
+    description: string
+    material: string
+}
+
+interface Order {
+    _id: string
+    orderId: string
+    customerName: string
+    email: string
+    phone: string
+    address: string
+    totalAmount: number
+    status: string
+    createdAt: string
+    items: {
+        id: number
+        name: string
+        price: number
+        quantity: number
+        selectedSize: string
+        selectedColor: { name: string; hex: string }
+    }[]
+}
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const ALL_SIZES = ['S', 'M', 'L', 'XL'] as const;
+const FALLBACK_IMG = 'https://picsum.photos/seed/default/400/300';
+
 // ── Axios instance ─────────────────────────────────────────────────────────
 const api = axios.create({ baseURL: 'https://lemontree-api.onrender.com/api' });
 
@@ -30,14 +69,17 @@ const showConfirm = (message: string): Promise<boolean> => {
 };
 const handleConfirm = (result: boolean) => {
     confirmDialog.value.resolve?.(result);
-    confirmDialog.value.visible = false;
+    confirmDialog.value = { visible: false, message: '', resolve: null };
 };
 
 // ── Auth ───────────────────────────────────────────────────────────────────
 const isAuthenticated = ref(false);
 const adminKey = ref('');
+const isLoginLoading = ref(false);
 
 const login = async () => {
+    if (isLoginLoading.value) return;
+    isLoginLoading.value = true;
     try {
         const res = await api.post('/admin/login', {
             password: adminKey.value
@@ -49,6 +91,8 @@ const login = async () => {
     } catch {
         showToast('Invalid key, please re-enter.', 'error');
         adminKey.value = '';
+    } finally {
+        isLoginLoading.value = false;
     }
 };
 
@@ -85,9 +129,9 @@ const initialItem = () => ({
     title: 'New Arrival',
     price: 0,
     stock: 10,
-    img: 'https://picsum.photos/seed/default/400/300',
+    img: FALLBACK_IMG,
     colors: [] as { name: string; hex: string }[],
-    sizes: ['S', 'M', 'L', 'XL'] as string[],
+    sizes: [...ALL_SIZES] as string[],
     description: '',
     material: '100% Cotton'
 });
@@ -98,6 +142,7 @@ const imgError = ref(false);
 
 const editProduct = (product: Product) => {
     isEditMode.value = true;
+    imgError.value = false;
     newItem.value = {
         ...product,
         colors: [...product.colors.map((c: { name: string; hex: string }) => ({ ...c }))],
@@ -119,6 +164,10 @@ const handleSave = async () => {
     }
     try {
         if (isEditMode.value) {
+            if (!('id' in newItem.value) || newItem.value.id === undefined) {
+                showToast('Missing product ID, cannot update.', 'error');
+                return;
+            }
             await api.put(`/products/${newItem.value.id}`, newItem.value);
             showToast('Product information has been successfully updated!', 'success');
         } else {
@@ -154,51 +203,37 @@ const removeColor = (index: number) => {
     newItem.value.colors.splice(index, 1);
 };
 
-// ── Types ────────────────────────────────────────────────────────────────────
-interface Product {
-    id: number | string
-    category: string
-    name: string
-    title: string
-    price: number
-    stock: number
-    img: string
-    colors: { name: string; hex: string }[]
-    sizes: string[]
-    description: string
-    material: string
-}
-
 // ── Orders ─────────────────────────────────────────────────────────────────
 const currentTab = ref('products');
-
-interface Order {
-    _id: string
-    orderId: string
-    customerName: string
-    email: string
-    phone: string
-    address: string
-    totalAmount: number
-    status: string
-    createdAt: string
-    items: {
-        id: number
-        name: string
-        price: number
-        quantity: number
-        selectedSize: string
-        selectedColor: { name: string; hex: string }
-    }[]
-}
+const ordersLoaded = ref(false);
 const orders = ref<Order[]>([]);
 
 const fetchOrders = async () => {
     try {
         const res = await api.get('/orders');
         orders.value = res.data;
+        ordersLoaded.value = true;
     } catch (err) {
         console.error('Failed to fetch orders.', err);
+    }
+};
+
+const goToOrders = () => {
+    currentTab.value = 'orders';
+    if (!ordersLoaded.value) fetchOrders();
+};
+
+const isRefreshingOrders = ref(false);
+const refreshOrders = async () => {
+    isRefreshingOrders.value = true;
+    try {
+        const res = await api.get('/orders');
+        orders.value = res.data;
+        ordersLoaded.value = true;
+    } catch (err) {
+        showToast('Failed to refresh orders.', 'error');
+    } finally {
+        isRefreshingOrders.value = false;
     }
 };
 
@@ -326,7 +361,7 @@ const changePassword = async () => {
         class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
         📦 Product Management
     </button>
-    <button @click="currentTab = 'orders'; fetchOrders()" 
+    <button @click="goToOrders()" 
         :class="currentTab === 'orders' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
         class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
         📜 Order Processing
@@ -489,7 +524,7 @@ const changePassword = async () => {
                         <div class="group">
                             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Size</span>
                             <div class="flex gap-1.5 mt-1.5 flex-wrap">
-                                <label v-for="s in ['S', 'M', 'L', 'XL']" :key="s" class="flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-lg text-[10px] cursor-pointer active:bg-blue-100">
+                                <label v-for="s in ALL_SIZES" :key="s" class="flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-lg text-[10px] cursor-pointer active:bg-blue-100">
                                     <input type="checkbox" :value="s" v-model="newItem.sizes" class="w-3 h-3"> {{ s }}
                                 </label>
                             </div>
@@ -585,6 +620,18 @@ const changePassword = async () => {
 
             <div v-if="currentTab === 'orders'" class="animate-fadeIn">
                 <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
+                    <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-700 text-sm md:text-base">📜 Orders</h3>
+                        <button
+                            @click="refreshOrders"
+                            :disabled="isRefreshingOrders"
+                            class="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-blue-600 bg-white border border-gray-200 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg :class="isRefreshingOrders ? 'animate-spin' : ''" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            {{ isRefreshingOrders ? 'Refreshing...' : 'Refresh' }}
+                        </button>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left min-w-[800px]">
                             <thead class="bg-gray-50 text-gray-400 text-[11px] uppercase tracking-widest border-b">
@@ -612,7 +659,7 @@ const changePassword = async () => {
                         <td class="px-6 py-4">
                             <div class="flex flex-col gap-2">
                                 <div v-for="item in order.items" :key="item.id" class="flex items-center gap-2">
-                                    <img :src="cartStore.products.find(p => p.id === item.id)?.img" class="w-8 h-8 object-cover rounded border border-gray-100" />
+                                    <img :src="cartStore.products.find(p => p.id === item.id)?.img ?? FALLBACK_IMG" class="w-8 h-8 object-cover rounded border border-gray-100" />
                                     <span class="text-[10px] text-gray-600 truncate max-w-[100px]">
                                         {{ item.name }} x{{ item.quantity }}
                                     </span>
@@ -671,9 +718,10 @@ const changePassword = async () => {
             
             <button 
                 @click="login"
-                class="w-full py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-bold shadow-lg shadow-green-200 transition-all active:scale-95"
+                :disabled="isLoginLoading"
+                class="w-full py-4 bg-green-500 hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-2xl font-bold shadow-lg shadow-green-200 transition-all active:scale-95"
             >
-                Enter Management System
+                {{ isLoginLoading ? 'Verifying...' : 'Enter Management System' }}
             </button>
             
             <router-link to="/" class="block mt-6 text-gray-400 text-xs hover:underline italic">Back to Website Home</router-link>
@@ -691,7 +739,7 @@ const changePassword = async () => {
 }
 
 .overflow-x-auto::-webkit-scrollbar {
-    display: none; /* 隱藏捲軸 */
+    display: none; /* hide scrollbar */
 }
 
 .toast-enter-active { animation: toastIn 0.4s ease; }
