@@ -309,7 +309,7 @@
                 phone:        checkoutForm.shipping.phone,
                 items:        orderSnapshot.cart,
                 totalAmount:  orderSnapshot.pricing.total,
-                status:       '待付款',
+                status:       'Pending Payment',
             });
         } catch (err) {
             // Non-blocking: order snapshot is already in localStorage.
