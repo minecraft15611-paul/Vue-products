@@ -111,9 +111,9 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
             // ── Send order confirmation email ──────────────────────────────────────
             try {
                 await resend.emails.send({
-                    from: 'onboarding@resend.dev',
+                    from: 'LemonTree <onboarding@resend.dev>',
                     to: session.customer_details?.email,
-                    subject: `Order Confirmed — ${esc(orderId)}`,
+                    subject: `Your LemonTree Order Confirmation, Order Confirmed — ${esc(orderId)}`,
                     html: `
 <!DOCTYPE html>
 <html>
