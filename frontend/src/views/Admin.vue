@@ -1,269 +1,342 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useCartStore } from '../stores/cart';
 import axios from 'axios';
 
-const cartStore = useCartStore();
-const isEditMode = ref(false); // 判斷目前是新增還是修改
+// ── Axios instance ─────────────────────────────────────────────────────────
+const api = axios.create({ baseURL: 'https://lemontree-api.onrender.com/api' });
 
-//
-const isAuthenticated = ref(false); // 🌟 驗證狀態
-const adminKey = ref(""); // 🌟 使用者輸入的金鑰
+const cartStore = useCartStore();
+const isEditMode = ref(false);
+
+// ── Toast system ───────────────────────────────────────────────────────────
+const toast = ref({ message: '', type: 'success' as 'success' | 'error' | 'warning', visible: false });
+let toastTimer: ReturnType<typeof setTimeout>;
+onUnmounted(() => clearTimeout(toastTimer));
+
+const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    clearTimeout(toastTimer);
+    toast.value = { message, type, visible: true };
+    toastTimer = setTimeout(() => { toast.value.visible = false; }, 3000);
+};
+
+// ── Confirm dialog replacement ─────────────────────────────────────────────
+const confirmDialog = ref({ visible: false, message: '', resolve: null as ((v: boolean) => void) | null });
+
+const showConfirm = (message: string): Promise<boolean> => {
+    return new Promise(resolve => {
+        confirmDialog.value = { visible: true, message, resolve };
+    });
+};
+const handleConfirm = (result: boolean) => {
+    confirmDialog.value.resolve?.(result);
+    confirmDialog.value.visible = false;
+};
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+const isAuthenticated = ref(false);
+const adminKey = ref('');
 
 const login = async () => {
     try {
-        const res = await axios.post('https://lemontree-api.onrender.com/api/admin/login', {
-        password: adminKey.value
-    });
+        const res = await api.post('/admin/login', {
+            password: adminKey.value
+        });
         const token = res.data.token;
-        sessionStorage.setItem('admin_token', token); // store JWT, not just 'true'
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        sessionStorage.setItem('admin_token', token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         isAuthenticated.value = true;
     } catch {
-        alert("Invalid key, please re-enter.");
-        adminKey.value = "";
+        showToast('Invalid key, please re-enter.', 'error');
+        adminKey.value = '';
     }
 };
 
-//
-const logout = () => {
-    if (confirm("Are you sure you want to log out of the management system?")) {
+const logout = async () => {
+    const confirmed = await showConfirm('Are you sure you want to log out of the management system?');
+    if (!confirmed) return;
     sessionStorage.removeItem('admin_token');
-    delete axios.defaults.headers.common['Authorization'];
+    delete api.defaults.headers.common['Authorization'];
     isAuthenticated.value = false;
-  }
 };
 
-// 檢查是否曾經登入過
-onMounted(() => {
+onMounted(async () => {
     const token = sessionStorage.getItem('admin_token');
     if (token) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        isAuthenticated.value = true;
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        try {
+            const res = await api.get('/admin/verify');
+            isAuthenticated.value = res.status === 200;
+        } catch {
+            // Token is stale or invalid — clear it
+            sessionStorage.removeItem('admin_token');
+            delete api.defaults.headers.common['Authorization'];
+            isAuthenticated.value = false;
+        }
     }
     cartStore.fetchProducts();
     fetchOrders();
 });
 
-// 初始表單資料模板
+// ── Product form ───────────────────────────────────────────────────────────
 const initialItem = () => ({
     category: "Men's Apparel",
-    name: "",
-    title: "New Arrival",
+    name: '',
+    title: 'New Arrival',
     price: 0,
-    stock: 10, // ✨ 新增預設庫存
-    img: "https://picsum.photos/seed/default/400/300",
+    stock: 10,
+    img: 'https://picsum.photos/seed/default/400/300',
     colors: [] as { name: string; hex: string }[],
-    sizes: ["S", "M", "L", "XL"] as string[], // ✨ 預設勾選全尺寸
-    description: "",
-    material: "100% Cotton"
+    sizes: ['S', 'M', 'L', 'XL'] as string[],
+    description: '',
+    material: '100% Cotton'
 });
 
 const newItem = ref(initialItem());
 const tempColor = ref({ name: '', hex: '#000000' });
+const imgError = ref(false);
 
-// 進入編輯模式：將現有商品資料填入表單
-const editProduct = (product: any) => {
+const editProduct = (product: Product) => {
     isEditMode.value = true;
     newItem.value = {
         ...product,
-        colors: [...product.colors.map(c => ({ ...c }))],
+        colors: [...product.colors.map((c: { name: string; hex: string }) => ({ ...c }))],
         sizes: [...product.sizes]
-     }; 
+    };
     window.scrollTo({ top: 300, behavior: 'smooth' });
 };
- 
-// 重置表單：回到新增模式
+
 const resetForm = () => {
     isEditMode.value = false;
     newItem.value = initialItem();
+    imgError.value = false;
 };
 
-// 核心功能：儲存資料 (判斷新增或修改)
 const handleSave = async () => {
     if (!newItem.value.name || newItem.value.price <= 0) {
-        alert("Please enter the full product name and price.");
+        showToast('Please enter the full product name and price.', 'warning');
         return;
     }
-
     try {
         if (isEditMode.value) {
-            // [PUT] 執行修改邏輯，對應 server.js 的 app.put
-            await axios.put(`https://lemontree-api.onrender.com/api/products/${newItem.value.id}`, newItem.value);
-            alert("Product information has been successfully updated!");
+            await api.put(`/products/${newItem.value.id}`, newItem.value);
+            showToast('Product information has been successfully updated!', 'success');
         } else {
-            // [POST] 執行新增邏輯
-            await axios.post('https://lemontree-api.onrender.com/api/products', newItem.value);
-            alert("New product successfully listed!");
+            await api.post('/products', newItem.value);
+            showToast('New product successfully listed!', 'success');
         }
-        resetForm(); // 操作完後清空表單
-        cartStore.fetchProducts(); // 重新抓取資料庫最新資料
-    } catch (error) {
-        console.error("儲存失敗:", error);
-        alert("Failed to connect to the backend; please check if server.js is running.");
-    }
-};
-
-// 刪除功能
-const deleteProduct = async (id: string | number) => {
-    if (!confirm("Are you sure you want to delete this item?")) return;
-    try {
-        await axios.delete(`https://lemontree-api.onrender.com/api/products/${id}`);
-        alert("The product has been removed from the database.");
+        resetForm();
         cartStore.fetchProducts();
     } catch (error) {
-        alert("Deletion failed.");
+        showToast('Failed to connect to the backend.', 'error');
     }
 };
 
-// 顏色管理功能
+const deleteProduct = async (id: string | number) => {
+    const confirmed = await showConfirm('Are you sure you want to delete this item?');
+    if (!confirmed) return;
+    try {
+        await api.delete(`/products/${id}`);
+        showToast('Product removed successfully.', 'success');
+        cartStore.fetchProducts();
+    } catch {
+        showToast('Deletion failed.', 'error');
+    }
+};
+
 const addColor = () => {
     if (tempColor.value.name.trim()) {
         newItem.value.colors.push({ ...tempColor.value });
-        tempColor.value.name = '';
+        tempColor.value = { name: '', hex: '#000000' }; // reset both fields
     }
 };
 const removeColor = (index: number) => {
     newItem.value.colors.splice(index, 1);
 };
 
-//
-const currentTab = ref('products'); // 預設停留在商品管理，方便你繼續測試功能
+// ── Types ────────────────────────────────────────────────────────────────────
+interface Product {
+    id: number | string
+    category: string
+    name: string
+    title: string
+    price: number
+    stock: number
+    img: string
+    colors: { name: string; hex: string }[]
+    sizes: string[]
+    description: string
+    material: string
+}
+
+// ── Orders ─────────────────────────────────────────────────────────────────
+const currentTab = ref('products');
 
 interface Order {
-  _id: string
-  orderId: string
-  customerName: string
-  email: string
-  phone: string
-  address: string
-  totalAmount: number
-  status: string
-  createdAt: string
-  items: {
-    id: number
-    name: string
-    price: number
-    quantity: number
-    selectedSize: string
-    selectedColor: { name: string; hex: string }
-  }[]
+    _id: string
+    orderId: string
+    customerName: string
+    email: string
+    phone: string
+    address: string
+    totalAmount: number
+    status: string
+    createdAt: string
+    items: {
+        id: number
+        name: string
+        price: number
+        quantity: number
+        selectedSize: string
+        selectedColor: { name: string; hex: string }
+    }[]
 }
 const orders = ref<Order[]>([]);
 
-// 抓取訂單
 const fetchOrders = async () => {
     try {
-        const res = await axios.get('https://lemontree-api.onrender.com/api/orders');
+        const res = await api.get('/orders');
         orders.value = res.data;
     } catch (err) {
-        console.error("Failed to fetch orders.", err);
+        console.error('Failed to fetch orders.', err);
     }
 };
 
-// 更新訂單狀態
 const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    // Snapshot previous status for rollback if the request fails
+    const order = orders.value.find(o => o._id === orderId);
+    const previousStatus = order?.status;
     try {
-        await axios.put(`https://lemontree-api.onrender.com/api/orders/${orderId}`, { status: newStatus });
-        fetchOrders(); // 重新整理列表
-    } catch (err) {
-        alert("Update failed.");
+        await api.put(`/orders/${orderId}`, { status: newStatus });
+        // v-model already mutated order.status locally — no refetch needed
+        showToast('Order status updated.', 'success');
+    } catch {
+        // Roll back so UI stays in sync with the server
+        if (order && previousStatus !== undefined) order.status = previousStatus;
+        showToast('Update failed.', 'error');
     }
 };
-
 
 const deleteOrder = async (orderId: string) => {
-    if (!orderId) {
-        alert("Order ID not found, unable to delete.");
-        return;
-    }
-    if (!confirm("Are you sure you want to permanently delete this order? This action cannot be undone.")) return;
-    
+    // orderId guard removed — _id is always present from the API
+    const confirmed = await showConfirm('Are you sure you want to permanently delete this order? This action cannot be undone.');
+    if (!confirmed) return;
     try {
-        await axios.delete(`https://lemontree-api.onrender.com/api/orders/${orderId}`);
-        alert("Order deleted.");
-        fetchOrders(); 
-    } catch (err) {
-        console.error("Deletion failed:", err);
-        alert("System error, unable to delete.");
+        await api.delete(`/orders/${orderId}`);
+        // Splice locally instead of refetching the entire list
+        orders.value = orders.value.filter(o => o._id !== orderId);
+        showToast('Order deleted.', 'success');
+    } catch {
+        showToast('System error, unable to delete.', 'error');
     }
 };
 
-// 儀表板所需的簡單統計資料 (未來可對接後端 API)
+// ── Dashboard stats ────────────────────────────────────────────────────────
 const dynamicStats = computed(() => {
-    // 1. 計算今日營收 (篩選出今天的訂單並加總 totalAmount)
     const today = new Date().toLocaleDateString();
-    const todayRevenue = orders.value
-        .filter(order => new Date(order.createdAt).toLocaleDateString() === today)
-        .reduce((sum, order) => sum + order.totalAmount, 0);
-
-    // 2. 今日新增訂單數
-    const orderCount = orders.value.filter(
+    const todayOrders = orders.value.filter(
         order => new Date(order.createdAt).toLocaleDateString() === today
-    ).length;
-
-    // 3. 庫存警示 (直接延用你原本在 template 裡的邏輯，但統一管理)
+    );
+    const todayRevenue = todayOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const orderCount = todayOrders.length;
     const lowStockCount = cartStore.products.filter(p => p.stock <= 5).length;
-
-    return {
-        todayRevenue,
-        orderCount,
-        lowStockCount
-    };
+    // All-time stats
+    const totalRevenue = orders.value.reduce((sum, order) => sum + order.totalAmount, 0);
+    const totalOrders = orders.value.length;
+    return { todayRevenue, orderCount, lowStockCount, totalRevenue, totalOrders };
 });
 
+// ── Password change ────────────────────────────────────────────────────────
 const passwordForm = ref({ current: '', new: '', confirm: '' });
 
 const changePassword = async () => {
     if (!passwordForm.value.current || !passwordForm.value.new) {
-        alert("Please fill in all fields.");
+        showToast('Please fill in all fields.', 'warning');
         return;
     }
     if (passwordForm.value.new !== passwordForm.value.confirm) {
-        alert("The new password and confirm password do not match.");
+        showToast('The new password and confirm password do not match.', 'warning');
         return;
     }
-    if (passwordForm.value.new.length < 4) {
-        alert("New password must be at least 4 characters long.");
+    if (passwordForm.value.new.length < 8) {
+        showToast('New password must be at least 8 characters long.', 'warning');
         return;
     }
     try {
-        await axios.put('https://lemontree-api.onrender.com/api/admin/change-password', {
+        await api.put('/admin/change-password', {
             currentPassword: passwordForm.value.current,
             newPassword: passwordForm.value.new
         });
-        alert("Password updated successfully! Please use your new password for your next login.");
+        showToast('Password updated successfully!', 'success');
         passwordForm.value = { current: '', new: '', confirm: '' };
-    } catch (err) {
-        alert("Current password is incorrect, please re-enter.");
+    } catch {
+        showToast('Current password is incorrect, please re-enter.', 'error');
     }
 };
-
 </script>
 
 <template>
     <div v-if="isAuthenticated" class="min-h-screen bg-gray-100 p-3 md:p-6 font-sans">
+        <!-- ── Toast notification ── -->
+    <Transition name="toast">
+        <div v-if="toast.visible"
+            :class="{
+                'bg-green-600': toast.type === 'success',
+                'bg-red-500':   toast.type === 'error',
+                'bg-yellow-500': toast.type === 'warning'
+            }"
+            class="fixed top-6 right-6 z-50 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 max-w-sm">
+            <span v-if="toast.type === 'success'">✓</span>
+            <span v-else-if="toast.type === 'error'">✕</span>
+            <span v-else>⚠</span>
+            {{ toast.message }}
+        </div>
+    </Transition>
+
+    <!-- ── Confirm dialog ── -->
+    <Transition name="toast">
+        <div v-if="confirmDialog.visible" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4">
+                <p class="text-sm text-gray-700 font-medium mb-6 leading-relaxed">{{ confirmDialog.message }}</p>
+                <div class="flex gap-3 justify-end">
+                    <button @click="handleConfirm(false)"
+                        class="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-xl transition-all">
+                        Cancel
+                    </button>
+                    <button @click="handleConfirm(true)"
+                        class="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-all">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Transition>
         <div class="max-w-7xl mx-auto">
             <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-6 text-center">LemonTree Management Backend</h2>
             
             <div class="w-full overflow-x-auto pb-2">
                 <div class="flex justify-center gap-2 md:gap-4 bg-white p-2 rounded-2xl shadow-sm w-max mx-auto border border-gray-200">
-                    <button @click="currentTab = 'dashboard'" 
-                        :class="currentTab === 'dashboard' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
-                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-                        🏠 Data Dashboard
-                    </button>
-                    <button @click="currentTab = 'products'" 
-                        :class="currentTab === 'products' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
-                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-                        📦 Product Management
-                    </button>
-                    <button @click="currentTab = 'orders'; fetchOrders()" 
-                        :class="currentTab === 'orders' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
-                        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-                        📜 Order Processing
-                    </button>
-                </div>
+    <button @click="currentTab = 'dashboard'" 
+        :class="currentTab === 'dashboard' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+        🏠 Data Dashboard
+    </button>
+    <button @click="currentTab = 'products'" 
+        :class="currentTab === 'products' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+        📦 Product Management
+    </button>
+    <button @click="currentTab = 'orders'; fetchOrders()" 
+        :class="currentTab === 'orders' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+        📜 Order Processing
+    </button>
+    <button @click="currentTab = 'settings'" 
+        :class="currentTab === 'settings' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+        ⚙️ Settings
+    </button>
+</div>
             </div>
             <div class="mt-auto lg:pt-6 border-t border-gray-100">
                 <router-link 
@@ -282,27 +355,37 @@ const changePassword = async () => {
                     </svg>
                     <span class="text-sm font-medium">Exit Management System</span>
                 </button>
-                <button @click="currentTab = 'settings'" 
-    :class="currentTab === 'settings' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
-    class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
-    ⚙️ Settings
-</button>
+                
             </div>
             
 
             <div v-if="currentTab === 'dashboard'" class="animate-fadeIn">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Today's snapshot -->
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Today</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Today's Revenue</div>
-                        <div class="text-3xl font-black text-gray-800 mt-1">${{ dynamicStats.todayRevenue }}</div>
+                        <div class="text-3xl font-black text-gray-800 mt-1">${{ dynamicStats.todayRevenue.toLocaleString() }}</div>
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">New Orders</div>
-                        <div class="text-3xl font-black text-blue-600 mt-1">{{ dynamicStats.orderCount }} Count (Units)</div>
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Today's Orders</div>
+                        <div class="text-3xl font-black text-blue-600 mt-1">{{ dynamicStats.orderCount }}</div>
                     </div>
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Stock Alert</div>
                         <div class="text-3xl font-black text-red-500 mt-1">{{ dynamicStats.lowStockCount }} Items</div>
+                    </div>
+                </div>
+                <!-- All-time totals -->
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">All Time</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Revenue</div>
+                        <div class="text-3xl font-black text-green-600 mt-1">${{ dynamicStats.totalRevenue.toLocaleString() }}</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Orders</div>
+                        <div class="text-3xl font-black text-purple-600 mt-1">{{ dynamicStats.totalOrders }}</div>
                     </div>
                 </div>
             </div>
@@ -347,6 +430,24 @@ const changePassword = async () => {
                 </h3>
                 
                 <div class="space-y-4">
+                    <!-- Image URL + live preview -->
+                    <div class="group">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Image URL</span>
+                        <input v-model="newItem.img" type="text" class="mt-1 block w-full border border-gray-300 rounded-xl p-2.5 bg-gray-50 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition" placeholder="https://...">
+                        <div v-if="newItem.img" class="mt-2 relative group/preview">
+                            <img
+                                :src="newItem.img"
+                                @error="imgError = true"
+                                @load="imgError = false"
+                                class="w-full h-36 object-cover rounded-xl border border-gray-200"
+                            />
+                            <div v-if="imgError" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 rounded-xl text-gray-400 text-xs gap-1">
+                                <span class="text-2xl">🖼️</span>
+                                <span>Invalid image URL</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="group">
                         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Basic Information</span>
                         <input v-model="newItem.name" type="text" class="mt-1 block w-full border border-gray-300 rounded-xl p-2.5 md:p-3 bg-gray-50 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition" placeholder="Product Name">
@@ -360,6 +461,24 @@ const changePassword = async () => {
                             <option>Accessories</option>
                             <option>Jewelry</option>
                         </select>
+                    </div>
+
+                    <!-- Title & Material -->
+                    <div class="grid grid-cols-2 gap-2 md:gap-3">
+                        <div class="group">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Badge / Title</span>
+                            <input v-model="newItem.title" type="text" class="mt-1 block w-full border border-gray-300 rounded-xl p-2.5 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. New Arrival">
+                        </div>
+                        <div class="group">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Material</span>
+                            <input v-model="newItem.material" type="text" class="mt-1 block w-full border border-gray-300 rounded-xl p-2.5 bg-gray-50 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. 100% Cotton">
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="group">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Description</span>
+                        <textarea v-model="newItem.description" rows="3" class="mt-1 block w-full border border-gray-300 rounded-xl p-2.5 bg-gray-50 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition resize-none" placeholder="Product description..."></textarea>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -462,22 +581,29 @@ const changePassword = async () => {
             </div>
         </div>
     </div>
-</div>
+            </div>
 
             <div v-if="currentTab === 'orders'" class="animate-fadeIn">
-    <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left min-w-[800px]">
-                <thead class="bg-gray-50 text-gray-400 text-[11px] uppercase tracking-widest border-b">
-                    <tr>
-                        <th class="px-6 py-4 font-bold">Order ID/Time</th>
-                        <th class="px-6 py-4 font-bold">Purchased Items</th>
-                        <th class="px-6 py-4 font-bold">Customer Information</th>
-                        <th class="px-6 py-4 font-bold text-center">Total</th>
-                        <th class="px-6 py-4 font-bold text-center">Status/Action</th>
+                <div class="bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left min-w-[800px]">
+                            <thead class="bg-gray-50 text-gray-400 text-[11px] uppercase tracking-widest border-b">
+                                <tr>
+                                    <th class="px-6 py-4 font-bold">Order ID/Time</th>
+                                    <th class="px-6 py-4 font-bold">Purchased Items</th>
+                                    <th class="px-6 py-4 font-bold">Customer Information</th>
+                                    <th class="px-6 py-4 font-bold text-center">Total</th>
+                                    <th class="px-6 py-4 font-bold text-center">Status/Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                    <tr v-if="orders.length === 0">
+                        <td colspan="5" class="px-6 py-16 text-center text-gray-400 text-sm">
+                            <div class="text-3xl mb-2">📭</div>
+                            <div class="font-bold">No orders yet</div>
+                            <div class="text-xs mt-1">Orders will appear here once customers check out.</div>
+                        </td>
                     </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
                     <tr v-for="order in orders" :key="order._id" class="hover:bg-gray-50 transition-colors">
                         <td class="px-6 py-4">
                             <div class="text-xs font-bold text-gray-800">{{ order.orderId }}</div>
@@ -523,11 +649,10 @@ const changePassword = async () => {
                         </td>
                     </tr>
                 </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -567,5 +692,29 @@ const changePassword = async () => {
 
 .overflow-x-auto::-webkit-scrollbar {
     display: none; /* 隱藏捲軸 */
+}
+
+.toast-enter-active { animation: toastIn 0.4s ease; }
+.toast-leave-active { animation: toastOut 0.4s ease; }
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastOut {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-12px); }
+}
+
+.toast-enter-active .bg-white { animation: dialogIn 0.4s ease; }
+.toast-leave-active .bg-white { animation: dialogOut 0.4s ease; }
+
+@keyframes dialogIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+}
+@keyframes dialogOut {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0; transform: scale(0.92); }
 }
 </style>
