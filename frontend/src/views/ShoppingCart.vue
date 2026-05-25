@@ -224,7 +224,7 @@ const total = computed<number>(() => subtotal.value + shipping.value)
           >
             <!-- Thumbnail -->
             <img
-              :src="item.img || '/placeholder.jpg'"
+              :src="(item.imgs && item.imgs[0]) || 'https://placehold.co/80x80'"
               :alt="item.title"
               class="w-20 h-20 rounded-lg object-cover bg-gray-100 flex-shrink:0"
             />
