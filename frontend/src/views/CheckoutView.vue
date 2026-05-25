@@ -283,7 +283,7 @@
                 price:    item.price,
                 quantity: item.quantity,
                 subtotal: +(item.price * item.quantity).toFixed(2),
-                img:      item.img,
+                img:      item.imgs?.[0] ?? null,
                 selectedColor: item.selectedColor ?? null,  
                 selectedSize:  item.selectedSize  ?? null,  
             })),
@@ -591,7 +591,7 @@
                                 <!-- Thumbnail -->
                                 <div class="inline-block border border-gray-200 p-0.5 bg-white relative ">
                                     <img
-                                    :src="item.img || '/placeholder.jpg'"
+                                    :src="(item.imgs && item.imgs[0]) || 'https://placehold.co/80x80'"
                                     :alt="item.title"
                                     class="w-15 h-15  object-cover bg-gray-100 flex-shrink:0"
                                     />
@@ -2149,7 +2149,7 @@
                                 <div class="flex justify-start gap-3">
                                     <div>
                                         <div class="inline-block border border-gray-200 p-0.5 bg-white">
-                                            <img :src="cartStore.cart[0]?.img || '/placeholder.jpg'" class="w-10 h-10 object-cover bg-gray-100 flex-shrink:0" />
+                                            <img :src="cartStore.cart[0]?.imgs[0] || '/placeholder.jpg'" class="w-10 h-10 object-cover bg-gray-100 flex-shrink:0" />
                                         </div>
                                     </div>
                                     <div>
@@ -2235,7 +2235,7 @@
                                         <!-- Thumbnail -->
                                         <div class="inline-block border border-gray-200 p-0.5 bg-white relative ">
                                             <img
-                                            :src="item.img || '/placeholder.jpg'"
+                                            :src="(item.imgs && item.imgs[0]) || 'https://placehold.co/80x80'"
                                             :alt="item.title"
                                             class="w-15 h-15  object-cover bg-gray-100 flex-shrink:0"
                                             />
@@ -3403,7 +3403,7 @@
                             <!-- Thumbnail -->
                             <div class="inline-block border border-gray-200 p-0.5 bg-white relative flex-shrink-0">
                                 <img
-                                    :src="item.img || '/placeholder.jpg'"
+                                    :src="(item.imgs && item.imgs[0]) || '/placeholder.jpg'"
                                     :alt="item.title"
                                     class="w-16 h-16 object-cover bg-gray-100"
                                 />
