@@ -51,7 +51,7 @@ const productSchema = new mongoose.Schema({
     category:    String,
     name:        String,
     title:       String,
-    img:         String,
+    img:         [String],
     price:       Number,
     stock:       Number,
     colors:      [{ name: String, hex: String }],
