@@ -139,15 +139,42 @@ import MyHeader from '../components/MyHeader.vue';
 
 
     <div>
-        <div v-if="product" class="mx-auto py-8 flex flex-col lg:grid lg:grid-cols-12 lg:gap-12">
+        <div v-if="product" class="mx-auto py-8 flex flex-col lg:grid lg:grid-cols-16 lg:gap-8">
 
             <!-- Product Image -->
-            <div class="lg:col-span-7 w-full px-6 lg:px-0">
-                <img :src="product.img" :alt="product.title" class="w-full max-h-[420px] lg:max-h-none lg:h-full object-contain">
+    <div class="lg:col-span-11 w-full px-6 lg:px-0">
+        
+        <!-- MOBILE: swipeable carousel -->
+        <div class="relative lg:hidden">
+            <div class="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide">
+                <img 
+                    v-for="index in 4" 
+                    :key="index"
+                    :src="product.img" 
+                    :alt="product.title" 
+                    class="w-full shrink-0 aspect-[7/8] object-cover snap-center"
+                >
             </div>
+            <div class="flex justify-center gap-1.5 mt-2">
+                <span v-for="index in 4" :key="index" class="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+            </div>
+        </div>
+
+        <!-- DESKTOP: 2x2 grid -->
+        <div class="hidden lg:grid lg:grid-cols-2 lg:gap-1">
+            <img 
+                v-for="index in 4" 
+                :key="index"
+                :src="product.img" 
+                :alt="product.title" 
+                class="w-full aspect-[7/8] object-cover"
+            >
+        </div>
+
+    </div>
  
             <!-- Product Info -->
-            <div class="lg:col-span-4 flex flex-col px-6 lg:px-0 mt-6 lg:mt-0">
+            <div class="lg:col-span-5 flex flex-col px-6 lg: mt-6 lg:mt-0">
  
                 <!-- Name + Price -->
                 <div class="flex justify-between items-start mb-8 lg:mb-20 lg:gap-20">
@@ -381,4 +408,7 @@ import MyHeader from '../components/MyHeader.vue';
     opacity: 1;
     transform: translateY(0);
 }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
