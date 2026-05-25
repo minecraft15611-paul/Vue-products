@@ -11,7 +11,7 @@ interface Product {
     title: string
     price: number
     stock: number
-    img: string
+    imgs: string[]
     colors: { name: string; hex: string }[]
     sizes: string[]
     description: string
@@ -129,7 +129,7 @@ const initialItem = () => ({
     title: 'New Arrival',
     price: 0,
     stock: 10,
-    img: FALLBACK_IMG,
+    imgs: [FALLBACK_IMG, FALLBACK_IMG, FALLBACK_IMG, FALLBACK_IMG],
     colors: [] as { name: string; hex: string }[],
     sizes: [...ALL_SIZES] as string[],
     description: '',
@@ -139,10 +139,12 @@ const initialItem = () => ({
 const newItem = ref(initialItem());
 const tempColor = ref({ name: '', hex: '#000000' });
 const imgError = ref(false);
+const previewIndex = ref(0);
 
 const editProduct = (product: Product) => {
     isEditMode.value = true;
     imgError.value = false;
+    previewIndex.value = 0;
     newItem.value = {
         ...product,
         colors: [...product.colors.map((c: { name: string; hex: string }) => ({ ...c }))],
@@ -155,6 +157,7 @@ const resetForm = () => {
     isEditMode.value = false;
     newItem.value = initialItem();
     imgError.value = false;
+    previewIndex.value = 0;
 };
 
 const handleSave = async () => {
@@ -465,13 +468,15 @@ const changePassword = async () => {
                 </h3>
                 
                 <div class="space-y-4">
-                    <!-- Image URL + live preview -->
+                    <!-- Image URLs + live preview -->
                     <div class="group">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Image URL</span>
-                        <input v-model="newItem.img" type="text" class="mt-1 block w-full border border-gray-300 rounded-xl p-2.5 bg-gray-50 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition" placeholder="https://...">
-                        <div v-if="newItem.img" class="mt-2 relative group/preview">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Image URLs</span>
+                        <div v-for="(img, i) in newItem.imgs" :key="i" class="mt-1">
+                            <input v-model="newItem.imgs[i]" type="text" class="block w-full border border-gray-300 rounded-xl p-2.5 bg-gray-50 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition" :placeholder="`Image ${i + 1} URL`">
+                        </div>
+                        <div v-if="newItem.imgs[0]" class="mt-2 relative group/preview">
                             <img
-                                :src="newItem.img"
+                                :src="newItem.imgs[previewIndex]"
                                 @error="imgError = true"
                                 @load="imgError = false"
                                 class="w-full h-36 object-cover rounded-xl border border-gray-200"
@@ -479,6 +484,34 @@ const changePassword = async () => {
                             <div v-if="imgError" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 rounded-xl text-gray-400 text-xs gap-1">
                                 <span class="text-2xl">🖼️</span>
                                 <span>Invalid image URL</span>
+                            </div>
+                            <!-- Left arrow -->
+                            <button
+                                @click="previewIndex = (previewIndex - 1 + newItem.imgs.length) % newItem.imgs.length; imgError = false"
+                                class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-all"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            <!-- Right arrow -->
+                            <button
+                                @click="previewIndex = (previewIndex + 1) % newItem.imgs.length; imgError = false"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-all"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                            <!-- Preview switcher dots -->
+                            <div class="flex justify-center gap-1.5 mt-2">
+                                <button
+                                    v-for="(img, i) in newItem.imgs"
+                                    :key="i"
+                                    @click="previewIndex = i; imgError = false"
+                                    class="w-2 h-2 rounded-full transition-colors duration-200"
+                                    :class="previewIndex === i ? 'bg-blue-500' : 'bg-gray-300'"
+                                />
                             </div>
                         </div>
                     </div>
@@ -580,7 +613,7 @@ const changePassword = async () => {
                             <tr v-for="p in cartStore.products" :key="p.id" class="hover:bg-blue-50/30">
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
-                                        <img :src="p.img" class="w-10 h-10 md:w-12 md:h-12 object-cover rounded-lg border border-gray-100">
+                                        <img :src="p.imgs?.[0]" class="w-10 h-10 md:w-12 md:h-12 object-cover rounded-lg border border-gray-100">
                                         <div class="max-w-[120px] md:max-w-[150px]">
                                             <div class="font-bold text-gray-800 text-xs truncate">{{ p.name }}</div>
                                             <div class="text-[9px] text-gray-400">{{ p.category }}</div>
@@ -659,7 +692,7 @@ const changePassword = async () => {
                         <td class="px-6 py-4">
                             <div class="flex flex-col gap-2">
                                 <div v-for="item in order.items" :key="item.id" class="flex items-center gap-2">
-                                    <img :src="cartStore.products.find(p => p.id === item.id)?.img ?? FALLBACK_IMG" class="w-8 h-8 object-cover rounded border border-gray-100" />
+                                    <img :src="cartStore.products.find(p => p.id === item.id)?.imgs?.[0] ?? FALLBACK_IMG" class="w-8 h-8 object-cover rounded border border-gray-100" />
                                     <span class="text-[10px] text-gray-600 truncate max-w-[100px]">
                                         {{ item.name }} x{{ item.quantity }}
                                     </span>
