@@ -206,7 +206,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                     price:         product.price,
                     quantity:      lean.quantity,
                     subtotal:      +(product.price * lean.quantity).toFixed(2),
-                    img:           product.img,
+                    imgs:          product.imgs,
                     selectedColor: null,
                     selectedSize:  null,
                 };

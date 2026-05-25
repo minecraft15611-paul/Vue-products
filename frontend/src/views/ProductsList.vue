@@ -47,7 +47,7 @@
                     <div class="grid grid-cols-1 p-3 h-55 rounded hover:bg-[#F9F9F7] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border-[0.5px] border-gray-100">
                         <router-link :to="`/ProductDetail/${item.id}`" class="contents">
                             <div class="flex justify-center w-24 h-24 mx-auto">
-                                <img :src="item.img" class="w-24 h-24 object-contain" width="96" height="96" loading="lazy">
+                                <img :src="item.imgs?.[0]" class="w-24 h-24 object-contain" width="96" height="96" loading="lazy">
                             </div>
                             <div>
                                 <p class="h-8 font-semibold">{{ item.title }}</p>
@@ -73,7 +73,7 @@
                         "            
                 >
                     <router-link :to="`/ProductDetail/${item.id}`" class="flex justify-center items-center p-3 h-55 rounded hover:bg-[#F9F9F7] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border-[0.5px] border-gray-100">
-                        <img :src="item.img" class="w-100 h-70 object-contain" width="400" height="280" loading="lazy">
+                        <img :src="item.imgs?.[0]" class="w-100 h-70 object-contain" width="400" height="280" loading="lazy">
                     </router-link>
                     <div class="flex flex-col items-center justify-center  px-8">
                         <router-link :to="`/ProductDetail/${item.id}`" class="flex flex-col items-center w-full">
