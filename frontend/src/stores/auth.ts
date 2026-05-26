@@ -25,7 +25,6 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         async initAuth() {
             try {
-                // Only check redirect result in production
                 if (IS_PROD && localStorage.getItem('googleRedirectPending')) {
                     localStorage.removeItem('googleRedirectPending');
                     const result = await getRedirectResult(auth);
@@ -86,11 +85,12 @@ export const useAuthStore = defineStore('auth', {
                 const provider = new GoogleAuthProvider();
 
                 if (IS_PROD) {
-                    // Production (GitHub Pages): use redirect — no popup COOP issues
+                    provider.setCustomParameters({
+                        redirect_uri: 'https://minecraft15611-paul.github.io/Vue-products/'
+                    });
                     localStorage.setItem('googleRedirectPending', 'true');
                     await signInWithRedirect(auth, provider);
                 } else {
-                    // Local dev: use popup — simpler, works fine with Vite COOP header
                     const result = await signInWithPopup(auth, provider);
                     const { email, displayName } = result.user;
                     if (!email) throw new Error('No email from Google');
