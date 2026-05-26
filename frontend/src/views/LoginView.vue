@@ -194,7 +194,7 @@ function inputClass(hasError: boolean, focused: boolean): string {
                 <div class="w-full bg-yellow-50 border border-yellow-200 p-3 mb-4 rounded flex items-start gap-2">
                     <span class="text-yellow-600 text-[16px]">⚠️</span>
                     <p class="text-[12px] text-yellow-700 leading-tight">
-                        <strong>Internal Testing Notice:</strong> Google sign-in is fully functional, but our <strong>email verification</strong> system is currently restricted to authorized test accounts. If you wish to use email login, please contact the developer to add your address to the whitelist.
+                        <strong>System Maintenance Notice:</strong> We are currently performing maintenance on our Google Sign-In feature. In the meantime, we kindly invite you to use our <strong>Email OTP authentication</strong> to log in. We apologize for any inconvenience this may cause and appreciate your kind understanding.
                     </p>
                 </div>
             </template>
@@ -341,7 +341,7 @@ function inputClass(hasError: boolean, focused: boolean): string {
                 <div class="w-full bg-yellow-50 border border-yellow-200 p-3 mb-4 rounded flex items-start gap-2">
                     <span class="text-yellow-600 text-[16px]">⚠️</span>
                     <p class="text-[12px] text-yellow-700 leading-tight">
-                        <strong>Internal Testing Notice:</strong> Google sign-in is fully functional, but our <strong>email verification</strong> system is currently restricted to authorized test accounts. If you wish to use email login, please contact the developer to add your address to the whitelist.
+                        <strong>System Maintenance Notice:</strong> We are currently performing maintenance on our Google Sign-In feature. In the meantime, we kindly invite you to use our <strong>Email OTP authentication</strong> to log in. We apologize for any inconvenience this may cause and appreciate your kind understanding.
                     </p>
                 </div>
             </template>
