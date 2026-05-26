@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { sendOtp, verifyOtp, saveName, loginWithGoogleBackend, fetchMe, logout } from '../service/auth';
 
@@ -8,12 +8,14 @@ interface AuthUser {
     name: string;
 }
 
+const IS_PROD = import.meta.env.PROD;
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null as AuthUser | null,
         loading: false,
         signingOut: false,
-        authReady: false, // true once initAuth resolves
+        authReady: false,
     }),
 
     getters: {
@@ -21,9 +23,22 @@ export const useAuthStore = defineStore('auth', {
     },
 
     actions: {
-        // Called once in App.vue on mount — rehydrates session from httpOnly cookie
         async initAuth() {
             try {
+                // Only check redirect result in production
+                if (IS_PROD && localStorage.getItem('googleRedirectPending')) {
+                    localStorage.removeItem('googleRedirectPending');
+                    const result = await getRedirectResult(auth);
+                    if (result?.user) {
+                        const { email, displayName } = result.user;
+                        if (!email) throw new Error('No email from Google');
+                        const data = await loginWithGoogleBackend(email, displayName ?? '');
+                        this.user = { email: data.email, name: data.name };
+                        await firebaseSignOut(auth);
+                        return;
+                    }
+                }
+
                 const me = await fetchMe();
                 this.user = me ?? null;
             } catch {
@@ -33,7 +48,6 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        // Step 1 of email OTP flow — sends code to inbox
         async sendOtp(email: string) {
             this.loading = true;
             try {
@@ -43,13 +57,11 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        // Step 2 — verifies code; returns { needsName, email }
         async verifyOtp(email: string, code: string) {
             this.loading = true;
             try {
                 const result = await verifyOtp(email, code);
                 if (!result.needsName) {
-                    // Returning user — session cookie already set by backend
                     this.user = { email: result.email, name: result.name };
                 }
                 return result;
@@ -58,7 +70,6 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        // Step 3 (first-time OTP users only) — saves name, backend sets cookie
         async saveName(email: string, name: string) {
             this.loading = true;
             try {
@@ -69,32 +80,34 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        // Google OAuth — Firebase handles popup, we send email+name to our backend
         async loginWithGoogle() {
             this.loading = true;
             try {
                 const provider = new GoogleAuthProvider();
-                const result = await signInWithPopup(auth, provider);
-                const { email, displayName } = result.user;
 
-                if (!email) throw new Error('No email from Google');
-
-                const data = await loginWithGoogleBackend(email, displayName ?? '');
-                this.user = { email: data.email, name: data.name };
-
-                // Sign out from Firebase immediately — we use our own session cookie
-                await firebaseSignOut(auth);
-
-                return this.user;
+                if (IS_PROD) {
+                    // Production (GitHub Pages): use redirect — no popup COOP issues
+                    localStorage.setItem('googleRedirectPending', 'true');
+                    await signInWithRedirect(auth, provider);
+                } else {
+                    // Local dev: use popup — simpler, works fine with Vite COOP header
+                    const result = await signInWithPopup(auth, provider);
+                    const { email, displayName } = result.user;
+                    if (!email) throw new Error('No email from Google');
+                    const data = await loginWithGoogleBackend(email, displayName ?? '');
+                    this.user = { email: data.email, name: data.name };
+                    await firebaseSignOut(auth);
+                    return this.user;
+                }
             } catch (error: any) {
+                localStorage.removeItem('googleRedirectPending');
                 if (error.code === 'auth/popup-closed-by-user') return null;
                 throw error;
             } finally {
-                this.loading = false;
+                if (!IS_PROD) this.loading = false;
             }
         },
 
-        // Logout — clears cookie on backend, clears state
         async signOut(router: ReturnType<typeof import('vue-router').useRouter>) {
             this.signingOut = true;
             try {
