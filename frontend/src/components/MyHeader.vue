@@ -116,7 +116,7 @@
 
             <button
               v-else
-              @click="authStore.signOut()"
+              @click="authStore.signOut(router)"
               :disabled="authStore.signingOut"
               class="flex items-center justify-center w-6 h-6 cursor-pointer disabled:cursor-not-allowed transition duration-300"
             >
@@ -193,7 +193,7 @@
 
               <button
                 v-else
-                @click="authStore.signOut(); mobileMenuOpen = false"
+                @click="authStore.signOut(router); mobileMenuOpen = false"
                 :disabled="authStore.signingOut"
                 class="flex items-center justify-center cursor-pointer disabled:cursor-not-allowed transition"
               >
@@ -217,7 +217,7 @@
 
     
 
-    <div class="sticky z-49 bg-white border-b border-gray-50 transition-transform duration-500 ease-in-out hidden lg:flex justify-center gap-2 py-4"
+    <div class="sticky z-49 bg-white border-b border-gray-50 transition-transform duration-500 ease-in-out hidden lg:flex justify-center gap-1 py-4"
         :class="isVisible ? 'translate-y-0' : '-translate-y-full'"
         style="top: 97px;"
     >

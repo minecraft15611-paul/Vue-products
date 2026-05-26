@@ -25,6 +25,13 @@ import MyHeader from '../components/MyHeader.vue';
         router.push('/');
     };
 
+    const currentIndex = ref(0)
+
+    function onScroll(e: Event) {
+        const target = e.target as HTMLElement;
+        currentIndex.value = Math.round(target.scrollLeft / target.offsetWidth);
+    }
+
     // ---- Fetch products on refresh/direct URL if store is empty ----
     onMounted(() => {
         if (cartStore.products.length === 0) {
@@ -38,13 +45,9 @@ import MyHeader from '../components/MyHeader.vue';
         return cartStore.products.find(item => item.id === productId.value);
     });
 
-    // ---- Use watch so selectedColor updates after async fetch ----
+    // ---- Color: user must explicitly choose (no auto-select) ----
     const selectedColor = ref('');
-    watch(product, (p) => {
-        if (p && !selectedColor.value) {
-            selectedColor.value = p.colors?.[0]?.name ?? '';
-        }
-    }, { immediate: true });
+    const colorError = ref(false);
 
     // ---- Random products: ref + shuffle function (defined before watchers) ----
     const randomProducts = ref<typeof cartStore.products>([]);
@@ -62,6 +65,8 @@ import MyHeader from '../components/MyHeader.vue';
         () => {
             selectedSize.value = null;
             selectedColor.value = '';
+            errorMessage.value = '';
+            colorError.value = false;
             shuffleProducts();
         }
     );
@@ -106,11 +111,11 @@ import MyHeader from '../components/MyHeader.vue';
     };
 
     const handleAddToCart = () => {
-        if (!selectedSize.value) {
-            errorMessage.value = 'required';
-            return;
-        }
-        errorMessage.value = '';
+        const missingColor = !selectedColor.value;
+        const missingSize = !selectedSize.value;
+        colorError.value = missingColor;
+        errorMessage.value = missingSize ? 'required' : '';
+        if (missingColor || missingSize) return;
         cartStore.addToCart(product.value!, selectedColor.value, selectedSize.value ?? undefined);
     };
 
@@ -139,15 +144,51 @@ import MyHeader from '../components/MyHeader.vue';
 
 
     <div>
-        <div v-if="product" class="mx-auto py-8 flex flex-col lg:grid lg:grid-cols-12 lg:gap-12">
+        <div v-if="product" class="mx-auto py-8 flex flex-col lg:grid lg:grid-cols-16 lg:gap-8">
 
             <!-- Product Image -->
-            <div class="lg:col-span-7 w-full px-6 lg:px-0">
-                <img :src="product.img" :alt="product.title" class="w-full max-h-[420px] lg:max-h-none lg:h-full object-contain">
+            <div class="lg:col-span-11 w-full px-6 lg:px-0">
+                
+                <!-- MOBILE: swipeable carousel -->
+                <div class="relative lg:hidden">
+            <div 
+                class="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+                @scroll="onScroll"
+            >
+                <img 
+                    v-for="(img, index) in product.imgs" 
+                    :key="index"
+                    :src="img" 
+                    :alt="product.title" 
+                    class="w-full shrink-0 aspect-[7/8] object-cover snap-center"
+                >
             </div>
+            <!-- Active dots -->
+            <div class="flex justify-center gap-1.5 mt-2">
+                <span 
+                    v-for="index in 4" 
+                    :key="index" 
+                    class="w-1.5 h-1.5 rounded-full transition-colors duration-200"
+                    :class="currentIndex === index - 1 ? 'bg-black' : 'bg-gray-300'"
+                ></span>
+            </div>
+        </div>
+
+        <!-- DESKTOP: 2x2 grid -->
+        <div class="hidden lg:grid lg:grid-cols-2 lg:gap-1">
+            <img 
+                v-for="(img, index) in product.imgs" 
+                :key="index"
+                :src="img" 
+                :alt="product.title" 
+                class="w-full aspect-[7/8] object-cover"
+            >
+        </div>
+
+    </div>
  
             <!-- Product Info -->
-            <div class="lg:col-span-4 flex flex-col px-6 lg:px-0 mt-6 lg:mt-0">
+            <div class="lg:col-span-5 flex flex-col px-6 lg: mt-6 lg:mt-0">
  
                 <!-- Name + Price -->
                 <div class="flex justify-between items-start mb-8 lg:mb-20 lg:gap-20">
@@ -170,7 +211,7 @@ import MyHeader from '../components/MyHeader.vue';
                     <button 
                         v-for="color in product.colors" 
                         :key="color.name"
-                        @click="selectedColor = color.name"
+                        @click="selectedColor = color.name; colorError = false"
                         class="relative flex items-center justify-center w-8 h-8 rounded-full transition-all"
                         :class="[selectedColor === color.name ? 'ring-1 ring-black ring-offset-2' : '']"
                     >
@@ -181,6 +222,18 @@ import MyHeader from '../components/MyHeader.vue';
                         </span>
                     </button>
                     </div>
+                    <Transition
+                        enter-active-class="transition-all duration-200 ease-out"
+                        enter-from-class="opacity-0 max-h-0 mt-0"
+                        enter-to-class="opacity-100 max-h-10 mt-2"
+                        leave-active-class="transition-all duration-150 ease-in"
+                        leave-from-class="opacity-100 max-h-10 mt-2"
+                        leave-to-class="opacity-0 max-h-0 mt-0"
+                    >
+                        <p v-if="colorError" class="mt-2 text-[#c00] text-[15px] text-center overflow-hidden">
+                            Please Select Color
+                        </p>
+                    </Transition>
                 </div>
     
                 <!-- Size Selector -->
@@ -196,7 +249,7 @@ import MyHeader from '../components/MyHeader.vue';
                     <button 
                         v-for="size in product.sizes" 
                         :key="size"
-                        @click="selectedSize = size; errorMessage= ''"
+                        @click="selectedSize = size; errorMessage = ''"
                         :class="[selectedSize === size ? 'border-black border-2' : 'border-gray-300']"
                         class="w-16 h-8 border text-xs tracking-widest uppercase">
                         {{ size }}
@@ -298,7 +351,7 @@ import MyHeader from '../components/MyHeader.vue';
             >
                 <div class="aspect-[3/4] overflow-hidden bg-[#f9f9f9] mb-4">
                     <img 
-                    :src="item.img" 
+                    :src="item.imgs?.[0]" 
                     :alt="item.name"
                     class="w-full h-full object-cover transition-all duration-500 group-hover:scale-102 group-hover:opacity-80"
                     />
@@ -381,4 +434,7 @@ import MyHeader from '../components/MyHeader.vue';
     opacity: 1;
     transform: translateY(0);
 }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

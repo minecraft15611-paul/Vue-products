@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const stripe  = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { Resend } = require('resend');
 const resend  = new Resend(process.env.RESEND_API_KEY);
+const cookieParser = require('cookie-parser');
 
 // HTML escape helper — prevents XSS in email templates
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -24,13 +25,33 @@ mongoose.connect(uri)
     .then(() => console.log('MongoDB connected successfully!'))
     .catch(err => console.error('Connection failed:', err));
 
+// ── NEW: User model — stores customer email + name ───────────────────────────
+const userSchema = new mongoose.Schema({
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    name:  { type: String, default: '' },
+    provider: { type: String, enum: ['otp', 'google'], default: 'otp' },
+    createdAt: { type: Date, default: Date.now },
+});
+const User = mongoose.model('User', userSchema);
+
+// ── NEW: OtpToken model — short-lived, hashed OTP codes ─────────────────────
+const otpTokenSchema = new mongoose.Schema({
+    email:     { type: String, required: true, lowercase: true, trim: true },
+    codeHash:  { type: String, required: true },
+    expiresAt: { type: Date,   required: true },
+    used:      { type: Boolean, default: false },
+});
+// Auto-delete expired documents (MongoDB TTL index)
+otpTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+const OtpToken = mongoose.model('OtpToken', otpTokenSchema);
+
 // ── Schemas & Models (defined first — used by routes below) ─────────────────
 const productSchema = new mongoose.Schema({
     id:          Number,
     category:    String,
     name:        String,
     title:       String,
-    img:         String,
+    img:         [String],
     price:       Number,
     stock:       Number,
     colors:      [{ name: String, hex: String }],
@@ -121,6 +142,34 @@ app.use(cors({
     credentials: true,
 }));
 
+app.use(cookieParser());
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW: requireUser middleware — reads httpOnly cookie (for customer routes)
+// ─────────────────────────────────────────────────────────────────────────────
+const requireUser = (req, res, next) => {
+    const token = req.cookies?.userToken;
+    if (!token) return res.status(401).json({ error: 'Not authenticated' });
+    try {
+        req.user = jwt.verify(token, process.env.JWT_SECRET);
+        next();
+    } catch {
+        res.status(401).json({ error: 'Invalid or expired session' });
+    }
+};
+ 
+// Helper: set the httpOnly session cookie
+const setUserCookie = (res, payload) => {
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '30d' });
+    res.cookie('userToken', token, {
+        httpOnly:  true,
+        secure:    true,           // HTTPS only
+        sameSite:  'none',         // cross-origin (GitHub Pages ↔ your API)
+        maxAge:    30 * 24 * 60 * 60 * 1000, // 30 days in ms
+    });
+    return token;
+};
+
 // ── Stripe Webhook ───────────────────────────────────────────────────────────
 // MUST be before express.json() — Stripe requires the raw request body for signature verification
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -157,7 +206,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
                     price:         product.price,
                     quantity:      lean.quantity,
                     subtotal:      +(product.price * lean.quantity).toFixed(2),
-                    img:           product.img,
+                    imgs:          product.imgs,
                     selectedColor: null,
                     selectedSize:  null,
                 };
@@ -602,6 +651,169 @@ app.post('/api/create-checkout-session', async (req, res) => {
         console.error('Failed to create Stripe session:', err.message);
         res.status(500).json({ error: err.message });
     }
+});
+
+// ── Customer Auth routes ──────────────────────────────────────────────────────
+
+// [GET] Check session — returns user info if cookie is valid
+app.get('/api/auth/me', requireUser, async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.user.email });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json({ email: user.email, name: user.name, provider: user.provider });
+    } catch {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// [POST] Send OTP — generates 6-digit code, hashes it, emails via Resend
+app.post('/api/auth/send-otp', async (req, res) => {
+    try {
+        const email = req.body.email?.toLowerCase().trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ error: 'Invalid email' });
+        }
+
+        // Invalidate any existing unused OTPs for this email
+        await OtpToken.deleteMany({ email });
+
+        // Generate 6-digit code
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        const codeHash = await bcrypt.hash(code, 10);
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        await OtpToken.create({ email, codeHash, expiresAt });
+
+        await resend.emails.send({
+            from: 'LemonTree <onboarding@resend.dev>',
+            to:      email,
+            subject: 'Your LemonTree sign-in code',
+            html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <div style="max-width:480px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+    <div style="background:#1a1a1a;padding:28px;text-align:center;">
+      <h1 style="color:#fff;margin:0;font-size:22px;letter-spacing:2px;">LEMON TREE</h1>
+    </div>
+    <div style="padding:40px 32px;text-align:center;">
+      <p style="margin:0 0 8px;font-size:15px;color:#444;">Your sign-in code is</p>
+      <div style="font-size:42px;font-weight:bold;letter-spacing:10px;color:#1a1a1a;margin:16px 0;">${esc(code)}</div>
+      <p style="margin:16px 0 0;font-size:13px;color:#999;">This code expires in 10 minutes. Do not share it with anyone.</p>
+    </div>
+    <div style="background:#f9f9f9;padding:20px 32px;text-align:center;border-top:1px solid #f0f0f0;">
+      <p style="margin:0;font-size:12px;color:#bbb;">© 2026 Lemon Tree. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+        });
+
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('send-otp error:', err.message);
+        res.status(500).json({ error: 'Failed to send OTP' });
+    }
+});
+
+// [POST] Verify OTP — checks code, upserts user, sets httpOnly cookie
+app.post('/api/auth/verify-otp', async (req, res) => {
+    try {
+        const email = req.body.email?.toLowerCase().trim();
+        const code  = req.body.code?.trim();
+
+        if (!email || !code) return res.status(400).json({ error: 'Missing fields' });
+
+        const record = await OtpToken.findOne({ email, used: false });
+        if (!record) return res.status(400).json({ error: 'No active OTP found. Please request a new code.' });
+
+        if (new Date() > record.expiresAt) {
+            await OtpToken.deleteOne({ _id: record._id });
+            return res.status(400).json({ error: 'Code expired. Please request a new one.' });
+        }
+
+        const valid = await bcrypt.compare(code, record.codeHash);
+        if (!valid) return res.status(400).json({ error: 'Incorrect code. Please try again.' });
+
+        // Mark OTP as used
+        await OtpToken.deleteOne({ _id: record._id });
+
+        // Find or create user
+        let user = await User.findOne({ email });
+        const isNewUser = !user;
+
+        if (!user) {
+            user = await User.create({ email, name: '', provider: 'otp' });
+        }
+
+        if (isNewUser || !user.name) {
+            // New user — tell frontend to collect name before issuing cookie
+            return res.json({ ok: true, needsName: true, email });
+        }
+
+        // Returning user — set cookie and done
+        setUserCookie(res, { email: user.email, name: user.name });
+        res.json({ ok: true, needsName: false, email: user.email, name: user.name });
+    } catch (err) {
+        console.error('verify-otp error:', err.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// [POST] Save name — only for new OTP users after first verification
+app.post('/api/auth/save-name', async (req, res) => {
+    try {
+        const email = req.body.email?.toLowerCase().trim();
+        const name  = req.body.name?.trim();
+
+        if (!email || !name || name.length < 1) {
+            return res.status(400).json({ error: 'Name is required' });
+        }
+
+        const user = await User.findOneAndUpdate(
+            { email },
+            { name },
+            { new: true }
+        );
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        setUserCookie(res, { email: user.email, name: user.name });
+        res.json({ ok: true, email: user.email, name: user.name });
+    } catch (err) {
+        console.error('save-name error:', err.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// [POST] Google OAuth — frontend sends email+name from Firebase, backend sets cookie
+app.post('/api/auth/google', async (req, res) => {
+    try {
+        const { email, name } = req.body;
+        if (!email) return res.status(400).json({ error: 'Missing email' });
+
+        const user = await User.findOneAndUpdate(
+            { email: email.toLowerCase().trim() },
+            { $set: { provider: 'google', name: name || '' } },
+            { upsert: true, new: true }
+        );
+
+        setUserCookie(res, { email: user.email, name: user.name });
+        res.json({ ok: true, email: user.email, name: user.name });
+    } catch (err) {
+        console.error('google auth error:', err.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// [POST] Logout — clears the cookie
+app.post('/api/auth/logout', (req, res) => {
+    res.clearCookie('userToken', {
+        httpOnly: true,
+        secure:   true,
+        sameSite: 'none',
+    });
+    res.json({ ok: true });
 });
 
 // ── Start server ──────────────────────────────────────────────────────────────

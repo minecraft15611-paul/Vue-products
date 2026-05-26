@@ -9,6 +9,22 @@
 
     const cartStore = useCartStore();
 
+    // --- Hover image swap ---
+    const hoveredId = ref<number | string | null>(null);
+
+    function onMouseEnter(id: number | string) {
+        hoveredId.value = id;
+    }
+
+    function onMouseLeave() {
+        hoveredId.value = null;
+    }
+
+    function getImg(item: any) {
+        const isHovered = hoveredId.value === item.id;
+        return (isHovered && item.imgs?.[1]) ? item.imgs[1] : item.imgs?.[0];
+    }
+
     // --- 分頁邏輯保持不變 ---
     const pageSize = ref<number>(6);
     const currentPage = ref<number>(1);
@@ -42,22 +58,23 @@
                 <li
                     v-for="item in paginatedProducts"
                     :key="item.id"
-                    class="flex lg:hidden flex-col bg-white mb-8 rounded-xl overflow-hidden shadow-sm "
+                    class="flex lg:hidden flex-col bg-white mb-8 rounded-xl overflow-hidden shadow-sm"
+                    @mouseenter="onMouseEnter(item.id)"
+                    @mouseleave="onMouseLeave"
                 >
-                    <div class="grid grid-cols-1 p-3 h-55 rounded hover:bg-[#F9F9F7] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border-[0.5px] border-gray-100">
+                    <div class="grid grid-cols-1 p-1 h-55 rounded  ">
                         <router-link :to="`/ProductDetail/${item.id}`" class="contents">
-                            <div class="flex justify-center w-24 h-24 mx-auto">
-                                <img :src="item.img" class="w-24 h-24 object-contain" width="96" height="96" loading="lazy">
+                            <div class="flex justify-center w-full aspect-square mb-1 mx-auto">
+                                <img :src="getImg(item)" class="w-full h-full rounded object-cover product-img" :class="{ hovered: hoveredId === item.id }" width="96" height="96" loading="lazy">
                             </div>
                             <div>
-                                <p class="h-8 font-semibold">{{ item.title }}</p>
-                                <br>
-                                <div class="font-bold text-gray-600">
+                                <p class="h-8 font-light text-[13px]">{{ item.title }}</p>
+                                <div class="font-light text-gray-600 pl-2">
                                     ${{ item.price }}
                                 </div>
                             </div>
                         </router-link>
-                        <addToCartButton :item="item"/>
+                       
                     </div>
                     
                 </li>
@@ -68,12 +85,14 @@
                     v-for="item in paginatedProducts"
                     :key="item.id"
                     class="
-                        hidden lg:grid grid-cols-2 bg-white mb-8 rounded-xl overflow-hidden shadow-sm 
+                        hidden lg:grid grid-cols-2 gap-x-12 bg-white mb-8 rounded-xl overflow-hidden shadow-sm 
                         hover:scale-102 transition-all duration-300
-                        "            
+                        "
+                    @mouseenter="onMouseEnter(item.id)"
+                    @mouseleave="onMouseLeave"
                 >
-                    <router-link :to="`/ProductDetail/${item.id}`" class="flex justify-center items-center p-3 h-55 rounded hover:bg-[#F9F9F7] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border-[0.5px] border-gray-100">
-                        <img :src="item.img" class="w-100 h-70 object-contain" width="400" height="280" loading="lazy">
+                    <router-link :to="`/ProductDetail/${item.id}`" class="flex justify-center  items-center p-3 h-55 rounded hover:bg-[#F9F9F7] shadow-[0_20px_50px_rgba(0,0,0,0.02)] border-[0.5px] border-gray-100">
+                        <img :src="getImg(item)" class="w-100 h-70 object-contain product-img" :class="{ hovered: hoveredId === item.id }" width="400" height="280" loading="lazy">
                     </router-link>
                     <div class="flex flex-col items-center justify-center  px-8">
                         <router-link :to="`/ProductDetail/${item.id}`" class="flex flex-col items-center w-full">
@@ -150,6 +169,21 @@
 
 <style scoped>
 
+/* Product image hover fade */
+.product-img {
+    transition: opacity 0.8s ease;
+}
+
+.product-img.hovered {
+    opacity: 0.5;
+    animation: imgFadeIn 0.8s ease forwards;
+}
+
+@keyframes imgFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
 @media (min-width: 1024px) {
     
     .page-fade-enter-active,
@@ -161,8 +195,6 @@
     .page-fade-leave-to {
         opacity: 0;
     }
-
-
 
     @keyframes fadeIn {
         from { opacity: 0; }

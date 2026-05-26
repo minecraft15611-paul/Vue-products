@@ -56,11 +56,10 @@ const total = computed<number>(() => subtotal.value + shipping.value)
           >
             <path d="M15 18l-6-6 6-6" />
           </svg>
+          <span class="text-xs uppercase tracking-widest ml-2 text-gray-400 font-medium">
+            Continue Shopping
+          </span>
         </button>
-
-        <span class="text-xs uppercase tracking-widest text-gray-400 font-medium">
-          Continue Shopping
-        </span>
       </div>
       <span class="text-xs text-gray-300">{{ cartStore.cart.length }} {{ cartStore.cart.length === 1 ? 'item' : 'items' }}</span>
     </div>
@@ -78,7 +77,7 @@ const total = computed<number>(() => subtotal.value + shipping.value)
         >
           <!-- Thumbnail -->
           <img
-            :src="item.img || '/placeholder.jpg'"
+            :src="(item.imgs && item.imgs[0]) || 'https://placehold.co/80x80'"
             :alt="item.title"
             class="w-16 h-16 rounded-lg object-cover bg-gray-100 flex-shrink-0"
           />
@@ -224,7 +223,7 @@ const total = computed<number>(() => subtotal.value + shipping.value)
           >
             <!-- Thumbnail -->
             <img
-              :src="item.img || '/placeholder.jpg'"
+              :src="(item.imgs && item.imgs[0]) || 'https://placehold.co/80x80'"
               :alt="item.title"
               class="w-20 h-20 rounded-lg object-cover bg-gray-100 flex-shrink:0"
             />
