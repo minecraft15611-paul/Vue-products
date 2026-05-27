@@ -251,7 +251,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
             // Send order confirmation email (Stripe checkout path)
             try {
                 await resend.emails.send({
-                    from: 'LemonTree <onboarding@resend.dev>',
+                    from:    'LemonTree@LemonTreeStore.dev',
                     to:      session.customer_details?.email,
                     subject: `Order Confirmed — ${esc(orderId)}`,
                     html: `
@@ -435,7 +435,7 @@ app.post('/api/orders', async (req, res) => {
         // Send order confirmation email (manual checkout path)
         try {
             await resend.emails.send({
-                from:    'LemonTree <onboarding@resend.dev>',
+                from:    'LemonTree@LemonTreeStore.dev',
                 to:      email,
                 subject: `Order Confirmed — ${esc(orderId)}`,
                 html: `
@@ -547,10 +547,44 @@ app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
 // [GET] All products (public — storefront)
 app.get('/api/products', async (req, res) => {
     try {
-        const dbProducts = await Product.find();
+        const { category, exclude, limit } = req.query;
+        const filter = {};
+
+        // Filter by category if provided
+        if (category && category !== 'All') {
+            filter.category = category;
+        }
+
+        // Exclude a specific product by numeric id (used for recommendations)
+        if (exclude) {
+            filter.id = { $ne: Number(exclude) };
+        }
+
+        let query = Product.find(filter);
+
+        // If limit provided, shuffle randomly in DB and return N results
+        if (limit) {
+            const count = await Product.countDocuments(filter);
+            const n = Number(limit);
+            const skip = Math.max(0, Math.floor(Math.random() * (count - n)));
+            query = query.skip(skip).limit(n);
+        }
+
+        const dbProducts = await query;
         res.json(dbProducts);
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch products', error: err });
+    }
+});
+
+// [GET] Single product by numeric id (public — storefront + product detail)
+app.get('/api/products/:id', async (req, res) => {
+    try {
+        const product = await Product.findOne({ id: Number(req.params.id) });
+        if (!product) return res.status(404).json({ message: 'Product not found' });
+        res.json(product);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch product', error: err });
     }
 });
 
