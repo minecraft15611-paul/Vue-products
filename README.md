@@ -143,3 +143,21 @@ Vue-products/
 - **Google OAuth** — uses redirect flow in production (GitHub Pages), popup in local dev.
 - **Cart persistence** — saved to `localStorage`, survives page refreshes. Stock resets on next product fetch.
 - **Sentry** — frontend errors tracked via `@sentry/vue` in `main.ts`, backend via `@sentry/node` in `server.js`.
+
+---
+
+## 🔄 CI/CD
+
+Automated pipeline via **GitHub Actions** — triggers on every push to `dev-tailwind` branch.
+
+```
+git push → Type Check (vue-tsc) → Build → Deploy to GitHub Pages
+```
+
+| Step | Tool | What it does |
+|---|---|---|
+| Type Check | `vue-tsc --noEmit` | Fails the pipeline if TypeScript errors exist |
+| Build | `vite build` | Compiles and bundles the frontend |
+| Deploy | `peaceiris/actions-gh-pages` | Publishes `dist/` to GitHub Pages |
+
+If type check or build fails → deploy is blocked and GitHub sends an email alert.
