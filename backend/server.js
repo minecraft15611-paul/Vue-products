@@ -1,3 +1,5 @@
+const Sentry = require('@sentry/node')
+Sentry.init({ dsn: 'https://9e3e8612896df9a285289f199a13ad2e@o4511460292231168.ingest.us.sentry.io/4511460299505664' })
 require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
@@ -849,6 +851,8 @@ app.delete('/api/auth/session', (req, res) => {
     });
     res.json({ ok: true });
 });
+
+Sentry.setupExpressErrorHandler(app)
 
 // ── Start server ──────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
