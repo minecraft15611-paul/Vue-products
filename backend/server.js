@@ -435,7 +435,7 @@ app.post('/api/orders', async (req, res) => {
         // Send order confirmation email (manual checkout path)
         try {
             await resend.emails.send({
-                from:    'LemonTree@LemonTreeStore.dev',
+                from:    'LemonTree <onboarding@resend.dev>',
                 to:      email,
                 subject: `Order Confirmed — ${esc(orderId)}`,
                 html: `
