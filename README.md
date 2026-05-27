@@ -12,10 +12,69 @@
 |---|---|
 | 🛍️ Shopping | Product listing, search, filter, pagination, hover image swap |
 | 🛒 Cart | Quantity controls, localStorage persistence, discount codes |
-| 💳 Checkout | Stripe payments, CO₂ offset opt-in, order confirmation |
+| 💳 Checkout | Stripe payments, CO₂ offset opt-in, order confirmation email |
 | 🔐 Auth | OTP email login, Google OAuth, JWT via HTTP-only cookie |
-| 🔧 Admin | Product CRUD, order status management |
+| 🔧 Admin | Product CRUD, order status management, password-protected |
 | 🐛 Monitoring | Sentry error tracking (frontend + backend) |
+
+---
+
+## 🏆 Engineering Highlights
+
+### 🔐 Secure Auth with HTTP-only Cookies
+JWT sessions are stored in **HTTP-only cookies** — never in `localStorage` or JavaScript-accessible memory. This means XSS attacks cannot steal session tokens. The cookie is configured with `Secure: true` and `SameSite: none` to support cross-origin requests between GitHub Pages (frontend) and Render (backend).
+
+```
+Browser              GitHub Pages              Render API
+  │                       │                        │
+  │── POST /auth/otp ─────────────────────────────▶│
+  │                       │         Set-Cookie: userToken (httpOnly; Secure; SameSite=none)
+  │◀──────────────────────────────────────────────│
+  │                       │                        │
+  │  🔒 Token stored in httpOnly cookie            │
+  │  ✅ Invisible to JavaScript / XSS              │
+```
+
+Two separate cookies protect different access levels:
+- `userToken` — issued after OTP or Google OAuth, required for customer routes (`/api/users/me`, `/api/orders`)
+- `adminToken` — issued after admin password login, required for all `/api/admin/*` routes
+
+### 🔑 Two-Factor OTP Login
+Email login uses a **time-limited, hashed OTP** flow:
+1. User enters email → backend generates a 6-digit code, hashes it with bcrypt, stores it in MongoDB with a TTL index (auto-deletes after expiry)
+2. User enters code → backend verifies against hash, never stores plaintext
+3. On success → JWT issued and set as HTTP-only cookie
+
+Rate limiting (`3 attempts / 15 min`) prevents brute force on the OTP endpoint.
+
+### 🌐 Google OAuth (Popup vs Redirect)
+Firebase Auth is used differently depending on environment:
+- **Local dev** → `signInWithPopup` (fast, no page reload)
+- **Production (GitHub Pages)** → `signInWithRedirect` (required for cross-origin iframe restrictions)
+
+After Firebase resolves the identity, the **email and display name are sent to the backend**, which issues its own JWT cookie — Firebase tokens are never trusted directly by the API.
+
+### 💳 Stripe Webhook Order Creation
+Stripe Express Checkout orders are created server-side via **webhook**, not from the frontend. This prevents order fraud — a user cannot create an order without a real Stripe payment completing.
+
+```
+Frontend           Stripe              Backend (Render)
+   │                  │                      │
+   │── Checkout ──▶   │                      │
+   │                  │── webhook POST ──────▶│
+   │                  │   checkout.session    │ verify signature
+   │                  │   .completed          │ create Order in MongoDB
+   │                  │                      │ send confirmation email
+```
+
+The webhook signature is verified with `stripe.webhooks.constructEvent()` before any order is written.
+
+### 🚨 Sentry Error Monitoring
+Both frontend and backend are instrumented with Sentry:
+- **Frontend** (`@sentry/vue`) — captures Vue component errors, navigation breadcrumbs, and user interactions leading up to a crash
+- **Backend** (`@sentry/node`) — captures unhandled Express errors with request context
+
+This enabled catching a production crash in `SuccessView.vue` where `item.imgs[0]` was undefined because the order snapshot serialized `imgs[]` as a singular `img` string — identified and fixed using the Sentry breadcrumb trail.
 
 ---
 
@@ -28,8 +87,8 @@
 | Pinia | State management |
 | Vue Router 4 | Routing (Hash history) |
 | Tailwind CSS v4 | Styling |
-| Vite 8 | Build tool |
-| Firebase Auth | Google OAuth |
+| Vite | Build tool |
+| Firebase Auth | Google OAuth redirect/popup |
 | Axios | HTTP client |
 | Zod + Vee-Validate | Form validation |
 | Sentry | Error monitoring |
@@ -39,9 +98,11 @@
 |---|---|
 | Express 5 | REST API |
 | MongoDB + Mongoose | Database |
-| Stripe | Payments |
-| Resend | OTP emails |
-| JWT + bcryptjs | Auth & session |
+| Stripe | Payments + webhooks |
+| Resend | Transactional emails (OTP + order confirmation) |
+| JWT + bcryptjs | Session tokens + OTP hashing |
+| cookie-parser | HTTP-only cookie handling |
+| express-rate-limit | Brute force protection |
 | Sentry | Error monitoring |
 
 ---
@@ -94,7 +155,10 @@ VITE_FIREBASE_APP_ID=...
 MONGODB_URI=...
 JWT_SECRET=...
 STRIPE_SECRET_KEY=...
+STRIPE_WEBHOOK_SECRET=...
 RESEND_API_KEY=...
+ADMIN_PASSWORD_HASH=...
+SENTRY_DSN=...
 ```
 
 ---
@@ -114,7 +178,7 @@ RESEND_API_KEY=...
 Vue-products/
 ├── frontend/
 │   └── src/
-│       ├── views/          # Pages (Home, ProductsList, Cart, Checkout, Admin...)
+│       ├── views/          # Pages (Home, ProductsList, Cart, Checkout, Admin, Success...)
 │       ├── components/     # Shared UI (Header, Footer, Toast, CartIcon...)
 │       ├── stores/         # Pinia stores (cart.ts, auth.ts)
 │       ├── schemas/        # Zod validation schemas
@@ -133,7 +197,7 @@ Vue-products/
 |---|---|
 | `/CheckoutView` | Must come from cart with items |
 | `/success` | Must have completed checkout |
-| `/Admin` | Admin key required |
+| `/Admin` | Admin cookie required |
 
 ---
 
@@ -141,8 +205,9 @@ Vue-products/
 
 - **Backend cold start** — hosted on Render free tier, first request may take ~30s to wake up.
 - **Google OAuth** — uses redirect flow in production (GitHub Pages), popup in local dev.
-- **Cart persistence** — saved to `localStorage`, survives page refreshes. Stock resets on next product fetch.
-- **Sentry** — frontend errors tracked via `@sentry/vue` in `main.ts`, backend via `@sentry/node` in `server.js`.
+- **Cart persistence** — saved to `localStorage`, survives page refreshes.
+- **OTP codes** — stored hashed in MongoDB with a TTL index; auto-deleted on expiry, never stored in plaintext.
+- **Cookies** — `httpOnly: true`, `secure: true`, `sameSite: 'none'` for cross-origin GitHub Pages ↔ Render support.
 
 ---
 
