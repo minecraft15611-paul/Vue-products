@@ -11,6 +11,12 @@ const { Resend } = require('resend');
 const resend  = new Resend(process.env.RESEND_API_KEY);
 const cookieParser = require('cookie-parser');
 
+const rateLimit = require('express-rate-limit')
+
+const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 3 })
+const adminLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5 })
+
+
 // HTML escape helper — prevents XSS in email templates
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -132,6 +138,8 @@ const requireAdmin = (req, res, next) => {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+
+
 app.use(cors({
     origin: [
         'https://minecraft15611-paul.github.io',
@@ -145,6 +153,9 @@ app.use(cors({
 }));
 
 app.use(cookieParser());
+app.use('/api/auth/otp/send', otpLimiter)     
+app.use('/api/auth/admin/login', adminLimiter)
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NEW: requireUser middleware — reads httpOnly cookie (for customer routes)
