@@ -286,6 +286,7 @@
                 quantity: item.quantity,
                 subtotal: +(item.price * item.quantity).toFixed(2),
                 img:      item.imgs?.[0] ?? null,
+                imgs:     item.imgs, 
                 selectedColor: item.selectedColor ?? null,  
                 selectedSize:  item.selectedSize  ?? null,  
             })),
@@ -779,7 +780,7 @@
                     </button>
                     <div v-if="showContactMenu" class="absolute right-0 top-7 bg-white border border-gray-200 shadow-md z-50 min-w-[120px]">
                         <button type="button"
-                            @click="authStore.signOut(); showContactMenu = false"
+                            @click="authStore.signOut(router); showContactMenu = false"
                             :disabled="authStore.signingOut"
                             class="w-full flex items-center justify-center px-4 py-2 text-[13px] text-gray-700 hover:bg-gray-50 transition disabled:cursor-not-allowed"
                         >
@@ -2508,7 +2509,7 @@
                                 </button>
                                 <div v-if="showContactMenu" class="absolute right-0 top-7 bg-white border border-gray-200 shadow-md z-50 min-w-[120px]">
                                         <button type="button"
-                                        @click="authStore.signOut(); showContactMenu = false"
+                                        @click="authStore.signOut(router); showContactMenu = false"
                                         :disabled="authStore.signingOut"
                                         class="w-full flex items-center justify-center px-4 py-2 text-[13px] text-gray-700 hover:bg-gray-50 transition disabled:cursor-not-allowed"
                                     >

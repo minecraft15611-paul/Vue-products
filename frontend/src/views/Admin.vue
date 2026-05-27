@@ -42,7 +42,7 @@ const ALL_SIZES = ['S', 'M', 'L', 'XL'] as const;
 const FALLBACK_IMG = 'https://picsum.photos/seed/default/400/300';
 
 // ── Axios instance ─────────────────────────────────────────────────────────
-const api = axios.create({ baseURL: `${import.meta.env.VITE_API_URL}/api` });
+const api = axios.create({ baseURL: `${import.meta.env.VITE_API_URL}/api`, withCredentials: true });
 
 const isEditMode = ref(false);
 
@@ -90,12 +90,9 @@ const login = async () => {
     if (isLoginLoading.value) return;
     isLoginLoading.value = true;
     try {
-        const res = await api.post('/admin/sessions', {
+        await api.post('/admin/sessions', {
             password: adminKey.value
         });
-        const token = res.data.token;
-        sessionStorage.setItem('admin_token', token);
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         isAuthenticated.value = true;
     } catch {
         showToast('Invalid key, please re-enter.', 'error');
@@ -108,24 +105,16 @@ const login = async () => {
 const logout = async () => {
     const confirmed = await showConfirm('Are you sure you want to log out of the management system?');
     if (!confirmed) return;
-    sessionStorage.removeItem('admin_token');
-    delete api.defaults.headers.common['Authorization'];
+    await api.delete('/admin/sessions').catch(() => {});
     isAuthenticated.value = false;
 };
 
 onMounted(async () => {
-    const token = sessionStorage.getItem('admin_token');
-    if (token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        try {
-            const res = await api.get('/admin/session');
-            isAuthenticated.value = res.status === 200;
-        } catch {
-            // Token is stale or invalid — clear it
-            sessionStorage.removeItem('admin_token');
-            delete api.defaults.headers.common['Authorization'];
-            isAuthenticated.value = false;
-        }
+    try {
+        const res = await api.get('/admin/session');
+        isAuthenticated.value = res.status === 200;
+    } catch {
+        isAuthenticated.value = false;
     }
     fetchProducts();
     if (isAuthenticated.value) fetchOrders();

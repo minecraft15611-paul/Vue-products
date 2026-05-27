@@ -38,7 +38,10 @@ async function completeSignIn(email: string) {
     try {
         const result = await signInWithEmailLink(auth, email, window.location.href);
         localStorage.removeItem('emailForSignIn');
-        authStore.setUser(result.user);
+        authStore.setUser({
+            email: result.user.email ?? '',
+            name:  result.user.displayName ?? ''
+        });
         status.value = 'success';
         setTimeout(() => router.push('/'), 1500);
     } catch (error: any) {

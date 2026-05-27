@@ -89,7 +89,7 @@ export const useAuthStore = defineStore('auth', {
             }
         },
 
-        async loginWithGoogle() {
+         async loginWithGoogle() {
             this.loading = true;
             try {
                 const provider = new GoogleAuthProvider();
@@ -118,6 +118,10 @@ export const useAuthStore = defineStore('auth', {
             } finally {
                 if (!IS_PROD) this.loading = false;
             }
+        },
+
+        setUser(user: { email: string; name: string } | null) {
+            this.user = user;
         },
 
         async signOut(router: ReturnType<typeof import('vue-router').useRouter>) {

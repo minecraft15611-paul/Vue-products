@@ -20,7 +20,7 @@
             >
             <!-- Thumbnail -->
             <img
-                :src="item.img || '/placeholder.jpg'"
+                :src="item.imgs && item.imgs.length > 0 ? item.imgs[0] : '/placeholder.jpg'"
                 :alt="item.title"
                 class="w-16 h-16 rounded-lg object-cover bg-gray-100 flex-shrink-0"
             />
