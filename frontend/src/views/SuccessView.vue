@@ -5,6 +5,8 @@ import { useCartStore } from '../stores/cart';
 import { useAuthStore } from '../stores/auth';
 import axios from 'axios';
 
+const API = import.meta.env.VITE_API_URL;
+
 const router    = useRouter();
 const route     = useRoute();
 const cartStore = useCartStore();
@@ -34,7 +36,7 @@ onMounted(async () => {
         while (attempts.value < maxAttempts) {
             try {
                 const res = await axios.get(
-                    `https://lemontree-api.onrender.com/api/orders/stripe/${sessionId}`
+                    `${API}/api/checkout-sessions/${sessionId}/order`
                 );
                 stripeOrder.value   = res.data;
                 stripeLoading.value = false;

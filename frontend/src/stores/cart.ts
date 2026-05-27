@@ -2,6 +2,8 @@ import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { debounce } from 'lodash-es';
 
+const API = import.meta.env.VITE_API_URL;
+
 export interface Product {
     id: number | string;
     title?: string;
@@ -33,7 +35,7 @@ export const useCartStore = defineStore('cart', () => {
         
         // https://69d3044a336103955f8e82e7.mockapi.io/api/v1/products 這個是網路API
         try {
-            const response = await fetch('https://lemontree-api.onrender.com/api/products', {
+            const response = await fetch(`${API}/api/products`, {
                 credentials: 'include'
             });
             if (!response.ok) {

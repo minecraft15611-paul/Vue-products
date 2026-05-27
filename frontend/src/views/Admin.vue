@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { useCartStore } from '../stores/cart';
 import axios from 'axios';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -43,10 +42,20 @@ const ALL_SIZES = ['S', 'M', 'L', 'XL'] as const;
 const FALLBACK_IMG = 'https://picsum.photos/seed/default/400/300';
 
 // ── Axios instance ─────────────────────────────────────────────────────────
-const api = axios.create({ baseURL: 'https://lemontree-api.onrender.com/api' });
+const api = axios.create({ baseURL: `${import.meta.env.VITE_API_URL}/api` });
 
-const cartStore = useCartStore();
 const isEditMode = ref(false);
+
+// ── Local products state (independent from customer storefront) ────────────
+const products = ref<Product[]>([]);
+const fetchProducts = async () => {
+    try {
+        const res = await api.get('/products');
+        products.value = res.data;
+    } catch {
+        showToast('Failed to load products.', 'error');
+    }
+};
 
 // ── Toast system ───────────────────────────────────────────────────────────
 const toast = ref({ message: '', type: 'success' as 'success' | 'error' | 'warning', visible: false });
@@ -81,7 +90,7 @@ const login = async () => {
     if (isLoginLoading.value) return;
     isLoginLoading.value = true;
     try {
-        const res = await api.post('/admin/login', {
+        const res = await api.post('/admin/sessions', {
             password: adminKey.value
         });
         const token = res.data.token;
@@ -109,7 +118,7 @@ onMounted(async () => {
     if (token) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         try {
-            const res = await api.get('/admin/verify');
+            const res = await api.get('/admin/session');
             isAuthenticated.value = res.status === 200;
         } catch {
             // Token is stale or invalid — clear it
@@ -118,7 +127,7 @@ onMounted(async () => {
             isAuthenticated.value = false;
         }
     }
-    cartStore.fetchProducts();
+    fetchProducts();
     if (isAuthenticated.value) fetchOrders();
 });
 
@@ -171,14 +180,14 @@ const handleSave = async () => {
                 showToast('Missing product ID, cannot update.', 'error');
                 return;
             }
-            await api.put(`/products/${newItem.value.id}`, newItem.value);
+            await api.patch(`/products/${newItem.value.id}`, newItem.value);
             showToast('Product information has been successfully updated!', 'success');
         } else {
             await api.post('/products', newItem.value);
             showToast('New product successfully listed!', 'success');
         }
         resetForm();
-        cartStore.fetchProducts();
+        fetchProducts();
     } catch (error) {
         showToast('Failed to connect to the backend.', 'error');
     }
@@ -190,7 +199,7 @@ const deleteProduct = async (id: string | number) => {
     try {
         await api.delete(`/products/${id}`);
         showToast('Product removed successfully.', 'success');
-        cartStore.fetchProducts();
+        fetchProducts();
     } catch {
         showToast('Deletion failed.', 'error');
     }
@@ -245,7 +254,7 @@ const updateOrderStatus = async (orderId: string, newStatus: string) => {
     const order = orders.value.find(o => o._id === orderId);
     const previousStatus = order?.status;
     try {
-        await api.put(`/orders/${orderId}`, { status: newStatus });
+        await api.patch(`/orders/${orderId}`, { status: newStatus });
         // v-model already mutated order.status locally — no refetch needed
         showToast('Order status updated.', 'success');
     } catch {
@@ -277,7 +286,7 @@ const dynamicStats = computed(() => {
     );
     const todayRevenue = todayOrders.reduce((sum, order) => sum + order.totalAmount, 0);
     const orderCount = todayOrders.length;
-    const lowStockCount = cartStore.products.filter(p => p.stock <= 5).length;
+    const lowStockCount = products.value.filter(p => p.stock <= 5).length;
     // All-time stats
     const totalRevenue = orders.value.reduce((sum, order) => sum + order.totalAmount, 0);
     const totalOrders = orders.value.length;
@@ -301,7 +310,7 @@ const changePassword = async () => {
         return;
     }
     try {
-        await api.put('/admin/change-password', {
+        await api.patch('/admin/password', {
             currentPassword: passwordForm.value.current,
             newPassword: passwordForm.value.new
         });
@@ -596,7 +605,7 @@ const changePassword = async () => {
             <div class="bg-white shadow-lg rounded-2xl border border-gray-200 overflow-hidden">
                 <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
                     <h3 class="font-bold text-gray-700 text-sm md:text-base">📋 Product List</h3>
-                    <span class="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">{{ cartStore.products.length }}</span>
+                    <span class="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold">{{ products.length }}</span>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -610,7 +619,7 @@ const changePassword = async () => {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            <tr v-for="p in cartStore.products" :key="p.id" class="hover:bg-blue-50/30">
+                            <tr v-for="p in products" :key="p.id" class="hover:bg-blue-50/30">
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
                                         <img :src="p.imgs?.[0]" class="w-10 h-10 md:w-12 md:h-12 object-cover rounded-lg border border-gray-100">
@@ -692,7 +701,7 @@ const changePassword = async () => {
                         <td class="px-6 py-4">
                             <div class="flex flex-col gap-2">
                                 <div v-for="item in order.items" :key="item.id" class="flex items-center gap-2">
-                                    <img :src="cartStore.products.find(p => p.id === item.id)?.imgs?.[0] ?? FALLBACK_IMG" class="w-8 h-8 object-cover rounded border border-gray-100" />
+                                    <img :src="products.find(p => p.id === item.id)?.imgs?.[0] ?? FALLBACK_IMG" class="w-8 h-8 object-cover rounded border border-gray-100" />
                                     <span class="text-[10px] text-gray-600 truncate max-w-[100px]">
                                         {{ item.name }} x{{ item.quantity }}
                                     </span>

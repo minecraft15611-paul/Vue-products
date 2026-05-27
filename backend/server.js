@@ -354,12 +354,12 @@ app.get('/api/health', (req, res) => {
 // ── Admin routes ─────────────────────────────────────────────────────────────
 
 // [GET] Verify token is still valid (used by Admin.vue on mount)
-app.get('/api/admin/verify', requireAdmin, (req, res) => {
+app.get('/api/admin/session', requireAdmin, (req, res) => {
     res.json({ ok: true });
 });
 
 // [POST] Admin login — validates password against MongoDB and returns JWT
-app.post('/api/admin/login', async (req, res) => {
+app.post('/api/admin/sessions', async (req, res) => {
     try {
         const { password } = req.body;
         const admin = await getAdmin();
@@ -373,7 +373,7 @@ app.post('/api/admin/login', async (req, res) => {
 });
 
 // [PUT] Change admin password — updates hash in MongoDB permanently
-app.put('/api/admin/change-password', requireAdmin, async (req, res) => {
+app.patch('/api/admin/password', requireAdmin, async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
         const admin = await getAdmin();
@@ -391,7 +391,7 @@ app.put('/api/admin/change-password', requireAdmin, async (req, res) => {
 
 // [GET] Look up order by Stripe session ID — registered BEFORE parameterised routes
 // so "stripe" is not captured as an :id param
-app.get('/api/orders/stripe/:sessionId', async (req, res) => {
+app.get('/api/checkout-sessions/:sessionId/order', async (req, res) => {
     try {
         const order = await Order.findOne({ stripeSessionId: req.params.sessionId });
         if (!order) return res.status(404).json({ message: 'Order not yet created, please try again shortly' });
@@ -512,7 +512,7 @@ app.post('/api/orders', async (req, res) => {
 });
 
 // [PUT] Update order status (admin — protected)
-app.put('/api/orders/:id', requireAdmin, async (req, res) => {
+app.patch('/api/orders/:id', requireAdmin, async (req, res) => {
     try {
         const { status } = req.body;
         // Whitelist status values — mirrors the same guard as POST /api/orders
@@ -547,10 +547,44 @@ app.delete('/api/orders/:id', requireAdmin, async (req, res) => {
 // [GET] All products (public — storefront)
 app.get('/api/products', async (req, res) => {
     try {
-        const dbProducts = await Product.find();
+        const { category, exclude, limit } = req.query;
+        const filter = {};
+
+        // Filter by category if provided
+        if (category && category !== 'All') {
+            filter.category = category;
+        }
+
+        // Exclude a specific product by numeric id (used for recommendations)
+        if (exclude) {
+            filter.id = { $ne: Number(exclude) };
+        }
+
+        let query = Product.find(filter);
+
+        // If limit provided, shuffle randomly in DB and return N results
+        if (limit) {
+            const count = await Product.countDocuments(filter);
+            const n = Number(limit);
+            const skip = Math.max(0, Math.floor(Math.random() * (count - n)));
+            query = query.skip(skip).limit(n);
+        }
+
+        const dbProducts = await query;
         res.json(dbProducts);
     } catch (err) {
         res.status(500).json({ message: 'Failed to fetch products', error: err });
+    }
+});
+
+// [GET] Single product by numeric id (public — storefront + product detail)
+app.get('/api/products/:id', async (req, res) => {
+    try {
+        const product = await Product.findOne({ id: Number(req.params.id) });
+        if (!product) return res.status(404).json({ message: 'Product not found' });
+        res.json(product);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch product', error: err });
     }
 });
 
@@ -570,7 +604,7 @@ app.post('/api/products', requireAdmin, async (req, res) => {
 });
 
 // [PUT] Update a product (admin — protected)
-app.put('/api/products/:id', requireAdmin, async (req, res) => {
+app.patch('/api/products/:id', requireAdmin, async (req, res) => {
     try {
         // Whitelist fields — prevents overwriting the numeric id or injecting extra operators
         const { category, name, title, img, price, stock, colors, sizes, description, material } = req.body;
@@ -602,7 +636,7 @@ app.delete('/api/products/:id', requireAdmin, async (req, res) => {
 // [POST] Create a Stripe Checkout Session (public)
 // Only receives { items: [{ id, quantity }] } — lean format to stay under Stripe's 500-char metadata limit.
 // Full product data (name, price, img) is fetched from MongoDB by the webhook.
-app.post('/api/create-checkout-session', async (req, res) => {
+app.post('/api/checkout-sessions', async (req, res) => {
     try {
         const { items } = req.body;
 
@@ -656,7 +690,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
 // ── Customer Auth routes ──────────────────────────────────────────────────────
 
 // [GET] Check session — returns user info if cookie is valid
-app.get('/api/auth/me', requireUser, async (req, res) => {
+app.get('/api/users/me', requireUser, async (req, res) => {
     try {
         const user = await User.findOne({ email: req.user.email });
         if (!user) return res.status(404).json({ error: 'User not found' });
@@ -667,7 +701,7 @@ app.get('/api/auth/me', requireUser, async (req, res) => {
 });
 
 // [POST] Send OTP — generates 6-digit code, hashes it, emails via Resend
-app.post('/api/auth/send-otp', async (req, res) => {
+app.post('/api/auth/otp', async (req, res) => {
     try {
         const email = req.body.email?.toLowerCase().trim();
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -712,13 +746,13 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
         res.json({ ok: true });
     } catch (err) {
-        console.error('send-otp error:', err.message);
+        console.error('otp error:', err.message);
         res.status(500).json({ error: 'Failed to send OTP' });
     }
 });
 
 // [POST] Verify OTP — checks code, upserts user, sets httpOnly cookie
-app.post('/api/auth/verify-otp', async (req, res) => {
+app.post('/api/auth/otp/verify', async (req, res) => {
     try {
         const email = req.body.email?.toLowerCase().trim();
         const code  = req.body.code?.trim();
@@ -756,13 +790,13 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         setUserCookie(res, { email: user.email, name: user.name });
         res.json({ ok: true, needsName: false, email: user.email, name: user.name });
     } catch (err) {
-        console.error('verify-otp error:', err.message);
+        console.error('otp/verify error:', err.message);
         res.status(500).json({ error: 'Server error' });
     }
 });
 
 // [POST] Save name — only for new OTP users after first verification
-app.post('/api/auth/save-name', async (req, res) => {
+app.patch('/api/users/me/name', async (req, res) => {
     try {
         const email = req.body.email?.toLowerCase().trim();
         const name  = req.body.name?.trim();
@@ -781,13 +815,13 @@ app.post('/api/auth/save-name', async (req, res) => {
         setUserCookie(res, { email: user.email, name: user.name });
         res.json({ ok: true, email: user.email, name: user.name });
     } catch (err) {
-        console.error('save-name error:', err.message);
+        console.error('users/me/name error:', err.message);
         res.status(500).json({ error: 'Server error' });
     }
 });
 
 // [POST] Google OAuth — frontend sends email+name from Firebase, backend sets cookie
-app.post('/api/auth/google', async (req, res) => {
+app.post('/api/auth/sessions', async (req, res) => {
     try {
         const { email, name } = req.body;
         if (!email) return res.status(400).json({ error: 'Missing email' });
@@ -807,7 +841,7 @@ app.post('/api/auth/google', async (req, res) => {
 });
 
 // [POST] Logout — clears the cookie
-app.post('/api/auth/logout', (req, res) => {
+app.delete('/api/auth/session', (req, res) => {
     res.clearCookie('userToken', {
         httpOnly: true,
         secure:   true,

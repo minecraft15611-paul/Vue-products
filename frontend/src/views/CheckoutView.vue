@@ -9,6 +9,8 @@
     import { useDiscount } from '../composables/useDiscount';
     import { useRouter } from 'vue-router';
     import axios from 'axios';
+
+    const API = import.meta.env.VITE_API_URL;
     
     const LoginView = defineAsyncComponent(() => import('./LoginView.vue'));
     
@@ -301,7 +303,7 @@
 
         // ── POST order to backend so Admin can see it ──────────────────────────
         try {
-            await axios.post('https://lemontree-api.onrender.com/api/orders', {
+            await axios.post(`${API}/api/orders`, {
                 orderId:      orderNumber,
                 customerName: `${checkoutForm.shipping.firstName} ${checkoutForm.shipping.lastName}`,
                 email:        checkoutForm.email,
@@ -339,7 +341,7 @@
             }));
 
             const response = await axios.post(
-                'https://lemontree-api.onrender.com/api/create-checkout-session',
+                `${API}/api/checkout-sessions`,
                 { items }
             );
 

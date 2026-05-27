@@ -8,6 +8,8 @@ import MyFooter from '../components/MyFooter.vue';
 import TheToast from '../components/TheToast.vue';
 import MyHeader from '../components/MyHeader.vue';
 
+    const API = import.meta.env.VITE_API_URL;
+
     const route = useRoute();
     const router = useRouter();
     const cartStore = useCartStore();
@@ -32,54 +34,68 @@ import MyHeader from '../components/MyHeader.vue';
         currentIndex.value = Math.round(target.scrollLeft / target.offsetWidth);
     }
 
-    // ---- Fetch products on refresh/direct URL if store is empty ----
-    onMounted(() => {
-        if (cartStore.products.length === 0) {
-            cartStore.fetchProducts();
-        }
-    });
-
     const productId = computed(() => Number(route.params.id));
 
-    const product = computed(() => {
-        return cartStore.products.find(item => item.id === productId.value);
-    });
+    // ---- Single product fetch ----
+    const product = ref<any>(null);
+    const productLoading = ref(false);
+    const productError = ref('');
+
+    const fetchProduct = async (id: number) => {
+        productLoading.value = true;
+        productError.value = '';
+        try {
+            const res = await fetch(`${API}/api/products/${id}`, { credentials: 'include' });
+            if (!res.ok) throw new Error('Product not found');
+            product.value = await res.json();
+        } catch (err) {
+            productError.value = 'Product not found.';
+            product.value = null;
+        } finally {
+            productLoading.value = false;
+        }
+    };
 
     // ---- Color: user must explicitly choose (no auto-select) ----
     const selectedColor = ref('');
     const colorError = ref(false);
 
-    // ---- Random products: ref + shuffle function (defined before watchers) ----
-    const randomProducts = ref<typeof cartStore.products>([]);
+    // ---- Same-category recommendations ----
+    const randomProducts = ref<any[]>([]);
     const shuffleKey = ref(0);
-    const shuffleProducts = () => {
-        randomProducts.value = [...cartStore.products]
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 4);
-        shuffleKey.value++;
+
+    const fetchRecommendations = async (category: string, excludeId: number) => {
+        try {
+            const res = await fetch(
+                `${API}/api/products?category=${encodeURIComponent(category)}&exclude=${excludeId}&limit=4`,
+                { credentials: 'include' }
+            );
+            if (!res.ok) return;
+            randomProducts.value = await res.json();
+            shuffleKey.value++;
+        } catch {
+            randomProducts.value = [];
+        }
     };
 
-    // ---- Reset selections when navigating to a different product ----
+    // ---- Fetch product + recommendations on mount and route change ----
+    const loadPage = async (id: number) => {
+        selectedSize.value = null;
+        selectedColor.value = '';
+        errorMessage.value = '';
+        colorError.value = false;
+        await fetchProduct(id);
+        if (product.value?.category) {
+            fetchRecommendations(product.value.category, id);
+        }
+    };
+
+    onMounted(() => loadPage(productId.value));
+
+    // ---- Re-fetch when navigating between products ----
     watch(
         () => route.params.id,
-        () => {
-            selectedSize.value = null;
-            selectedColor.value = '';
-            errorMessage.value = '';
-            colorError.value = false;
-            shuffleProducts();
-        }
-    );
-
-    // ---- Shuffle once products are available (handles async fetch on first load) ----
-    watch(
-        () => cartStore.products.length,
-        (len) => {
-            if (len > 0 && randomProducts.value.length === 0) {
-                shuffleProducts();
-            }
-        },
-        { immediate: true }
+        (newId) => loadPage(Number(newId))
     );
 
     const selectedSize = ref<string | null>(null);
