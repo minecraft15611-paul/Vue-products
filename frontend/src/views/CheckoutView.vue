@@ -286,6 +286,7 @@
                 quantity: item.quantity,
                 subtotal: +(item.price * item.quantity).toFixed(2),
                 img:      item.imgs?.[0] ?? null,
+                imgs:     item.imgs, 
                 selectedColor: item.selectedColor ?? null,  
                 selectedSize:  item.selectedSize  ?? null,  
             })),

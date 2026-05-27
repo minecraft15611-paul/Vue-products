@@ -19,6 +19,19 @@ export interface Product {
     material: string;
 }
 
+export interface OrderItem {
+    id: number | string;
+    name?: string;
+    title?: string;
+    price: number;
+    quantity: number;
+    subtotal?: number;
+    img?: string;
+    imgs?: string[];
+    selectedColor?: string;
+    selectedSize?: string;
+}
+
 interface CartItem extends Product {
     quantity: number;
     selectedColor?: string;
@@ -270,6 +283,7 @@ export const useCartStore = defineStore('cart', () => {
         searchQuery,
         filteredProducts,
         toast,
+        showToast,
         tempInput
     };
 });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useCartStore } from '../stores/cart';
+import { OrderItem, Product, useCartStore } from '../stores/cart';
 import { useAuthStore } from '../stores/auth';
 import axios from 'axios';
 
@@ -149,7 +149,7 @@ function onAfterLeave(el: Element) {
 
 // ---- Pricing ----
 // Stripe flow: read from fetched order; Normal flow: read from localStorage snapshot
-const cartItems = computed<any[]>(() =>
+const cartItems = computed<OrderItem[]>(() =>
     isStripeFlow
         ? (stripeOrder.value?.items ?? [])
         : (snapshot.value?.cart ?? [])
@@ -266,12 +266,12 @@ const customerEmail = computed(() =>
                     class="flex gap-4"
                 >
                     <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-                        <img :src="item.img" :alt="item.name" class="w-full h-full object-cover" />
+                        <img :src="item.imgs?.[0] ?? item.img" :alt="item.name" class="w-full h-full object-cover" />
                     </div>
                     <div class="flex-grow">
                         <div class="flex justify-between">
                             <h3 class="font-bold text-gray-900 text-sm">{{ item.name }}</h3>
-                            <span class="font-bold text-gray-900">${{ item.subtotal.toFixed(2) }}</span>
+                            <span class="font-bold text-gray-900">${{ (item.subtotal ?? item.price * item.quantity).toFixed(2) }}</span>
                         </div>
                         <p v-if="item.selectedColor || item.selectedSize" class="text-xs text-gray-400 mt-1">
                             <span v-if="item.selectedColor">{{ item.selectedColor }}</span>
