@@ -310,6 +310,7 @@ import MyHeader from '../components/MyHeader.vue';
                                 >
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 9l-7 7-7-7" />
                                 </svg>
+                                
                             </button>
     
                             <div 

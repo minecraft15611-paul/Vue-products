@@ -10,6 +10,7 @@
     "deploy": "npm run build && gh-pages -d dist"
   },
   "dependencies": {
+    "@sentry/vue": "^10.54.0",
     "@tailwindcss/vite": "^4.2.2",
     "@vee-validate/zod": "^4.15.1",
     "axios": "^1.16.0",
