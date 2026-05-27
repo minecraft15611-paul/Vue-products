@@ -124,10 +124,10 @@ const getAdmin = async () => {
 
 // ── Middleware: protect admin-only routes ────────────────────────────────────
 const requireAdmin = (req, res, next) => {
-    const auth = req.headers.authorization;
-    if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'No token' });
+    const token = req.cookies?.adminToken;
+    if (!token) return res.status(401).json({ error: 'No token' });
     try {
-        jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET);
+        jwt.verify(token, process.env.JWT_SECRET);
         next();
     } catch {
         res.status(401).json({ error: 'Invalid or expired token' });
@@ -371,7 +371,17 @@ app.get('/api/admin/session', requireAdmin, (req, res) => {
     res.json({ ok: true });
 });
 
-// [POST] Admin login — validates password against MongoDB and returns JWT
+// [DELETE] Admin logout — clears the adminToken cookie
+app.delete('/api/admin/sessions', (req, res) => {
+    res.clearCookie('adminToken', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+    });
+    res.json({ ok: true });
+});
+
+// [POST] Admin login — validates password against MongoDB and sets httpOnly cookie
 app.post('/api/admin/sessions', async (req, res) => {
     try {
         const { password } = req.body;
@@ -379,7 +389,13 @@ app.post('/api/admin/sessions', async (req, res) => {
         const valid = await bcrypt.compare(password, admin.passwordHash);
         if (!valid) return res.status(401).json({ error: 'Unauthorized' });
         const token = jwt.sign({ role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '8h' });
-        res.json({ token });
+        res.cookie('adminToken', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 8 * 60 * 60 * 1000,
+        });
+        res.json({ ok: true });
     } catch (err) {
         res.status(500).json({ error: 'Server error', detail: err.message });
     }
