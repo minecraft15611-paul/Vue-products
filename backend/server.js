@@ -251,7 +251,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
             // Send order confirmation email (Stripe checkout path)
             try {
                 await resend.emails.send({
-                    from:    'LemonTree@LemonTreeStore.dev',
+                    from: 'LemonTree <onboarding@resend.dev>',
                     to:      session.customer_details?.email,
                     subject: `Order Confirmed — ${esc(orderId)}`,
                     html: `
