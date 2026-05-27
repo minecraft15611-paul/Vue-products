@@ -1,7 +1,7 @@
 const API = import.meta.env.VITE_API_URL;
 
 export const sendOtp = async (email: string): Promise<void> => {
-    const res = await fetch(`${API}/api/auth/send-otp`, {
+    const res = await fetch(`${API}/api/auth/otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -14,7 +14,7 @@ export const sendOtp = async (email: string): Promise<void> => {
 };
 
 export const verifyOtp = async (email: string, code: string) => {
-    const res = await fetch(`${API}/api/auth/verify-otp`, {
+    const res = await fetch(`${API}/api/auth/otp/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -26,8 +26,8 @@ export const verifyOtp = async (email: string, code: string) => {
 };
 
 export const saveName = async (email: string, name: string) => {
-    const res = await fetch(`${API}/api/auth/save-name`, {
-        method: 'POST',
+    const res = await fetch(`${API}/api/users/me/name`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ email, name }),
@@ -38,7 +38,7 @@ export const saveName = async (email: string, name: string) => {
 };
 
 export const loginWithGoogleBackend = async (email: string, name: string) => {
-    const res = await fetch(`${API}/api/auth/google`, {
+    const res = await fetch(`${API}/api/auth/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -50,7 +50,7 @@ export const loginWithGoogleBackend = async (email: string, name: string) => {
 };
 
 export const fetchMe = async () => {
-    const res = await fetch(`${API}/api/auth/me`, {
+    const res = await fetch(`${API}/api/users/me`, {
         credentials: 'include',
     });
     if (!res.ok) return null;
@@ -58,8 +58,8 @@ export const fetchMe = async () => {
 };
 
 export const logout = async (): Promise<void> => {
-    await fetch(`${API}/api/auth/logout`, {
-        method: 'POST',
+    await fetch(`${API}/api/auth/session`, {
+        method: 'DELETE',
         credentials: 'include',
     });
 };

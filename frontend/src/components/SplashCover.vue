@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 
+const API = import.meta.env.VITE_API_URL;
+
 const visible    = ref(true);
 const leaving    = ref(false);
 const progress   = ref(0);
@@ -43,7 +45,7 @@ onMounted(async () => {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT);
 
-        await fetch('https://lemontree-api.onrender.com/api/health', {
+        await fetch(`${API}/api/health`, {
             signal: controller.signal,
             credentials: 'include',
         });

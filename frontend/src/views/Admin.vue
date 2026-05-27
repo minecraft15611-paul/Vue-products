@@ -43,7 +43,7 @@ const ALL_SIZES = ['S', 'M', 'L', 'XL'] as const;
 const FALLBACK_IMG = 'https://picsum.photos/seed/default/400/300';
 
 // ── Axios instance ─────────────────────────────────────────────────────────
-const api = axios.create({ baseURL: 'https://lemontree-api.onrender.com/api' });
+const api = axios.create({ baseURL: `${import.meta.env.VITE_API_URL}/api` });
 
 const cartStore = useCartStore();
 const isEditMode = ref(false);
@@ -81,7 +81,7 @@ const login = async () => {
     if (isLoginLoading.value) return;
     isLoginLoading.value = true;
     try {
-        const res = await api.post('/admin/login', {
+        const res = await api.post('/admin/sessions', {
             password: adminKey.value
         });
         const token = res.data.token;
@@ -109,7 +109,7 @@ onMounted(async () => {
     if (token) {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         try {
-            const res = await api.get('/admin/verify');
+            const res = await api.get('/admin/session');
             isAuthenticated.value = res.status === 200;
         } catch {
             // Token is stale or invalid — clear it
@@ -171,7 +171,7 @@ const handleSave = async () => {
                 showToast('Missing product ID, cannot update.', 'error');
                 return;
             }
-            await api.put(`/products/${newItem.value.id}`, newItem.value);
+            await api.patch(`/products/${newItem.value.id}`, newItem.value);
             showToast('Product information has been successfully updated!', 'success');
         } else {
             await api.post('/products', newItem.value);
@@ -245,7 +245,7 @@ const updateOrderStatus = async (orderId: string, newStatus: string) => {
     const order = orders.value.find(o => o._id === orderId);
     const previousStatus = order?.status;
     try {
-        await api.put(`/orders/${orderId}`, { status: newStatus });
+        await api.patch(`/orders/${orderId}`, { status: newStatus });
         // v-model already mutated order.status locally — no refetch needed
         showToast('Order status updated.', 'success');
     } catch {
@@ -301,7 +301,7 @@ const changePassword = async () => {
         return;
     }
     try {
-        await api.put('/admin/change-password', {
+        await api.patch('/admin/password', {
             currentPassword: passwordForm.value.current,
             newPassword: passwordForm.value.new
         });
