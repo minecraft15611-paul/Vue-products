@@ -18,12 +18,49 @@ const authStore = useAuthStore();
 const sessionId   = route.query.session_id as string | undefined;
 const isStripeFlow = !!sessionId;
 
+interface OrderSnapshot {
+    orderNumber?: string
+    cart?: OrderItem[]
+    pricing?: {
+        subtotal: number
+        total: number
+        discount?: { amount: number; code: string }
+    }
+    shippingAddress?: {
+        firstName: string
+        lastName: string
+        address?: string
+        apartment?: string
+        city: string
+        postcode: string
+        country: string
+    }
+    customer?: { email: string }
+}
+
+interface StripeOrder {
+    orderId?: string
+    items?: OrderItem[]
+    totalAmount?: number
+    shippingDetails?: {
+        firstName: string
+        lastName: string
+        address?: string
+        apartment?: string
+        city: string
+        postcode: string
+        country: string
+    }
+    email?: string
+}
+
 // ── Read order snapshot from localStorage ─────────────────────────────────
-const snapshot      = ref<Record<string, any> | null>(null);
-const stripeOrder   = ref<Record<string, any> | null>(null);
+const snapshot    = ref<OrderSnapshot | null>(null)
+const stripeOrder = ref<StripeOrder | null>(null)
 const stripeLoading = ref<boolean>(isStripeFlow); // start true if we need to fetch
 const stripeError   = ref<string>('');
 const attempts      = ref<number>(0);
+
 
 // ── On mount: handle both flows ───────────────────────────────────────────
 onMounted(async () => {
@@ -41,12 +78,12 @@ onMounted(async () => {
                 stripeOrder.value   = res.data;
                 stripeLoading.value = false;
                 break;
-            } catch (err: any) {
+            } catch {
                 attempts.value++;
                 if (attempts.value < maxAttempts) {
                     await delay(3000); // wait 3s before retrying (total ~60s budget)
                 } else {
-                    stripeError.value   = '訂單資料載入失敗，請聯繫客服並提供您的付款確認信。';
+                    stripeError.value   = 'Order data failed to load. Please contact customer support and provide your payment confirmation email.';
                     stripeLoading.value = false;
                 }
             }
@@ -157,14 +194,14 @@ const cartItems = computed<OrderItem[]>(() =>
 const subtotal       = computed<number>(() =>
     isStripeFlow
         ? (stripeOrder.value?.totalAmount ?? 0)
-        : (snapshot.value?.pricing.subtotal ?? cartStore.totalPrice)
+        : (snapshot.value?.pricing?.subtotal ?? cartStore.totalPrice)
 );
-const discountAmount    = computed(() => isStripeFlow ? 0 : (snapshot.value?.pricing.discount?.amount ?? 0));
-const appliedCouponCode = computed(() => isStripeFlow ? null : (snapshot.value?.pricing.discount?.code ?? null));
+const discountAmount    = computed(() => isStripeFlow ? 0 : (snapshot.value?.pricing?.discount?.amount ?? 0));
+const appliedCouponCode = computed(() => isStripeFlow ? null : (snapshot.value?.pricing?.discount?.code ?? null));
 const finalTotal        = computed(() =>
     isStripeFlow
         ? (stripeOrder.value?.totalAmount ?? 0)
-        : (snapshot.value?.pricing.total ?? (subtotal.value - discountAmount.value))
+        : (snapshot.value?.pricing?.total ?? (subtotal.value - discountAmount.value))
 );
 
 // ---- Shipping address ----

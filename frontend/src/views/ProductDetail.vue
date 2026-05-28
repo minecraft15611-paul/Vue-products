@@ -7,6 +7,7 @@ import cartIcon from '../components/cartIcon.vue';
 import MyFooter from '../components/MyFooter.vue';
 import TheToast from '../components/TheToast.vue';
 import MyHeader from '../components/MyHeader.vue';
+import type { Product } from '../stores/cart'
 
     const API = import.meta.env.VITE_API_URL;
 
@@ -37,7 +38,7 @@ import MyHeader from '../components/MyHeader.vue';
     const productId = computed(() => Number(route.params.id));
 
     // ---- Single product fetch ----
-    const product = ref<any>(null);
+    const product = ref<Product | null>(null);
     const productLoading = ref(false);
     const productError = ref('');
 
@@ -61,7 +62,7 @@ import MyHeader from '../components/MyHeader.vue';
     const colorError = ref(false);
 
     // ---- Same-category recommendations ----
-    const randomProducts = ref<any[]>([]);
+    const randomProducts = ref<Product[]>([]);
     const shuffleKey = ref(0);
 
     const fetchRecommendations = async (category: string, excludeId: number) => {

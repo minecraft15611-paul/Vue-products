@@ -50,8 +50,8 @@ const handleEmailSubmit = emailForm.handleSubmit(async (values) => {
         await authStore.sendOtp(values.email);
         pendingEmail.value = values.email;
         step.value = 'otp';
-    } catch (e: any) {
-        submitError.value = e.message || 'Failed to send code. Please try again.';
+    } catch (e: unknown) {
+        submitError.value = e instanceof Error ? e.message : 'Failed to send code. Please try again.';
     } finally {
         submitting.value = false;
     }
@@ -67,8 +67,8 @@ const handleOtpSubmit = otpForm.handleSubmit(async (values) => {
         } else {
             router.push('/');
         }
-    } catch (e: any) {
-        submitError.value = e.message || 'Invalid code. Please try again.';
+    } catch (e: unknown) {
+        submitError.value = e instanceof Error ? e.message : 'Invalid code. Please try again.';
     } finally {
         submitting.value = false;
     }
@@ -80,8 +80,8 @@ const handleNameSubmit = nameForm.handleSubmit(async (values) => {
     try {
         await authStore.saveName(pendingEmail.value, values.name);
         router.push('/');
-    } catch (e: any) {
-        submitError.value = e.message || 'Failed to save name. Please try again.';
+    } catch (e: unknown) {
+        submitError.value = e instanceof Error ? e.message : 'Failed to save name. Please try again.';
     } finally {
         submitting.value = false;
     }
@@ -105,8 +105,8 @@ async function resendCode() {
     submitError.value = '';
     try {
         await authStore.sendOtp(pendingEmail.value);
-    } catch (e: any) {
-        submitError.value = e.message || 'Failed to resend code.';
+    } catch (e: unknown) {
+        submitError.value = e instanceof Error ? e.message : 'Failed to resend code.';
     } finally {
         submitting.value = false;
     }
