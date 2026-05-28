@@ -1,18 +1,26 @@
 <script setup lang="ts">
   import { useCartStore } from '../stores/cart';
-  import { ref } from 'vue';
+  import { ref, onMounted } from 'vue';
 
   const cartStore = useCartStore();
   const promoImageLoaded = ref<boolean>(false);
+    const promoImg = ref<HTMLImageElement | null>(null);
 
   const handleShopNow = (): void => {
-  cartStore.setCategory('All');
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
-};
+    cartStore.setCategory('All');
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
+
+  onMounted(() => {
+    // if image already cached, @load won't fire — check manually
+    if (promoImg.value?.complete) {
+        promoImageLoaded.value = true;
+    }
+  });
 </script>
 
 <template>
@@ -85,7 +93,8 @@
           class="w-full h-[450px] object-cover transition-transform duration-700 group-hover:scale-105 opacity-80" 
           alt="Promotion"
           @load="promoImageLoaded = true"
-          loading="lazy"
+          ref="promoImg"
+          @error="promoImageLoaded = true"
         >
         
         <div v-show="promoImageLoaded" class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-black/20">
