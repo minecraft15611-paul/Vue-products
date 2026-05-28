@@ -91,7 +91,7 @@
     // ── Contact ──────────────────────────────────────────────────────────────────
 
 
-    
+    type CheckoutForm = typeof checkoutForm
 
     // ── Checkout Form ──────────────────────────────────────────────────────────
     const checkoutForm = reactive({
@@ -349,7 +349,8 @@
             // Redirect browser to Stripe hosted checkout page
             window.location.href = response.data.url;
 
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Unknown error'
             expressError.value   = '結帳初始化失敗，請稍後再試。';
             expressLoading.value = false;
             console.error('Express checkout 失敗：', err);
@@ -361,9 +362,9 @@
     function validateField(path: string) {
         // Get the value at this path from checkoutForm
         const keys = path.split('.');
-        let value: any = checkoutForm;
+        let value: unknown = checkoutForm as unknown
         for (const key of keys) {
-            value = value?.[key];
+            value = (value as Record<string, unknown>)?.[key]
         }
 
         // For phone fields, VueTelInput pre-fills the dial code (e.g. "+1") even when
@@ -372,7 +373,7 @@
         const isPhoneField = path.endsWith('phone') || path === 'textMePhone';
         const dialCodeOnly = isPhoneField &&
             typeof value === 'string' &&
-            /^\+\d{1,4}\s*$/.test(value.trim());
+            /^\+\d{1,4}\s*$/.test((value as string).trim())
 
         // Don't validate empty fields on blur — let submit handle that
         if (value === '' || value === null || value === undefined || dialCodeOnly) {
@@ -2152,7 +2153,7 @@
                                 <div class="flex justify-start gap-3">
                                     <div>
                                         <div class="inline-block border border-gray-200 p-0.5 bg-white">
-                                            <img :src="cartStore.cart[0]?.imgs[0] || '/placeholder.jpg'" class="w-10 h-10 object-cover bg-gray-100 flex-shrink:0" />
+                                            <img :src="cartStore.cart[0]?.imgs?.[0] || '/placeholder.jpg'" class="w-10 h-10 object-cover bg-gray-100 flex-shrink:0" />
                                         </div>
                                     </div>
                                     <div>

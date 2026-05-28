@@ -26,8 +26,7 @@ export interface OrderItem {
     price: number;
     quantity: number;
     subtotal?: number;
-    img?: string;
-    imgs?: string[];
+    imgs: string[];
     selectedColor?: string;
     selectedSize?: string;
 }
@@ -69,12 +68,13 @@ export const useCartStore = defineStore('cart', () => {
     const isLoading = ref<boolean>(false);
     const apiError = ref<string | null>(null);
 
-    const toast = ref<{show: boolean; message: string}>({
+    const toast = ref<{show: boolean; message: string; type: string}>({
         show: false,
-        message: ''
+        message: '',
+        type: 'success'
     });
 
-    const showToast = (msg: string) => {
+    const showToast = (msg: string, type: 'success' | 'error' | 'warning' = 'success') => {
         toast.value.show = true;
         toast.value.message = msg;
         

@@ -35,10 +35,11 @@ mongoose.connect(uri)
 
 // ── NEW: User model — stores customer email + name ───────────────────────────
 const userSchema = new mongoose.Schema({
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    name:  { type: String, default: '' },
-    provider: { type: String, enum: ['otp', 'google'], default: 'otp' },
-    createdAt: { type: Date, default: Date.now },
+    email:        { type: String, required: true, unique: true, lowercase: true, trim: true },
+    name:         { type: String, default: '' },
+    provider:     { type: String, enum: ['otp', 'google'], default: 'otp' },
+    createdAt:    { type: Date, default: Date.now },
+    tokenVersion: { type: Number, default: 0 },
 });
 const User = mongoose.model('User', userSchema);
 
@@ -160,11 +161,15 @@ app.use('/api/auth/admin/login', adminLimiter)
 // ─────────────────────────────────────────────────────────────────────────────
 // NEW: requireUser middleware — reads httpOnly cookie (for customer routes)
 // ─────────────────────────────────────────────────────────────────────────────
-const requireUser = (req, res, next) => {
+const requireUser = async (req, res, next) => {
     const token = req.cookies?.userToken;
     if (!token) return res.status(401).json({ error: 'Not authenticated' });
     try {
-        req.user = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findOne({ email: decoded.email });
+        if (!user || user.tokenVersion !== decoded.ver)
+            return res.status(401).json({ error: 'Session expired, please log in again' });
+        req.user = decoded;
         next();
     } catch {
         res.status(401).json({ error: 'Invalid or expired session' });
@@ -173,7 +178,7 @@ const requireUser = (req, res, next) => {
  
 // Helper: set the httpOnly session cookie
 const setUserCookie = (res, payload) => {
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ ...payload, ver: payload.tokenVersion ?? 0 }, process.env.JWT_SECRET, { expiresIn: '30d' });
     res.cookie('userToken', token, {
         httpOnly:  true,
         secure:    true,           // HTTPS only
@@ -869,8 +874,15 @@ app.post('/api/auth/sessions', async (req, res) => {
     }
 });
 
-// [POST] Logout — clears the cookie
-app.delete('/api/auth/session', (req, res) => {
+// [DELETE] Logout — increments tokenVersion to revoke token, then clears cookie
+app.delete('/api/auth/session', async (req, res) => {
+    try {
+        const token = req.cookies?.userToken;
+        if (token) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            await User.updateOne({ email: decoded.email }, { $inc: { tokenVersion: 1 } });
+        }
+    } catch {}
     res.clearCookie('userToken', {
         httpOnly: true,
         secure:   true,

@@ -5,6 +5,7 @@
     import MyHeader from '../components/MyHeader.vue';
     import MyFooter from '../components/MyFooter.vue';
     import TheToast from '../components/TheToast.vue';
+    import type { Product } from '../stores/cart'
     
 
     const cartStore = useCartStore();
@@ -20,7 +21,7 @@
         hoveredId.value = null;
     }
 
-    function getImg(item: any) {
+    function getImg(item: Product) {
         const isHovered = hoveredId.value === item.id;
         return (isHovered && item.imgs?.[1]) ? item.imgs[1] : item.imgs?.[0];
     }

@@ -1,12 +1,19 @@
 import { ref, computed, type Ref } from 'vue';
 
 const MOCK_COUPONS = [
-    { code: 'SAVE10', type: 'percent', value: 10, minSpend: 500 },
-    { code: 'GIFT100', type: 'fixed', value: 100, minSpend: 1000 }
+    { code: 'SAVE10', type: 'percent' as const, value: 10, minSpend: 500 },
+    { code: 'GIFT100', type: 'fixed' as const, value: 100, minSpend: 1000 }
 ];
 
+interface Coupon {
+    code: string
+    type: 'percent' | 'fixed'
+    value: number
+    minSpend: number
+}
+
 export function useDiscount(subtotal: Ref<number>) {
-    const appliedCoupon = ref<any>(null);
+    const appliedCoupon = ref<Coupon | null>(null);
     const error = ref('');
 
     const discountAmount = computed(() => {
