@@ -266,7 +266,7 @@ const customerEmail = computed(() =>
                     class="flex gap-4"
                 >
                     <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-                        <img :src="item.imgs?.[0] ?? item.img" :alt="item.name" class="w-full h-full object-cover" />
+                        <img :src="item.imgs?.[0] ?? ''" :alt="item.name" class="w-full h-full object-cover" />
                     </div>
                     <div class="flex-grow">
                         <div class="flex justify-between">
