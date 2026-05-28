@@ -2152,7 +2152,7 @@
                                 <div class="flex justify-start gap-3">
                                     <div>
                                         <div class="inline-block border border-gray-200 p-0.5 bg-white">
-                                            <img :src="cartStore.cart[0]?.imgs[0] || '/placeholder.jpg'" class="w-10 h-10 object-cover bg-gray-100 flex-shrink:0" />
+                                            <img :src="cartStore.cart[0]?.imgs?.[0] || '/placeholder.jpg'" class="w-10 h-10 object-cover bg-gray-100 flex-shrink:0" />
                                         </div>
                                     </div>
                                     <div>
