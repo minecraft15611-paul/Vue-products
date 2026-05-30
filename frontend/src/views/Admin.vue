@@ -282,6 +282,142 @@ const dynamicStats = computed(() => {
     return { todayRevenue, orderCount, lowStockCount, totalRevenue, totalOrders };
 });
 
+
+// ── Members tab ────────────────────────────────────────────────────────────
+interface Member {
+    _id: string; email: string; name: string; provider: string;
+    role: string; createdAt: string; orderCount: number;
+}
+const membersLoaded   = ref(false);
+const members         = ref<Member[]>([]);
+const memberSearch    = ref('');
+const memberRoleFilter = ref('');
+const memberPage      = ref(1);
+const memberPages     = ref(1);
+const memberTotal     = ref(0);
+const membersLoading  = ref(false);
+const selectedMember  = ref<{ user: Member; orders: any[] } | null>(null);
+const memberDrawerOpen = ref(false);
+const roleChanging    = ref<string | null>(null);
+
+const fetchMembers = async () => {
+    membersLoading.value = true;
+    try {
+        const params = new URLSearchParams({
+            search: memberSearch.value,
+            page: String(memberPage.value),
+            ...(memberRoleFilter.value ? { role: memberRoleFilter.value } : {}),
+        });
+        const res = await api.get(`/admin/users?${params}`);
+        members.value  = res.data.users;
+        memberPages.value = res.data.pages;
+        memberTotal.value = res.data.total;
+        membersLoaded.value = true;
+    } catch { showToast('Failed to load members.', 'error'); }
+    finally { membersLoading.value = false; }
+};
+
+const goToMembers = () => {
+    currentTab.value = 'members';
+    if (!membersLoaded.value) fetchMembers();
+};
+
+let memberSearchTimer: ReturnType<typeof setTimeout>;
+const onMemberSearch = () => {
+    clearTimeout(memberSearchTimer);
+    memberSearchTimer = setTimeout(() => { memberPage.value = 1; fetchMembers(); }, 400);
+};
+
+const openMemberDrawer = async (id: string) => {
+    try {
+        const res = await api.get(`/admin/users/${id}`);
+        selectedMember.value = res.data;
+        memberDrawerOpen.value = true;
+    } catch { showToast('Failed to load member detail.', 'error'); }
+};
+
+const changeRole = async (id: string, role: string) => {
+    roleChanging.value = id;
+    try {
+        await api.patch(`/admin/users/${id}/role`, { role });
+        const m = members.value.find(m => m._id === id);
+        if (m) m.role = role;
+        if (selectedMember.value?.user._id === id) selectedMember.value.user.role = role;
+        showToast(`Role updated to ${role}.`, 'success');
+    } catch { showToast('Failed to change role.', 'error'); }
+    finally { roleChanging.value = null; }
+};
+
+const adminCancelOrder = async (orderId: string) => {
+    const confirmed = await showConfirm('Cancel this order? If it is Paid, a Stripe refund will be issued.');
+    if (!confirmed) return;
+    try {
+        await api.patch(`/admin/orders/${orderId}/cancel`);
+        showToast('Order cancelled.', 'success');
+        if (selectedMember.value) {
+            const o = selectedMember.value.orders.find((o: any) => o.orderId === orderId);
+            if (o) o.status = 'Cancelled';
+        }
+    } catch { showToast('Failed to cancel order.', 'error'); }
+};
+
+// ── Audit log tab ──────────────────────────────────────────────────────────
+interface AuditEntry { _id: string; email: string; action: string; metadata: any; ip: string; createdAt: string; }
+const auditLogs       = ref<AuditEntry[]>([]);
+const auditLoaded     = ref(false);
+const auditLoading    = ref(false);
+const auditPage       = ref(1);
+const auditPages      = ref(1);
+const auditTotal      = ref(0);
+const auditActionFilter = ref('');
+const auditEmailFilter  = ref('');
+
+const fetchAuditLogs = async () => {
+    auditLoading.value = true;
+    try {
+        const params = new URLSearchParams({
+            page: String(auditPage.value),
+            ...(auditActionFilter.value ? { action: auditActionFilter.value } : {}),
+            ...(auditEmailFilter.value  ? { email: auditEmailFilter.value }  : {}),
+        });
+        const res = await api.get(`/admin/audit-logs?${params}`);
+        auditLogs.value   = res.data.logs;
+        auditPages.value  = res.data.pages;
+        auditTotal.value  = res.data.total;
+        auditLoaded.value = true;
+    } catch { showToast('Failed to load audit logs.', 'error'); }
+    finally { auditLoading.value = false; }
+};
+
+const goToAudit = () => {
+    currentTab.value = 'audit';
+    if (!auditLoaded.value) fetchAuditLogs();
+};
+
+// ── Server stats ──────────────────────────────────────────────────────────
+interface ServerStats { totalMembers: number; allTimeOrders: number; ordersThisMonth: number; revenueThisMonth: number; }
+const serverStats     = ref<ServerStats | null>(null);
+const statsLoading    = ref(false);
+
+const fetchServerStats = async () => {
+    statsLoading.value = true;
+    try {
+        const res = await api.get('/admin/stats');
+        serverStats.value = res.data;
+    } catch { showToast('Failed to load stats.', 'error'); }
+    finally { statsLoading.value = false; }
+};
+
+const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+const formatTime = (d: string) => new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+const ACTION_LABELS: Record<string, string> = {
+    login: '🔑 Login', logout: '🚪 Logout', admin_login: '🛡 Admin Login',
+    order_placed: '🛒 Order Placed', order_cancelled: '❌ Order Cancelled',
+    address_updated: '📍 Address Updated', name_updated: '✏️ Name Updated',
+    role_changed: '👑 Role Changed',
+};
+
 // ── Password change ────────────────────────────────────────────────────────
 const passwordForm = ref({ current: '', new: '', confirm: '' });
 
@@ -372,6 +508,16 @@ const changePassword = async () => {
         class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
         ⚙️ Settings
     </button>
+    <button @click="goToMembers()"
+        :class="currentTab === 'members' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+        👥 Members
+    </button>
+    <button @click="goToAudit()"
+        :class="currentTab === 'audit' ? 'bg-gray-900 text-white' : 'hover:bg-gray-100 text-gray-500'"
+        class="px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-300">
+        📋 Audit Log
+    </button>
 </div>
             </div>
             <div class="mt-auto lg:pt-6 border-t border-gray-100">
@@ -422,6 +568,32 @@ const changePassword = async () => {
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Orders</div>
                         <div class="text-3xl font-black text-purple-600 mt-1">{{ dynamicStats.totalOrders }}</div>
+                    </div>
+                </div>
+
+                <!-- Member stats from server -->
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Members</p>
+                <div v-if="!serverStats" class="mb-6">
+                    <button @click="fetchServerStats" :disabled="statsLoading" class="px-4 py-2 bg-gray-900 text-white text-sm rounded-xl hover:bg-gray-700 disabled:opacity-60 transition-all flex items-center gap-2">
+                        <svg v-if="statsLoading" class="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                        </svg>
+                        Load Member Stats
+                    </button>
+                </div>
+                <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Total Members</div>
+                        <div class="text-3xl font-black text-gray-800 mt-1">{{ serverStats.totalMembers.toLocaleString() }}</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Orders This Month</div>
+                        <div class="text-3xl font-black text-blue-600 mt-1">{{ serverStats.ordersThisMonth }}</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-gray-400 text-xs font-bold uppercase tracking-wider">Revenue This Month</div>
+                        <div class="text-3xl font-black text-green-600 mt-1">${{ serverStats.revenueThisMonth.toLocaleString() }}</div>
                     </div>
                 </div>
             </div>
@@ -758,42 +930,264 @@ const changePassword = async () => {
             <router-link to="/" class="block mt-6 text-gray-400 text-xs hover:underline italic">Back to Website Home</router-link>
         </div>
     </div>
+            <!-- ══════════════ MEMBERS TAB ══════════════ -->
+            <div v-if="currentTab === 'members'" class="animate-fadeIn">
+
+                <!-- Search + filter bar -->
+                <div class="flex flex-wrap gap-3 mb-5">
+                    <input
+                        v-model="memberSearch"
+                        @input="onMemberSearch"
+                        type="text"
+                        placeholder="Search by name or email..."
+                        class="flex-1 min-w-[200px] border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-gray-400 transition-colors"
+                    />
+                    <select
+                        v-model="memberRoleFilter"
+                        @change="memberPage = 1; fetchMembers()"
+                        class="border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-gray-400 transition-colors"
+                    >
+                        <option value="">All Roles</option>
+                        <option value="member">Member</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button @click="fetchMembers()" class="px-4 py-2 bg-gray-900 text-white text-sm rounded-xl hover:bg-gray-700 transition-all">
+                        Refresh
+                    </button>
+                </div>
+
+                <!-- Loading -->
+                <div v-if="membersLoading" class="flex justify-center py-12">
+                    <svg class="animate-spin h-6 w-6 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                </div>
+
+                <!-- Table -->
+                <div v-else class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+                    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ memberTotal }} Members</span>
+                    </div>
+                    <table class="w-full text-left min-w-[640px]">
+                        <thead>
+                            <tr class="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                                <th class="px-5 py-3">Name</th>
+                                <th class="px-5 py-3">Email</th>
+                                <th class="px-5 py-3">Provider</th>
+                                <th class="px-5 py-3">Role</th>
+                                <th class="px-5 py-3">Orders</th>
+                                <th class="px-5 py-3">Joined</th>
+                                <th class="px-5 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-if="members.length === 0">
+                                <td colspan="7" class="px-5 py-8 text-center text-sm text-gray-400">No members found.</td>
+                            </tr>
+                            <tr
+                                v-for="m in members"
+                                :key="m._id"
+                                class="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                            >
+                                <td class="px-5 py-3 text-sm font-medium text-gray-800">{{ m.name || '—' }}</td>
+                                <td class="px-5 py-3 text-sm text-gray-500">{{ m.email }}</td>
+                                <td class="px-5 py-3">
+                                    <span class="text-xs px-2 py-0.5 rounded-full" :class="m.provider === 'google' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'">
+                                        {{ m.provider === 'google' ? 'Google' : 'Email OTP' }}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-3">
+                                    <span class="text-xs px-2 py-0.5 rounded-full" :class="m.role === 'admin' ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-100 text-gray-500'">
+                                        {{ m.role }}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-3 text-sm text-gray-500">{{ m.orderCount }}</td>
+                                <td class="px-5 py-3 text-sm text-gray-400">{{ formatDate(m.createdAt) }}</td>
+                                <td class="px-5 py-3">
+                                    <button @click="openMemberDrawer(m._id)" class="text-xs text-gray-500 hover:text-gray-900 underline underline-offset-2 transition-colors">
+                                        View
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Pagination -->
+                    <div v-if="memberPages > 1" class="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+                        <span class="text-xs text-gray-400">Page {{ memberPage }} of {{ memberPages }}</span>
+                        <div class="flex gap-2">
+                            <button :disabled="memberPage <= 1" @click="memberPage--; fetchMembers()" class="px-3 py-1 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-all">← Prev</button>
+                            <button :disabled="memberPage >= memberPages" @click="memberPage++; fetchMembers()" class="px-3 py-1 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-all">Next →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Member detail drawer -->
+                <Transition name="page-fade">
+                <div v-if="memberDrawerOpen && selectedMember" class="fixed inset-0 z-50 flex justify-end">
+                    <div class="absolute inset-0 bg-black/30" @click="memberDrawerOpen = false"/>
+                    <div class="relative bg-white w-full max-w-md shadow-2xl overflow-y-auto flex flex-col">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                            <h3 class="font-bold text-gray-800">Member Detail</h3>
+                            <button @click="memberDrawerOpen = false" class="text-gray-400 hover:text-gray-800 transition-colors text-xl leading-none">×</button>
+                        </div>
+                        <div class="px-6 py-5 flex-1">
+                            <!-- Info -->
+                            <div class="space-y-3 mb-6">
+                                <div>
+                                    <p class="text-[11px] uppercase tracking-widest text-gray-400 mb-0.5">Name</p>
+                                    <p class="text-sm font-medium">{{ selectedMember.user.name || '—' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[11px] uppercase tracking-widest text-gray-400 mb-0.5">Email</p>
+                                    <p class="text-sm">{{ selectedMember.user.email }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[11px] uppercase tracking-widest text-gray-400 mb-0.5">Provider</p>
+                                    <p class="text-sm">{{ selectedMember.user.provider === 'google' ? 'Google' : 'Email OTP' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[11px] uppercase tracking-widest text-gray-400 mb-0.5">Joined</p>
+                                    <p class="text-sm">{{ formatDate(selectedMember.user.createdAt) }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Role toggle -->
+                            <div class="mb-6 pb-6 border-b border-gray-100">
+                                <p class="text-[11px] uppercase tracking-widest text-gray-400 mb-2">Role</p>
+                                <div class="flex gap-2">
+                                    <button
+                                        @click="changeRole(selectedMember.user._id, 'member')"
+                                        :disabled="roleChanging === selectedMember.user._id || selectedMember.user.role === 'member'"
+                                        :class="selectedMember.user.role === 'member' ? 'bg-gray-900 text-white' : 'border border-gray-200 text-gray-500 hover:bg-gray-50'"
+                                        class="px-4 py-1.5 text-xs rounded-lg transition-all disabled:opacity-60"
+                                    >Member</button>
+                                    <button
+                                        @click="changeRole(selectedMember.user._id, 'admin')"
+                                        :disabled="roleChanging === selectedMember.user._id || selectedMember.user.role === 'admin'"
+                                        :class="selectedMember.user.role === 'admin' ? 'bg-yellow-500 text-white' : 'border border-gray-200 text-gray-500 hover:bg-gray-50'"
+                                        class="px-4 py-1.5 text-xs rounded-lg transition-all disabled:opacity-60"
+                                    >Admin</button>
+                                </div>
+                            </div>
+
+                            <!-- Orders -->
+                            <div>
+                                <p class="text-[11px] uppercase tracking-widest text-gray-400 mb-3">Orders ({{ selectedMember.orders.length }})</p>
+                                <div v-if="selectedMember.orders.length === 0" class="text-sm text-gray-400">No orders yet.</div>
+                                <div v-else class="space-y-2">
+                                    <div
+                                        v-for="o in selectedMember.orders"
+                                        :key="o._id"
+                                        class="border border-gray-100 rounded-xl px-4 py-3"
+                                    >
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="text-xs font-medium text-gray-700">{{ o.orderId }}</span>
+                                            <span class="text-xs px-2 py-0.5 rounded-full"
+                                                :class="{
+                                                    'bg-yellow-50 text-yellow-700': o.status === 'Pending Payment',
+                                                    'bg-blue-50 text-blue-700':    o.status === 'Paid',
+                                                    'bg-green-50 text-green-700':  o.status === 'Completed',
+                                                    'bg-gray-100 text-gray-400':   o.status === 'Cancelled',
+                                                    'bg-purple-50 text-purple-700': !['Pending Payment','Paid','Completed','Cancelled'].includes(o.status),
+                                                }"
+                                            >{{ o.status }}</span>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-gray-400">{{ formatDate(o.createdAt) }}</span>
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-xs font-medium">${{ o.totalAmount?.toFixed(2) }}</span>
+                                                <button
+                                                    v-if="['Pending Payment', 'Paid'].includes(o.status)"
+                                                    @click="adminCancelOrder(o.orderId)"
+                                                    class="text-[11px] text-red-400 hover:text-red-600 transition-colors underline underline-offset-2"
+                                                >Cancel</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </Transition>
+            </div>
+
+            <!-- ══════════════ AUDIT LOG TAB ══════════════ -->
+            <div v-if="currentTab === 'audit'" class="animate-fadeIn">
+
+                <!-- Filters -->
+                <div class="flex flex-wrap gap-3 mb-5">
+                    <input
+                        v-model="auditEmailFilter"
+                        type="text"
+                        placeholder="Filter by email..."
+                        class="flex-1 min-w-[180px] border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-gray-400 transition-colors"
+                    />
+                    <select
+                        v-model="auditActionFilter"
+                        @change="auditPage = 1; fetchAuditLogs()"
+                        class="border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none"
+                    >
+                        <option value="">All Actions</option>
+                        <option v-for="(label, key) in ACTION_LABELS" :key="key" :value="key">{{ label }}</option>
+                    </select>
+                    <button @click="auditPage = 1; fetchAuditLogs()" class="px-4 py-2 bg-gray-900 text-white text-sm rounded-xl hover:bg-gray-700 transition-all">
+                        Search
+                    </button>
+                </div>
+
+                <div v-if="auditLoading" class="flex justify-center py-12">
+                    <svg class="animate-spin h-6 w-6 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                </div>
+
+                <div v-else class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+                    <div class="px-5 py-3 border-b border-gray-100">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ auditTotal }} Events (last 90 days)</span>
+                    </div>
+                    <table class="w-full text-left min-w-[640px]">
+                        <thead>
+                            <tr class="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                                <th class="px-5 py-3">Time</th>
+                                <th class="px-5 py-3">User</th>
+                                <th class="px-5 py-3">Action</th>
+                                <th class="px-5 py-3">IP</th>
+                                <th class="px-5 py-3">Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-if="auditLogs.length === 0">
+                                <td colspan="5" class="px-5 py-8 text-center text-sm text-gray-400">No logs found.</td>
+                            </tr>
+                            <tr
+                                v-for="log in auditLogs"
+                                :key="log._id"
+                                class="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                            >
+                                <td class="px-5 py-3 text-xs text-gray-400 whitespace-nowrap">{{ formatTime(log.createdAt) }}</td>
+                                <td class="px-5 py-3 text-sm text-gray-600">{{ log.email || '—' }}</td>
+                                <td class="px-5 py-3 text-sm">{{ ACTION_LABELS[log.action] || log.action }}</td>
+                                <td class="px-5 py-3 text-xs text-gray-400 font-mono">{{ log.ip || '—' }}</td>
+                                <td class="px-5 py-3 text-xs text-gray-400 max-w-[200px] truncate">
+                                    {{ Object.keys(log.metadata || {}).length ? JSON.stringify(log.metadata) : '—' }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Pagination -->
+                    <div v-if="auditPages > 1" class="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+                        <span class="text-xs text-gray-400">Page {{ auditPage }} of {{ auditPages }}</span>
+                        <div class="flex gap-2">
+                            <button :disabled="auditPage <= 1" @click="auditPage--; fetchAuditLogs()" class="px-3 py-1 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-all">← Prev</button>
+                            <button :disabled="auditPage >= auditPages" @click="auditPage++; fetchAuditLogs()" class="px-3 py-1 text-xs rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-all">Next →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 </template>
-
-<style scoped>
-.animate-fadeIn {
-    animation: fadeIn 0.3s ease-in-out;
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.overflow-x-auto::-webkit-scrollbar {
-    display: none; /* hide scrollbar */
-}
-
-.toast-enter-active { animation: toastIn 0.4s ease; }
-.toast-leave-active { animation: toastOut 0.4s ease; }
-
-@keyframes toastIn {
-    from { opacity: 0; transform: translateY(-12px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes toastOut {
-    from { opacity: 1; transform: translateY(0); }
-    to   { opacity: 0; transform: translateY(-12px); }
-}
-
-.toast-enter-active .bg-white { animation: dialogIn 0.4s ease; }
-.toast-leave-active .bg-white { animation: dialogOut 0.4s ease; }
-
-@keyframes dialogIn {
-    from { opacity: 0; transform: scale(0.92); }
-    to   { opacity: 1; transform: scale(1); }
-}
-@keyframes dialogOut {
-    from { opacity: 1; transform: scale(1); }
-    to   { opacity: 0; transform: scale(0.92); }
-}
-</style>

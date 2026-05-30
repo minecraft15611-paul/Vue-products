@@ -439,9 +439,32 @@
         }
     };
 
+    // ── Saved address pre-fill ────────────────────────────────────────────────
+    async function prefillSavedAddress() {
+        if (!authStore.user) return;
+        try {
+            const res = await fetch(`${API}/api/users/me/profile`, { credentials: 'include' });
+            if (!res.ok) return;
+            const profile = await res.json();
+            const a = profile.savedAddress;
+            if (!a || !a.fullName) return; // nothing saved yet
+            // Only pre-fill if the shipping fields are still empty
+            if (!checkoutForm.shipping.firstName) {
+                const [first, ...rest] = (a.fullName || '').split(' ');
+                checkoutForm.shipping.firstName = first || '';
+                checkoutForm.shipping.lastName  = rest.join(' ') || '';
+            }
+            if (!checkoutForm.shipping.address)  checkoutForm.shipping.address = a.address || '';
+            if (!checkoutForm.shipping.city)     checkoutForm.shipping.city    = a.city    || '';
+            if (!checkoutForm.shipping.phone)    checkoutForm.shipping.phone   = a.phone   || '';
+            if (!checkoutForm.email && authStore.user?.email) checkoutForm.email = authStore.user.email;
+        } catch { /* silently skip pre-fill on error */ }
+    }
+
     onMounted(() => {
         window.addEventListener('mousedown', handleClickOutside);
         window.addEventListener('touchstart', handleClickOutside);
+        prefillSavedAddress();
     });
 
     onUnmounted(() => {

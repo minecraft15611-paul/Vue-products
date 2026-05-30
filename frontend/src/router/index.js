@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import { useCartStore } from '../stores/cart'; 
+import { useAuthStore } from '../stores/auth';
 
 const routes = [
     {
@@ -43,6 +44,12 @@ const routes = [
         name: 'SuccessView',
         component: () => import('../views/SuccessView.vue'),
         meta: { fromCheckout: true }
+    },
+    {
+        path: '/profile',
+        name: 'Profile',
+        component: () => import('../views/ProfileView.vue'),
+        meta: { requiresAuth: true }
     },
     {
         path: '/Admin',
@@ -92,6 +99,13 @@ router.beforeEach((to, from, next) => {
             return next({ name: 'ProductsList' });
         }
 
+        next();
+    } else if (to.meta.requiresAuth) {
+        const authStore = useAuthStore();
+    if (!authStore.user) {
+        alert('Please sign in to view your profile');
+        return next({ name: 'LoginView' });
+    }
         next();
     } else if (to.meta.requiresAdmin) {
         next();
