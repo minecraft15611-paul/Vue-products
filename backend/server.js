@@ -884,7 +884,7 @@ app.post('/api/auth/otp/verify', async (req, res) => {
         }
 
         // Returning user — set cookie and done
-        setUserCookie(res, { email: user.email, name: user.name });
+        setUserCookie(res, { email: user.email, name: user.name, tokenVersion: user.tokenVersion ?? 0 });
         audit('login', { user, ip: req.ip });
         res.json({ ok: true, needsName: false, email: user.email, name: user.name });
     } catch (err) {
@@ -910,7 +910,7 @@ app.patch('/api/users/me/name', async (req, res) => {
         );
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        setUserCookie(res, { email: user.email, name: user.name });
+        setUserCookie(res, { email: user.email, name: user.name, tokenVersion: user.tokenVersion ?? 0 });
         audit('login', { user, ip: req.ip });
         audit('name_updated', { user, metadata: { name }, ip: req.ip });
         res.json({ ok: true, email: user.email, name: user.name });
@@ -932,7 +932,7 @@ app.post('/api/auth/sessions', async (req, res) => {
             { upsert: true, new: true }
         );
 
-        setUserCookie(res, { email: user.email, name: user.name });
+        setUserCookie(res, { email: user.email, name: user.name, tokenVersion: user.tokenVersion ?? 0 });
         audit('login', { user, ip: req.ip });
         res.json({ ok: true, email: user.email, name: user.name });
     } catch (err) {
