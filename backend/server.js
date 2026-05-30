@@ -33,13 +33,21 @@ mongoose.connect(uri)
     .then(() => console.log('MongoDB connected successfully!'))
     .catch(err => console.error('Connection failed:', err));
 
-// ── NEW: User model — stores customer email + name ───────────────────────────
+// ── User model ───────────────────────────────────────────────────────────────
 const userSchema = new mongoose.Schema({
     email:        { type: String, required: true, unique: true, lowercase: true, trim: true },
     name:         { type: String, default: '' },
     provider:     { type: String, enum: ['otp', 'google'], default: 'otp' },
     createdAt:    { type: Date, default: Date.now },
     tokenVersion: { type: Number, default: 0 },
+    // ── Phase 1 additions ────────────────────────────────────────────────────
+    role: { type: String, enum: ['member', 'admin'], default: 'member' },
+    savedAddress: {
+        fullName: { type: String, default: '' },
+        phone:    { type: String, default: '' },
+        address:  { type: String, default: '' },
+        city:     { type: String, default: '' },
+    },
 });
 const User = mongoose.model('User', userSchema);
 
@@ -53,6 +61,34 @@ const otpTokenSchema = new mongoose.Schema({
 // Auto-delete expired documents (MongoDB TTL index)
 otpTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 const OtpToken = mongoose.model('OtpToken', otpTokenSchema);
+
+// ── AuditLog model — tracks important member/admin actions ───────────────────
+const auditLogSchema = new mongoose.Schema({
+    user:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    email:     { type: String, default: '' },          // denormalised for quick display
+    action:    {
+        type: String,
+        enum: [
+            'login', 'logout',
+            'order_placed', 'order_cancelled',
+            'address_updated', 'name_updated',
+            'role_changed', 'admin_login',
+        ],
+        required: true,
+    },
+    metadata:  { type: mongoose.Schema.Types.Mixed, default: {} },
+    ip:        { type: String, default: '' },
+    createdAt: { type: Date, default: Date.now },
+});
+// Auto-delete logs older than 90 days
+auditLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
+const AuditLog = mongoose.model('AuditLog', auditLogSchema);
+
+// Helper — fire-and-forget audit log writer (never throws)
+const audit = (action, { user, email, metadata = {}, ip = '' } = {}) => {
+    AuditLog.create({ user: user?._id ?? null, email: email || user?.email || '', action, metadata, ip })
+        .catch(err => console.error('[audit] write failed:', err.message));
+};
 
 // ── Schemas & Models (defined first — used by routes below) ─────────────────
 const productSchema = new mongoose.Schema({
@@ -72,10 +108,12 @@ const productSchema = new mongoose.Schema({
 const Product = mongoose.model('Product', productSchema);
 
 const orderSchema = new mongoose.Schema({
+    // ── Phase 1: real relationship to users collection ───────────────────────
+    user:            { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     orderId:         { type: String, required: true },
     stripeSessionId: { type: String, default: null }, // set for Stripe checkout orders
     customerName:    String,
-    email:           String,
+    email:           String,  // kept for backwards compat
     address:         String,
     phone:           String,
     items: [{
@@ -88,8 +126,11 @@ const orderSchema = new mongoose.Schema({
         selectedSize:  String,
         selectedColor: String,
     }],
-    totalAmount: Number,
-    status:      { type: String, default: 'Pending Payment' },
+    totalAmount:   Number,
+    status:        { type: String, default: 'Pending Payment' },
+    cancelledAt:   { type: Date, default: null },    // Phase 1: set when cancelled
+    cancelReason:  { type: String, default: '' },    // Phase 1: optional reason
+    cancelledBy:   { type: String, enum: ['member', 'admin', null], default: null },
     // Full shipping address — populated by Stripe webhook for express checkout orders
     shippingDetails: {
         firstName: String,
@@ -242,11 +283,16 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
             const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
             const orderId      = `ORD-${datePart}-${randomSuffix}`;
 
+            // Link to member account by email if one exists
+            const stripeEmail = session.customer_details?.email ?? '';
+            const stripeUser  = stripeEmail ? await User.findOne({ email: stripeEmail.toLowerCase() }) : null;
+
             const newOrder = new Order({
+                user:            stripeUser?._id ?? null,
                 orderId,
                 stripeSessionId: session.id,
                 customerName:    name,
-                email:           session.customer_details?.email ?? '',
+                email:           stripeEmail,
                 address:         `${addr.line1 ?? ''}${addr.line2 ? ', ' + addr.line2 : ''}`.trim() || '',
                 phone:           session.customer_details?.phone || '',
                 items:           orderItems,
@@ -400,6 +446,7 @@ app.post('/api/admin/sessions', async (req, res) => {
             sameSite: 'none',
             maxAge: 8 * 60 * 60 * 1000,
         });
+        audit('admin_login', { email: 'admin', ip: req.ip });
         res.json({ ok: true });
     } catch (err) {
         res.status(500).json({ error: 'Server error', detail: err.message });
@@ -459,12 +506,28 @@ app.post('/api/orders', async (req, res) => {
         // Prevent client from self-approving orders
         const safeStatus = ALLOWED_STATUSES.includes(status) ? status : 'Pending Payment';
 
+        // Link order to member account if they are logged in
+        let orderUser = null;
+        try {
+            const token = req.cookies?.userToken;
+            if (token) {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                orderUser = await User.findOne({ email: decoded.email });
+            }
+        } catch {}
+        // Fallback: match by email even without a valid cookie
+        if (!orderUser && email) {
+            orderUser = await User.findOne({ email: email.toLowerCase().trim() });
+        }
+
         const newOrder = new Order({
+            user: orderUser?._id ?? null,
             orderId, customerName, email, address, phone,
             items, totalAmount, shippingDetails,
             status: safeStatus,
         });
         const savedOrder = await newOrder.save();
+        if (orderUser) audit('order_placed', { user: orderUser, metadata: { orderId }, ip: req.ip });
 
         // Send order confirmation email (manual checkout path)
         try {
@@ -822,6 +885,7 @@ app.post('/api/auth/otp/verify', async (req, res) => {
 
         // Returning user — set cookie and done
         setUserCookie(res, { email: user.email, name: user.name });
+        audit('login', { user, ip: req.ip });
         res.json({ ok: true, needsName: false, email: user.email, name: user.name });
     } catch (err) {
         console.error('otp/verify error:', err.message);
@@ -847,6 +911,8 @@ app.patch('/api/users/me/name', async (req, res) => {
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         setUserCookie(res, { email: user.email, name: user.name });
+        audit('login', { user, ip: req.ip });
+        audit('name_updated', { user, metadata: { name }, ip: req.ip });
         res.json({ ok: true, email: user.email, name: user.name });
     } catch (err) {
         console.error('users/me/name error:', err.message);
@@ -867,6 +933,7 @@ app.post('/api/auth/sessions', async (req, res) => {
         );
 
         setUserCookie(res, { email: user.email, name: user.name });
+        audit('login', { user, ip: req.ip });
         res.json({ ok: true, email: user.email, name: user.name });
     } catch (err) {
         console.error('google auth error:', err.message);
@@ -880,7 +947,9 @@ app.delete('/api/auth/session', async (req, res) => {
         const token = req.cookies?.userToken;
         if (token) {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const user = await User.findOne({ email: decoded.email });
             await User.updateOne({ email: decoded.email }, { $inc: { tokenVersion: 1 } });
+            if (user) audit('logout', { user, ip: req.ip });
         }
     } catch {}
     res.clearCookie('userToken', {
@@ -889,6 +958,268 @@ app.delete('/api/auth/session', async (req, res) => {
         sameSite: 'none',
     });
     res.json({ ok: true });
+});
+
+
+// ── Member Profile routes ─────────────────────────────────────────────────────
+
+// [PATCH] Update saved address
+app.patch('/api/users/me/address', requireUser, async (req, res) => {
+    try {
+        const { fullName, phone, address, city } = req.body;
+        const user = await User.findOneAndUpdate(
+            { email: req.user.email },
+            { savedAddress: { fullName: fullName?.trim() || '', phone: phone?.trim() || '', address: address?.trim() || '', city: city?.trim() || '' } },
+            { new: true }
+        );
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        audit('address_updated', { user, ip: req.ip });
+        res.json({ ok: true, savedAddress: user.savedAddress });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', detail: err.message });
+    }
+});
+
+// [GET] Get own profile (extended — includes savedAddress + role)
+app.get('/api/users/me/profile', requireUser, async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.user.email });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json({
+            email:        user.email,
+            name:         user.name,
+            provider:     user.provider,
+            role:         user.role,
+            savedAddress: user.savedAddress,
+            createdAt:    user.createdAt,
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ── Member Order routes ───────────────────────────────────────────────────────
+
+// [GET] Own order list — newest first
+app.get('/api/users/me/orders', requireUser, async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.user.email });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        const orders = await Order.find({ user: user._id }).sort({ createdAt: -1 });
+        res.json(orders);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', detail: err.message });
+    }
+});
+
+// [GET] Single order detail (member must own it)
+app.get('/api/users/me/orders/:orderId', requireUser, async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.user.email });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        const order = await Order.findOne({ orderId: req.params.orderId, user: user._id });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        res.json(order);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', detail: err.message });
+    }
+});
+
+// [PATCH] Cancel own order — only allowed when status is 'Pending Payment'
+app.patch('/api/users/me/orders/:orderId/cancel', requireUser, async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.user.email });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const order = await Order.findOne({ orderId: req.params.orderId, user: user._id });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        const CANCELLABLE = ['Pending Payment'];
+        if (!CANCELLABLE.includes(order.status)) {
+            return res.status(400).json({ error: `Cannot cancel an order with status: ${order.status}` });
+        }
+
+        order.status      = 'Cancelled';
+        order.cancelledAt = new Date();
+        order.cancelReason = req.body.reason?.trim() || '';
+        order.cancelledBy  = 'member';
+        await order.save();
+
+        audit('order_cancelled', { user, metadata: { orderId: order.orderId, cancelledBy: 'member' }, ip: req.ip });
+        res.json({ ok: true, order });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', detail: err.message });
+    }
+});
+
+// ── Admin — Member management ─────────────────────────────────────────────────
+
+// [GET] List all members with search, filter, pagination
+// Query params: search (name/email), role (member|admin), sort (createdAt|name), page
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+    try {
+        const { search = '', role, sort = 'createdAt', page = 1 } = req.query;
+        const PAGE_SIZE = 20;
+        const filter = {};
+
+        if (search) {
+            const regex = new RegExp(search, 'i');
+            filter.$or = [{ email: regex }, { name: regex }];
+        }
+        if (role && ['member', 'admin'].includes(role)) {
+            filter.role = role;
+        }
+
+        const sortMap = { createdAt: { createdAt: -1 }, name: { name: 1 } };
+        const sortObj = sortMap[sort] || { createdAt: -1 };
+
+        const total = await User.countDocuments(filter);
+        const users = await User.find(filter)
+            .sort(sortObj)
+            .skip((Number(page) - 1) * PAGE_SIZE)
+            .limit(PAGE_SIZE)
+            .select('-tokenVersion');
+
+        // Attach order count per user
+        const userIds = users.map(u => u._id);
+        const orderCounts = await Order.aggregate([
+            { $match: { user: { $in: userIds } } },
+            { $group: { _id: '$user', count: { $sum: 1 } } },
+        ]);
+        const countMap = {};
+        orderCounts.forEach(r => { countMap[r._id.toString()] = r.count; });
+
+        const result = users.map(u => ({
+            ...u.toObject(),
+            orderCount: countMap[u._id.toString()] || 0,
+        }));
+
+        res.json({ users: result, total, page: Number(page), pages: Math.ceil(total / PAGE_SIZE) });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', detail: err.message });
+    }
+});
+
+// [GET] Single member + their orders
+app.get('/api/admin/users/:id', requireAdmin, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-tokenVersion');
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        const orders = await Order.find({ user: user._id }).sort({ createdAt: -1 });
+        res.json({ user, orders });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', detail: err.message });
+    }
+});
+
+// [PATCH] Change member role (promote/demote)
+app.patch('/api/admin/users/:id/role', requireAdmin, async (req, res) => {
+    try {
+        const { role } = req.body;
+        if (!['member', 'admin'].includes(role)) {
+            return res.status(400).json({ error: 'Invalid role. Must be member or admin.' });
+        }
+        const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        audit('role_changed', { email: user.email, metadata: { newRole: role, userId: user._id }, ip: req.ip });
+        res.json({ ok: true, user });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', detail: err.message });
+    }
+});
+
+// [PATCH] Admin cancel order (allowed on Pending Payment or Paid — Paid triggers Stripe refund)
+app.patch('/api/admin/orders/:orderId/cancel', requireAdmin, async (req, res) => {
+    try {
+        const order = await Order.findOne({ orderId: req.params.orderId });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        const ADMIN_CANCELLABLE = ['Pending Payment', 'Paid'];
+        if (!ADMIN_CANCELLABLE.includes(order.status)) {
+            return res.status(400).json({ error: `Cannot cancel an order with status: ${order.status}` });
+        }
+
+        // If Paid — attempt Stripe refund
+        if (order.status === 'Paid' && order.stripeSessionId) {
+            try {
+                const session = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
+                if (session.payment_intent) {
+                    await stripe.refunds.create({ payment_intent: session.payment_intent });
+                    console.log(`💸 Stripe refund issued for order ${order.orderId}`);
+                }
+            } catch (stripeErr) {
+                console.error('Stripe refund failed:', stripeErr.message);
+                // Still cancel the order locally even if Stripe refund fails — admin can handle manually
+            }
+        }
+
+        order.status       = 'Cancelled';
+        order.cancelledAt  = new Date();
+        order.cancelReason = req.body.reason?.trim() || '';
+        order.cancelledBy  = 'admin';
+        await order.save();
+
+        audit('order_cancelled', { email: 'admin', metadata: { orderId: order.orderId, cancelledBy: 'admin' }, ip: req.ip });
+        res.json({ ok: true, order });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', detail: err.message });
+    }
+});
+
+// ── Admin — Audit Log ─────────────────────────────────────────────────────────
+
+// [GET] Audit logs — filter by action, email, date range; paginated
+app.get('/api/admin/audit-logs', requireAdmin, async (req, res) => {
+    try {
+        const { action, email, from, to, page = 1 } = req.query;
+        const PAGE_SIZE = 50;
+        const filter = {};
+
+        if (action) filter.action = action;
+        if (email)  filter.email  = new RegExp(email, 'i');
+        if (from || to) {
+            filter.createdAt = {};
+            if (from) filter.createdAt.$gte = new Date(from);
+            if (to)   filter.createdAt.$lte = new Date(to);
+        }
+
+        const total = await AuditLog.countDocuments(filter);
+        const logs  = await AuditLog.find(filter)
+            .sort({ createdAt: -1 })
+            .skip((Number(page) - 1) * PAGE_SIZE)
+            .limit(PAGE_SIZE);
+
+        res.json({ logs, total, page: Number(page), pages: Math.ceil(total / PAGE_SIZE) });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', detail: err.message });
+    }
+});
+
+// ── Admin — Stats ─────────────────────────────────────────────────────────────
+
+// [GET] Dashboard stats — total members, orders + revenue this month
+app.get('/api/admin/stats', requireAdmin, async (req, res) => {
+    try {
+        const now        = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const [totalMembers, ordersThisMonth, allTimeOrders] = await Promise.all([
+            User.countDocuments(),
+            Order.find({ createdAt: { $gte: monthStart }, status: { $ne: 'Cancelled' } }),
+            Order.countDocuments({ status: { $ne: 'Cancelled' } }),
+        ]);
+
+        const revenueThisMonth = ordersThisMonth.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+        res.json({
+            totalMembers,
+            allTimeOrders,
+            ordersThisMonth:  ordersThisMonth.length,
+            revenueThisMonth: +revenueThisMonth.toFixed(2),
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error', detail: err.message });
+    }
 });
 
 Sentry.setupExpressErrorHandler(app)
