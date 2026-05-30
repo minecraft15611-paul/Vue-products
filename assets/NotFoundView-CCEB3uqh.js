@@ -1,1 +1,0 @@
-import{D as e,E as t,H as n,K as r,w as i,x as a,z as o}from"./vendor-DL-aD-vx.js";import{t as s}from"./_plugin-vue_export-helper-BOai-rQB.js";var c={};function l(s,c){let l=n(`RouterLink`);return o(),i(`div`,null,[c[1]||=a(`h1`,null,`404 - 找不到頁面`,-1),e(l,{to:`/`},{default:r(()=>[...c[0]||=[t(`回首頁`,-1)]]),_:1})])}var u=s(c,[[`render`,l]]);export{u as default};
