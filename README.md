@@ -47,10 +47,8 @@ Email login uses a **time-limited, hashed OTP** flow:
 
 Rate limiting (`3 attempts / 15 min`) prevents brute force on the OTP endpoint.
 
-### 🌐 Google OAuth (Popup vs Redirect)
-Firebase Auth is used differently depending on environment:
-- **Local dev** → `signInWithPopup` (fast, no page reload)
-- **Production (GitHub Pages)** → `signInWithRedirect` (required for cross-origin iframe restrictions)
+### 🌐 Google OAuth (Popup)
+Firebase Auth uses `signInWithPopup` in all environments. The previous `signInWithRedirect` approach was removed because Chrome's third-party storage restrictions between `github.io` and `firebaseapp.com` caused `getRedirectResult` to always return null, breaking Google login for all users.
 
 After Firebase resolves the identity, the **email and display name are sent to the backend**, which issues its own JWT cookie — Firebase tokens are never trusted directly by the API.
 
@@ -204,7 +202,8 @@ Vue-products/
 ## 📝 Notes
 
 - **Backend cold start** — hosted on Render free tier, first request may take ~30s to wake up.
-- **Google OAuth** — uses redirect flow in production (GitHub Pages), popup in local dev.
+- **Google OAuth** — uses `signInWithPopup` in all environments. Works for all users with no custom domain required.
+- **OTP email login** — currently limited to Resend-verified addresses. Requires a custom sending domain to work for all users.
 - **Cart persistence** — saved to `localStorage`, survives page refreshes.
 - **OTP codes** — stored hashed in MongoDB with a TTL index; auto-deleted on expiry, never stored in plaintext.
 - **Cookies** — `httpOnly: true`, `secure: true`, `sameSite: 'none'` for cross-origin GitHub Pages ↔ Render support.

@@ -114,8 +114,14 @@
               <i class="fa-regular fa-user text-xl cursor-pointer transition duration-300 hover:scale-125"></i>
             </router-link>
 
+            <template v-else>
+              <router-link to="/profile" aria-label="My account" class="transition duration-300 hover:scale-125">
+                <i class="fa-regular fa-user text-xl cursor-pointer"></i>
+              </router-link>
+            </template>
+
             <button
-              v-else
+              v-if="authStore.user"
               @click="authStore.signOut(router)"
               :disabled="authStore.signingOut"
               class="flex items-center justify-center w-6 h-6 cursor-pointer disabled:cursor-not-allowed transition duration-300"
@@ -191,8 +197,12 @@
                 <i class="fa-regular fa-user text-lg cursor-pointer"></i>
               </router-link>
 
+              <router-link v-else to="/profile" @click="mobileMenuOpen = false" aria-label="My account">
+                <i class="fa-regular fa-user text-lg cursor-pointer"></i>
+              </router-link>
+
               <button
-                v-else
+                v-if="authStore.user"
                 @click="authStore.signOut(router); mobileMenuOpen = false"
                 :disabled="authStore.signingOut"
                 class="flex items-center justify-center cursor-pointer disabled:cursor-not-allowed transition"
