@@ -903,33 +903,6 @@ const changePassword = async () => {
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div v-else class="min-h-screen bg-green-50 flex items-center justify-center p-4">
-        <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md text-center">
-            <h2 class="text-3xl font-black text-green-600 mb-2">LemonTree</h2>
-            <p class="text-gray-400 text-sm mb-8 font-bold">Administrator Permission Verification</p>
-            
-            <input 
-                v-model="adminKey" 
-                type="password" 
-                placeholder="Please Enter Administrator Key"
-                @keyup.enter="login"
-                class="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl mb-6 outline-none focus:border-green-400 transition-all text-center tracking-widest font-mono"
-            />
-            
-            <button 
-                @click="login"
-                :disabled="isLoginLoading"
-                class="w-full py-4 bg-green-500 hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-2xl font-bold shadow-lg shadow-green-200 transition-all active:scale-95"
-            >
-                {{ isLoginLoading ? 'Verifying...' : 'Enter Management System' }}
-            </button>
-            
-            <router-link to="/" class="block mt-6 text-gray-400 text-xs hover:underline italic">Back to Website Home</router-link>
-        </div>
-    </div>
             <!-- ══════════════ MEMBERS TAB ══════════════ -->
             <div v-if="currentTab === 'members'" class="animate-fadeIn">
 
@@ -1190,4 +1163,32 @@ const changePassword = async () => {
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <div v-else class="min-h-screen bg-green-50 flex items-center justify-center p-4">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md text-center">
+            <h2 class="text-3xl font-black text-green-600 mb-2">LemonTree</h2>
+            <p class="text-gray-400 text-sm mb-8 font-bold">Administrator Permission Verification</p>
+            
+            <input 
+                v-model="adminKey" 
+                type="password" 
+                placeholder="Please Enter Administrator Key"
+                @keyup.enter="login"
+                class="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl mb-6 outline-none focus:border-green-400 transition-all text-center tracking-widest font-mono"
+            />
+            
+            <button 
+                @click="login"
+                :disabled="isLoginLoading"
+                class="w-full py-4 bg-green-500 hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-2xl font-bold shadow-lg shadow-green-200 transition-all active:scale-95"
+            >
+                {{ isLoginLoading ? 'Verifying...' : 'Enter Management System' }}
+            </button>
+            
+            <router-link to="/" class="block mt-6 text-gray-400 text-xs hover:underline italic">Back to Website Home</router-link>
+        </div>
+    </div>
+            
 </template>
