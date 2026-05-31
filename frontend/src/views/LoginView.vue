@@ -191,10 +191,10 @@ function inputClass(hasError: boolean, focused: boolean): string {
                     By continuing, you agree to our
                     <span class="cursor-pointer underline underline-offset-2 transition-colors">Terms of service</span>
                 </div>
-                <div class="w-full bg-yellow-50 border border-yellow-200 p-3 mb-4 rounded flex items-start gap-2">
-                    <span class="text-yellow-600 text-[16px]">⚠️</span>
-                    <p class="text-[12px] text-yellow-700 leading-tight">
-                        <strong>System Maintenance Notice:</strong> We are currently performing maintenance on our Google Sign-In feature. In the meantime, we kindly invite you to use our <strong>Email OTP authentication</strong> to log in. We apologize for any inconvenience this may cause and appreciate your kind understanding.
+                <div class="w-full bg-gray-50 border border-gray-200 p-3 mb-4 rounded flex items-start gap-2">
+                    <span class="text-gray-400 text-[14px]">ℹ️</span>
+                    <p class="text-[12px] text-gray-500 leading-tight">
+                        <strong>Email login</strong> is currently limited to verified addresses. We recommend using <strong>Continue with Google</strong> for the best experience.
                     </p>
                 </div>
             </template>
@@ -338,10 +338,10 @@ function inputClass(hasError: boolean, focused: boolean): string {
                     By continuing, you agree to our
                     <span class="cursor-pointer underline underline-offset-2 hover:text-gray-600 transition-colors">Terms of service</span>
                 </div>
-                <div class="w-full bg-yellow-50 border border-yellow-200 p-3 mb-4 rounded flex items-start gap-2">
-                    <span class="text-yellow-600 text-[16px]">⚠️</span>
-                    <p class="text-[12px] text-yellow-700 leading-tight">
-                        <strong>System Maintenance Notice:</strong> We are currently performing maintenance on our Google Sign-In feature. In the meantime, we kindly invite you to use our <strong>Email OTP authentication</strong> to log in. We apologize for any inconvenience this may cause and appreciate your kind understanding.
+                <div class="w-full bg-gray-50 border border-gray-200 p-3 mb-4 rounded flex items-start gap-2">
+                    <span class="text-gray-400 text-[14px]">ℹ️</span>
+                    <p class="text-[12px] text-gray-500 leading-tight">
+                        <strong>Email login</strong> is currently limited to verified addresses. We recommend using <strong>Continue with Google</strong> for the best experience.
                     </p>
                 </div>
             </template>
