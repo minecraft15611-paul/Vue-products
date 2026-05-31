@@ -38,10 +38,20 @@
     });
 
 
-    onMounted(() => {
+    function preloadSecondImages(products: Product[]) {
+        products.forEach(p => {
+            if (p.imgs?.[1]) {
+                const img = new Image();
+                img.src = p.imgs[1];
+            }
+        });
+    }
+
+    onMounted(async () => {
         if (cartStore.products.length === 0) {
-            cartStore.fetchProducts();
+            await cartStore.fetchProducts();
         }
+        preloadSecondImages(cartStore.products);
     });
 
 </script>
